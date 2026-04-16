@@ -6,7 +6,7 @@ Pure Python implementation using struct. No external dependencies.
 Optionally uses pyelftools if installed for richer symbol info.
 """
 import struct
-from typing import List, Dict, Optional, NamedTuple
+from typing import NamedTuple
 
 
 class ELFSegment(NamedTuple):
@@ -36,12 +36,12 @@ class ELFInfo:
         self.arch: str = ''
         self.bits: int = 32
         self.endian: str = 'little'
-        self.segments: List[ELFSegment] = []
-        self.symbols: List[ELFSymbol] = []
-        self.sections: Dict[str, dict] = {}
+        self.segments: list[ELFSegment] = []
+        self.symbols: list[ELFSymbol] = []
+        self.sections: dict[str, dict] = {}
 
     @property
-    def load_segments(self) -> List[ELFSegment]:
+    def load_segments(self) -> list[ELFSegment]:
         """Return only PT_LOAD segments."""
         return [s for s in self.segments if s.type == 1]
 

@@ -1,18 +1,19 @@
 # SPDX-License-Identifier: MIT
 """Platform registry for querying and filtering platforms."""
-from typing import Dict, List, Optional
 from collections import defaultdict
+from typing import Optional
+
 from eosim.core.platform import Platform, discover_platforms
 
 
 class PlatformRegistry:
     def __init__(self, root_dir: str = ""):
-        self._platforms: Dict[str, Platform] = {}
+        self._platforms: dict[str, Platform] = {}
         if root_dir:
             self._platforms = discover_platforms(root_dir)
 
     @classmethod
-    def from_dict(cls, platforms: Dict[str, Platform]) -> "PlatformRegistry":
+    def from_dict(cls, platforms: dict[str, Platform]) -> "PlatformRegistry":
         reg = cls.__new__(cls)
         reg._platforms = dict(platforms)
         return reg
@@ -20,7 +21,7 @@ class PlatformRegistry:
     def count(self) -> int:
         return len(self._platforms)
 
-    def all(self) -> List[Platform]:
+    def all(self) -> list[Platform]:
         return list(self._platforms.values())
 
     def get(self, name: str) -> Optional[Platform]:
@@ -28,7 +29,7 @@ class PlatformRegistry:
 
     def filter(self, arch: str = None, vendor: str = None,
                platform_class: str = None, engine: str = None,
-               domain: str = None) -> List[Platform]:
+               domain: str = None) -> list[Platform]:
         results = list(self._platforms.values())
         if arch is not None:
             results = [p for p in results if p.arch.lower() == arch.lower()]
@@ -42,14 +43,14 @@ class PlatformRegistry:
             results = [p for p in results if p.domain.lower() == domain.lower()]
         return results
 
-    def group_by(self, field: str) -> Dict[str, List[Platform]]:
-        groups: Dict[str, List[Platform]] = defaultdict(list)
+    def group_by(self, field: str) -> dict[str, list[Platform]]:
+        groups: dict[str, list[Platform]] = defaultdict(list)
         for p in self._platforms.values():
             key = getattr(p, field, "")
             groups[key].append(p)
         return dict(groups)
 
-    def search(self, query: str) -> List[Platform]:
+    def search(self, query: str) -> list[Platform]:
         q = query.lower()
         results = []
         for p in self._platforms.values():
@@ -61,8 +62,8 @@ class PlatformRegistry:
                 results.append(p)
         return results
 
-    def stats(self) -> Dict[str, Dict[str, int]]:
-        st: Dict[str, Dict[str, int]] = {
+    def stats(self) -> dict[str, dict[str, int]]:
+        st: dict[str, dict[str, int]] = {
             "arch": defaultdict(int),
             "vendor": defaultdict(int),
             "platform_class": defaultdict(int),
@@ -80,11 +81,11 @@ class PlatformRegistry:
                 st["domain"][p.domain] += 1
         return {k: dict(v) for k, v in st.items()}
 
-    def vendors(self) -> List[str]:
+    def vendors(self) -> list[str]:
         return sorted({p.vendor for p in self._platforms.values() if p.vendor})
 
-    def arches(self) -> List[str]:
+    def arches(self) -> list[str]:
         return sorted({p.arch for p in self._platforms.values() if p.arch})
 
-    def classes(self) -> List[str]:
+    def classes(self) -> list[str]:
         return sorted({p.platform_class for p in self._platforms.values() if p.platform_class})

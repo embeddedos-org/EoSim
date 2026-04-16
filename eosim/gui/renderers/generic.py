@@ -29,6 +29,7 @@ register_renderer("generic", GenericRenderer)
 # Copyright (c) 2026 EoS Project
 """Generic 3D renderer — fallback bar chart of all numeric state values."""
 import math
+
 from eosim.gui.renderers import BaseRenderer, register_renderer
 
 

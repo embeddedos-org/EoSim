@@ -2,7 +2,6 @@
 # Copyright (c) 2026 EoS Project
 """Weather simulator — atmospheric pressure, temperature, precipitation."""
 import math
-import random
 
 
 class WeatherSimulator:
@@ -40,9 +39,12 @@ class WeatherSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors_weather import (
-            WeatherStation, Anemometer, RadarSensor)
         from eosim.engine.native.peripherals.actuators_weather import WeatherActuator
+        from eosim.engine.native.peripherals.sensors_weather import (
+            Anemometer,
+            RadarSensor,
+            WeatherStation,
+        )
         self.vm.add_peripheral('station', WeatherStation('station', 0x40140000))
         self.vm.add_peripheral('anemometer', Anemometer('anemometer', 0x40140100))
         self.vm.add_peripheral('radar', RadarSensor('radar', 0x40140200))
@@ -97,7 +99,7 @@ class WeatherSimulator:
         return dict(self.vm.peripherals)
 
     def get_status_text(self):
-        scn = " [%s]" % self.scenario if self.scenario else ""
+        scn = f" [{self.scenario}]" if self.scenario else ""
         return "%s | Tick %d%s" % (self.DISPLAY_NAME, self.tick_count, scn)
 
     def reset(self):

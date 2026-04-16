@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Domain-specific bus protocol peripherals for EoSim simulation."""
-from typing import List, Dict, Optional
 from collections import deque
+from typing import Optional
 
 
 class BusBase:
@@ -40,7 +40,7 @@ class CANBusController(BusBase):
         self.bitrate = bitrate
         self.tx_queue: deque = deque(maxlen=64)
         self.rx_queue: deque = deque(maxlen=64)
-        self.filters: List[int] = []
+        self.filters: list[int] = []
         self.bus_off = False
         self.error_count = 0
         self.tx_count = 0
@@ -100,8 +100,8 @@ class LINBusController(BusBase):
 
     def __init__(self, name: str = 'lin0', base_addr: int = 0x40300100):
         super().__init__(name, base_addr)
-        self.schedule_table: List[dict] = []
-        self.frame_buffer: Dict[int, bytes] = {}
+        self.schedule_table: list[dict] = []
+        self.frame_buffer: dict[int, bytes] = {}
         self.current_frame_id = 0
         self.master_mode = True
 
@@ -131,16 +131,16 @@ class ModbusController(BusBase):
         super().__init__(name, base_addr)
         self.mode = mode
         self.slave_addr = 1
-        self.registers: List[int] = [0] * 256
-        self.coils: List[bool] = [False] * 256
-        self.input_registers: List[int] = [0] * 256
-        self.discrete_inputs: List[bool] = [False] * 256
+        self.registers: list[int] = [0] * 256
+        self.coils: list[bool] = [False] * 256
+        self.input_registers: list[int] = [0] * 256
+        self.discrete_inputs: list[bool] = [False] * 256
         self.transaction_count = 0
 
-    def read_holding(self, addr: int, count: int = 1) -> List[int]:
+    def read_holding(self, addr: int, count: int = 1) -> list[int]:
         return self.registers[addr:addr + count]
 
-    def write_holding(self, addr: int, values: List[int]):
+    def write_holding(self, addr: int, values: list[int]):
         for i, v in enumerate(values):
             if addr + i < len(self.registers):
                 self.registers[addr + i] = v & 0xFFFF

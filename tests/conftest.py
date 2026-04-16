@@ -1,11 +1,9 @@
 """Shared test fixtures for EoSim test suite."""
-import os
+
 import pytest
 import yaml
-from pathlib import Path
-from unittest.mock import MagicMock
 
-from eosim.core.platform import Platform, BootConfig, RuntimeConfig, QemuConfig
+from eosim.core.platform import Platform
 from eosim.core.registry import PlatformRegistry
 from eosim.engine.backend import SimResult
 

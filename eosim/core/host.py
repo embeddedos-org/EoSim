@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
 """Host environment detection and binary resolution."""
 import os
-import sys
-import shutil
 import platform as _platform
-from dataclasses import dataclass, field
-from typing import Optional, Dict
+import shutil
+import sys
+from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -29,7 +29,7 @@ class HostEnvironment:
             python_version="%d.%d.%d" % sys.version_info[:3],
         )
 
-    def platform_info(self) -> Dict[str, str]:
+    def platform_info(self) -> dict[str, str]:
         return {
             "os": self.os_name,
             "arch": self.arch,

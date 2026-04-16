@@ -4,7 +4,6 @@
 
 Pure Python, cross-platform. No OS-specific dependencies.
 """
-import math
 import random
 
 
@@ -37,9 +36,13 @@ class MedicalSimulator:
         self._profile = 'normal_adult'
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import ECGSensor, PulseOximeter, TemperatureSensor
-        from eosim.engine.native.peripherals.actuators import PumpController, DisplayDriver
-        from eosim.engine.native.peripherals.composites import WatchdogTimer, BatteryManagement
+        from eosim.engine.native.peripherals.actuators import DisplayDriver, PumpController
+        from eosim.engine.native.peripherals.composites import BatteryManagement, WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import (
+            ECGSensor,
+            PulseOximeter,
+            TemperatureSensor,
+        )
 
         self.vm.add_peripheral('ecg0', ECGSensor('ecg0', 0x40100800))
         self.vm.add_peripheral('spo2_0', PulseOximeter('spo2_0', 0x40100900))

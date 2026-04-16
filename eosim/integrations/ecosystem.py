@@ -2,12 +2,11 @@
 # Copyright (c) 2026 EoS Project
 """EoS Ecosystem Runner — test all repos through EoSim."""
 import os
+import shutil
+import subprocess
 import sys
 import time
-import subprocess
-import shutil
 from dataclasses import dataclass, field
-from typing import List, Dict
 
 
 @dataclass
@@ -32,8 +31,8 @@ class EcosystemReport:
     total_passed: int = 0
     total_failed: int = 0
     duration_s: float = 0.0
-    results: List[RepoTestResult] = field(default_factory=list)
-    simulations: List[dict] = field(default_factory=list)
+    results: list[RepoTestResult] = field(default_factory=list)
+    simulations: list[dict] = field(default_factory=list)
 
     def summary(self) -> str:
         lines = []
@@ -45,7 +44,7 @@ class EcosystemReport:
             self.repos_tested, self.repos_passed, self.repos_failed))
         lines.append("  Tests:  %d total  | %d passed | %d failed" % (
             self.total_tests, self.total_passed, self.total_failed))
-        lines.append("  Time:   %.2fs" % self.duration_s)
+        lines.append(f"  Time:   {self.duration_s:.2f}s")
         lines.append("")
         for r in self.results:
             status = "PASS" if r.passed else "FAIL"
@@ -71,7 +70,7 @@ class EcosystemReport:
         return "\n".join(lines)
 
 
-def find_repos(workspace: str = None) -> Dict[str, str]:
+def find_repos(workspace: str = None) -> dict[str, str]:
     if not workspace:
         workspace = os.environ.get("EOS_WORKSPACE", "")
     if not workspace:

@@ -25,9 +25,9 @@ class MediaDeviceSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.wireless import WiFiModule, BLEModule
         from eosim.engine.native.peripherals.actuators import DisplayDriver
         from eosim.engine.native.peripherals.composites import RTCModule
+        from eosim.engine.native.peripherals.wireless import BLEModule, WiFiModule
 
         self.vm.add_peripheral('wifi0', WiFiModule('wifi0', 0x40400000))
         self.vm.add_peripheral('ble0', BLEModule('ble0', 0x40400100))

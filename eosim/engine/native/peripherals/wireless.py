@@ -2,7 +2,6 @@
 # Copyright (c) 2026 EoS Project
 """Wireless communication peripherals for EoSim simulation."""
 import random
-from collections import deque
 
 
 class WirelessBase:

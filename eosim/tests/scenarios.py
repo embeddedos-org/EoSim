@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Advanced test scenarios — boot, peripheral, networking."""
+
 import yaml
-from typing import List
+
 from eosim.tests.runner import CheckResult
 
 
@@ -14,7 +15,7 @@ def load_scenario(path: str) -> dict:
 def run_scenario(
         scenario: dict,
         sim_stdout: str,
-        duration: float) -> List[CheckResult]:
+        duration: float) -> list[CheckResult]:
     results = []
     for step in scenario.get("steps", []):
         stype = step.get("type", "")
@@ -23,8 +24,7 @@ def run_scenario(
             passed = pattern in sim_stdout
             results.append(
                 CheckResult(
-                    name="wait_for: %s" %
-                    pattern,
+                    name=f"wait_for: {pattern}",
                     passed=passed,
                     message="found" if passed else "not found"))
         elif stype == "assert_no":
@@ -32,8 +32,7 @@ def run_scenario(
             passed = pattern not in sim_stdout
             results.append(
                 CheckResult(
-                    name="assert_no: %s" %
-                    pattern,
+                    name=f"assert_no: {pattern}",
                     passed=passed,
                     message="absent" if passed else "found (unexpected)"))
         elif stype == "timing":
@@ -44,8 +43,7 @@ def run_scenario(
                     name="timing <= %ds" %
                     max_s,
                     passed=passed,
-                    message="%.1fs" %
-                    duration))
+                    message=f"{duration:.1f}s"))
         elif stype == "count_matches":
             pattern = step.get("pattern", "")
             expected = step.get("min_count", 1)

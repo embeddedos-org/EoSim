@@ -3,6 +3,7 @@
 """3D renderer for weather systems (domain: weather)."""
 import math
 import random
+
 from eosim.gui.renderers import BaseRenderer, register_renderer
 
 
@@ -63,7 +64,7 @@ class WeatherRenderer(BaseRenderer):
         wind_dir = state.get("wind_direction_deg", 180)
         precip = state.get("precipitation_mm_hr", 0)
         cloud_cover = state.get("cloud_cover_pct", 30)
-        vis = state.get("visibility_km", 10)
+        state.get("visibility_km", 10)
 
         self._draw_wind_vectors(ax, wind_speed, wind_dir)
         self._draw_clouds(ax, cloud_cover)

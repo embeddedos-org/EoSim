@@ -2,7 +2,6 @@
 # Copyright (c) 2026 EoS Project
 """Finance domain sensors — market feed, order book."""
 import random
-import math
 
 from eosim.engine.native.peripherals.sensors import SensorBase
 

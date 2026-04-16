@@ -2,10 +2,11 @@
 # Copyright (c) 2026 EoS Project
 """3D renderer registry — base class and domain-specific renderer lookup."""
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Dict, Type
 
-_REGISTRY: Dict[str, "BaseRenderer"] = {}
+_REGISTRY: dict[str, BaseRenderer] = {}
 
 
 class BaseRenderer(ABC):
@@ -54,7 +55,7 @@ class _FallbackRenderer(BaseRenderer):
 _FALLBACK = _FallbackRenderer()
 
 
-def register_renderer(domain: str, cls: Type[BaseRenderer]) -> None:
+def register_renderer(domain: str, cls: type[BaseRenderer]) -> None:
     """Register a renderer class for *domain*."""
     _REGISTRY[domain] = cls()
 

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
 """Job queue for simulation runs."""
-import os
 import json
+import os
 import uuid
-from dataclasses import dataclass, asdict
-from typing import Optional, List
+from dataclasses import asdict, dataclass
+from typing import Optional
 
 
 @dataclass
@@ -21,7 +21,7 @@ class JobQueue:
         os.makedirs(storage_dir, exist_ok=True)
 
     def _job_path(self, job_id: str) -> str:
-        return os.path.join(self._storage_dir, "%s.json" % job_id)
+        return os.path.join(self._storage_dir, f"{job_id}.json")
 
     def submit(self, platform: str, engine: str = "eosim") -> Job:
         job = Job(
@@ -42,7 +42,7 @@ class JobQueue:
             data = json.load(f)
         return Job(**data)
 
-    def list_jobs(self) -> List[Job]:
+    def list_jobs(self) -> list[Job]:
         jobs = []
         for fname in os.listdir(self._storage_dir):
             if fname.endswith(".json"):

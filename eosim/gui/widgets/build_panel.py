@@ -5,9 +5,8 @@
 Expands peripheral checkboxes to include all device types,
 grouped by category. Auto-checks peripherals from product template.
 """
-from typing import Dict, List, Set
-from eosim.gui.product_templates import PRODUCT_CATALOG, get_template
 
+from eosim.gui.product_templates import PRODUCT_CATALOG, get_template
 
 PERIPHERAL_CATEGORIES = {
     'Core': ['uart', 'gpio', 'timer', 'spi', 'i2c', 'nvic'],
@@ -36,7 +35,7 @@ PERIPHERAL_CATEGORIES = {
     ],
 }
 
-ALL_PERIPHERALS: Set[str] = set()
+ALL_PERIPHERALS: set[str] = set()
 for periphs in PERIPHERAL_CATEGORIES.values():
     ALL_PERIPHERALS.update(periphs)
 
@@ -48,7 +47,7 @@ class BuildConfig:
         self.product_type: str = ''
         self.arch: str = 'arm'
         self.ram_mb: int = 128
-        self.selected_peripherals: Set[str] = set()
+        self.selected_peripherals: set[str] = set()
         self.simulator_class: str = ''
 
     def load_from_template(self, product_name: str):
@@ -97,7 +96,7 @@ class BuildPanel:
         """Select a product template and auto-check its peripherals."""
         return self.config.load_from_template(product_name)
 
-    def get_peripheral_groups(self) -> Dict[str, List[dict]]:
+    def get_peripheral_groups(self) -> dict[str, list[dict]]:
         """Return peripheral groups with checked state for UI rendering."""
         groups = {}
         for category, periphs in self.categories.items():
@@ -119,7 +118,7 @@ class BuildPanel:
         """Get the current build configuration."""
         return self.config.to_dict()
 
-    def list_products(self) -> List[dict]:
+    def list_products(self) -> list[dict]:
         """Return list of all product templates for selection UI."""
         products = []
         for key in sorted(PRODUCT_CATALOG.keys()):

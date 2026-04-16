@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Gazebo simulation integration — model spawn, state, force control."""
-import subprocess
 import shutil
-from typing import Optional, Dict
+import subprocess
+from typing import Optional
 
 
 class GazeboConnection:
@@ -17,7 +17,7 @@ class GazeboConnection:
         self.port = port
         self.connected = False
         self._process: Optional[subprocess.Popen] = None
-        self._models: Dict[str, dict] = {}
+        self._models: dict[str, dict] = {}
 
     @staticmethod
     def available() -> bool:

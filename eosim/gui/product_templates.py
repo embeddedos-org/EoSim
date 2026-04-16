@@ -2,7 +2,7 @@
 # Copyright (c) 2026 EoS Project
 """Product template definitions for EoSim simulation UI."""
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import Optional
 
 
 @dataclass
@@ -12,7 +12,7 @@ class ProductTemplate:
     icon: str = ""
     arch: str = "arm"
     ram_mb: int = 128
-    peripherals: List[str] = field(default_factory=list)
+    peripherals: list[str] = field(default_factory=list)
     domain: str = ""
     modeling: str = "deterministic"
     description: str = ""
@@ -20,7 +20,7 @@ class ProductTemplate:
     simulator_class: str = ""
 
 
-PRODUCT_CATALOG: Dict[str, ProductTemplate] = {
+PRODUCT_CATALOG: dict[str, ProductTemplate] = {
     "iot_sensor": ProductTemplate(
         name="iot_sensor",
         display_name="IoT Sensor",
@@ -431,5 +431,5 @@ def get_template(name: str) -> Optional[ProductTemplate]:
     return PRODUCT_CATALOG.get(name)
 
 
-def list_templates() -> List[str]:
+def list_templates() -> list[str]:
     return sorted(PRODUCT_CATALOG.keys())

@@ -2,7 +2,8 @@
 # Copyright (c) 2026 EoS Project
 import struct
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Callable
+from typing import Callable, Dict, Optional
+
 
 @dataclass
 class MemoryRegion:
@@ -47,7 +48,7 @@ class MemoryRegion:
 class MemoryBus:
     def __init__(self):
         self.regions: list = []
-        self.io_handlers: Dict[int, Callable] = {}
+        self.io_handlers: dict[int, Callable] = {}
 
     def add_region(self, region: MemoryRegion):
         self.regions.append(region)
@@ -97,6 +98,6 @@ class MemoryBus:
     def dump(self, addr: int, size: int) -> str:
         lines = []
         for off in range(0, size, 16):
-            hexs = ' '.join('%02x' % self.read8(addr + off + i) for i in range(min(16, size - off)))
-            lines.append('%08x: %s' % (addr + off, hexs))
+            hexs = ' '.join(f'{self.read8(addr + off + i):02x}' for i in range(min(16, size - off)))
+            lines.append(f'{addr + off:08x}: {hexs}')
         return '\n'.join(lines)

@@ -50,9 +50,9 @@ class DroneSimulator:
         self._wind = [0, 0]
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import IMUSensor, GPSModule, PressureSensor
         from eosim.engine.native.peripherals.actuators import ESCController
         from eosim.engine.native.peripherals.composites import BatteryManagement
+        from eosim.engine.native.peripherals.sensors import GPSModule, IMUSensor, PressureSensor
 
         self.vm.add_peripheral('imu0', IMUSensor('imu0', 0x40100200, 9))
         self.vm.add_peripheral('gps0', GPSModule('gps0', 0x40100300))
@@ -175,7 +175,7 @@ class DroneSimulator:
             if gps:
                 dlat = self._home_lat - gps.latitude
                 dlon = self._home_lon - gps.longitude
-                dist = math.sqrt(dlat ** 2 + dlon ** 2) * 111320
+                dist = math.hypot(dlat, dlon) * 111320
                 if dist > 2:
                     pitch_cmd = min(15, dist * 0.5)
                     gps.heading_deg = math.degrees(math.atan2(dlon, dlat)) % 360
@@ -191,7 +191,7 @@ class DroneSimulator:
                 dlat = wp[0] - gps.latitude
                 dlon = wp[1] - gps.longitude
                 self._target_alt = wp[2]
-                dist = math.sqrt(dlat ** 2 + dlon ** 2) * 111320
+                dist = math.hypot(dlat, dlon) * 111320
                 if dist < 5:
                     self._waypoint_idx += 1
                 else:

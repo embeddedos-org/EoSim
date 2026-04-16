@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Test runner — validates simulation output against checks."""
-import yaml
 import os
 from dataclasses import dataclass
-from typing import List
+
+import yaml
+
 from eosim.engine.backend import SimResult
 
 
@@ -24,7 +25,7 @@ def load_checks(platform_dir: str) -> list:
     return data.get("checks", [])
 
 
-def run_checks(sim_result: SimResult, checks: list) -> List[CheckResult]:
+def run_checks(sim_result: SimResult, checks: list) -> list[CheckResult]:
     results = []
     for check in checks:
         ctype = check.get("type", "")
@@ -32,14 +33,14 @@ def run_checks(sim_result: SimResult, checks: list) -> List[CheckResult]:
             value = check.get("value", "")
             passed = value in sim_result.stdout
             results.append(CheckResult(
-                name="serial_contains: %s" % value,
+                name=f"serial_contains: {value}",
                 passed=passed,
                 message="found" if passed else "not found in output"))
         elif ctype == "exit_code":
             expected = check.get("value", 0)
             passed = sim_result.exit_code == int(expected)
             results.append(CheckResult(
-                name="exit_code == %s" % expected,
+                name=f"exit_code == {expected}",
                 passed=passed,
                 message="got %d" % sim_result.exit_code))
         elif ctype == "timeout":
@@ -48,7 +49,7 @@ def run_checks(sim_result: SimResult, checks: list) -> List[CheckResult]:
             results.append(CheckResult(
                 name="timeout <= %ds" % seconds,
                 passed=passed,
-                message="took %.1fs" % sim_result.duration_s))
+                message=f"took {sim_result.duration_s:.1f}s"))
         elif ctype == "boot_success":
             passed = sim_result.boot_detected
             results.append(

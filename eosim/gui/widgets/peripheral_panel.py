@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Peripheral display panel — dynamically renders domain-specific peripherals."""
-from typing import Dict, List, Optional
 
 
 class PeripheralSubPanel:

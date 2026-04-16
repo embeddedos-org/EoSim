@@ -1,13 +1,20 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
-import time, os
+import os
+import time
 from typing import Optional
-from eosim.engine.native.memory import MemoryBus, MemoryRegion
+
 from eosim.engine.native.cpu import CPUSimulator, CPUState
+from eosim.engine.native.memory import MemoryBus, MemoryRegion
 from eosim.engine.native.peripherals import (
-    UARTDevice, GPIODevice, TimerDevice, SPIDevice,
-    I2CDevice, InterruptController
+    GPIODevice,
+    I2CDevice,
+    InterruptController,
+    SPIDevice,
+    TimerDevice,
+    UARTDevice,
 )
+
 
 class VirtualMachine:
     def __init__(self, name: str = 'eosim-vm', arch: str = 'arm64',
@@ -71,7 +78,7 @@ class VirtualMachine:
         self.boot_log.clear()
 
         # Boot message
-        self._uart_print('EoSim Virtual Machine: %s (%s)\\n' % (self.name, self.arch))
+        self._uart_print(f'EoSim Virtual Machine: {self.name} ({self.arch})\\n')
         self._uart_print('RAM: %d MB | Peripherals: %d\\n' % (
             sum(r.size for r in self.bus.regions if r.name == 'ram') // (1024*1024),
             len(self.peripherals)))
@@ -81,7 +88,7 @@ class VirtualMachine:
         while self.running and executed < max_cycles:
             elapsed = time.time() - self.start_time
             if elapsed > timeout_s:
-                self._uart_print('\\nTimeout after %.1fs\\n' % elapsed)
+                self._uart_print(f'\\nTimeout after {elapsed:.1f}s\\n')
                 break
 
             if not self.cpu.step():
@@ -126,13 +133,13 @@ class VirtualMachine:
             'running': self.running,
             'cycles': self.cycles_executed,
             'peripherals': list(self.peripherals.keys()),
-            'memory_regions': [(r.name, '0x%08X' % r.base, r.size) for r in self.bus.regions],
+            'memory_regions': [(r.name, f'0x{r.base:08X}', r.size) for r in self.bus.regions],
         }
 
     def dump_state(self) -> str:
-        lines = ['=== EoSim VM: %s ===' % self.name]
+        lines = [f'=== EoSim VM: {self.name} ===']
         lines.append(self.cpu.state.dump())
-        lines.append('\\nPeripherals: %s' % ', '.join(self.peripherals.keys()))
+        lines.append('\\nPeripherals: {}'.format(', '.join(self.peripherals.keys())))
         lines.append('Memory regions:')
         for r in self.bus.regions:
             lines.append('  %-10s 0x%08X  %d bytes' % (r.name, r.base, r.size))

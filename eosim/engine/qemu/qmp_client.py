@@ -9,7 +9,7 @@ import json
 import socket
 import threading
 import time
-from typing import Optional, Dict, Any, Callable, List
+from typing import Any, Callable, Optional
 
 
 class QMPError(Exception):
@@ -27,7 +27,7 @@ class QMPClient:
         self._sock: Optional[socket.socket] = None
         self._connected = False
         self._event_thread: Optional[threading.Thread] = None
-        self._event_handlers: Dict[str, List[Callable]] = {}
+        self._event_handlers: dict[str, list[Callable]] = {}
         self._lock = threading.Lock()
         self._recv_buffer = b''
 
@@ -55,7 +55,7 @@ class QMPClient:
             raise QMPError(f"Capability negotiation failed: {resp}")
         self._connected = True
 
-    def execute(self, command: str, arguments: Dict[str, Any] = None) -> dict:
+    def execute(self, command: str, arguments: dict[str, Any] = None) -> dict:
         """Execute a QMP command and return the response."""
         msg = {'execute': command}
         if arguments:

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """3D renderer for aerodynamics (domain: aerodynamics)."""
-import math
 from eosim.gui.renderers import BaseRenderer, register_renderer
 
 
@@ -24,7 +23,7 @@ class AerodynamicsRenderer(BaseRenderer):
         cd = state.get("cd", 0)
         airspeed = state.get("airspeed_mps", 0)
         mach = state.get("mach_number", 0)
-        ax.set_title("Aero V=%.0fm/s M=%.3f AoA=%.1f Cl=%.3f Cd=%.4f" % (airspeed, mach, aoa, cl, cd), fontsize=8)
+        ax.set_title(f"Aero V={airspeed:.0f}m/s M={mach:.3f} AoA={aoa:.1f} Cl={cl:.3f} Cd={cd:.4f}", fontsize=8)
 
 
 register_renderer("aerodynamics", AerodynamicsRenderer)

@@ -1,10 +1,14 @@
 # SPDX-License-Identifier: MIT
 """Unit tests for EoSim core."""
-import pytest, os, tempfile, yaml
-from eosim.core.platform import Platform, discover_platforms
-from eosim.engine.backend import SimResult, RenodeEngine, QemuEngine
-from eosim.tests.runner import run_checks
+import os
+
+import yaml
+
 from eosim.artifacts.manager import collect_artifacts, generate_junit
+from eosim.core.platform import Platform, discover_platforms
+from eosim.engine.backend import QemuEngine, RenodeEngine, SimResult
+from eosim.tests.runner import run_checks
+
 
 class TestPlatform:
     def test_from_yaml(self, tmp_path):
@@ -139,7 +143,6 @@ class TestSchema:
 class TestScenarios:
     def test_wait_for_pass(self):
         from eosim.tests.scenarios import run_scenario
-        from eosim.engine.backend import SimResult
         scenario = {"steps": [{"type": "wait_for", "pattern": "login:"}]}
         results = run_scenario(scenario, "Welcome login: root", 5.0)
         assert results[0].passed
@@ -214,8 +217,9 @@ class TestJobQueue:
         assert got.platform == "arm64-linux"
 
     def test_list_jobs(self, tmp_path):
-        from eosim.core.jobs import JobQueue
         import time
+
+        from eosim.core.jobs import JobQueue
         q = JobQueue(str(tmp_path))
         q.submit("arm64-linux")
         time.sleep(0.01)
@@ -555,7 +559,7 @@ class TestDomains:
     """Tests for domain profiles and catalog."""
 
     def test_catalog_complete(self):
-        from eosim.core.domains import DOMAIN_CATALOG, list_domains
+        from eosim.core.domains import list_domains
         domains = list_domains()
         assert len(domains) == 15
         expected = ["automotive", "medical", "industrial", "consumer",
@@ -592,7 +596,7 @@ class TestModeling:
     """Tests for modeling method catalog."""
 
     def test_catalog_complete(self):
-        from eosim.core.modeling import MODELING_CATALOG, list_modeling_methods
+        from eosim.core.modeling import list_modeling_methods
         methods = list_modeling_methods()
         assert len(methods) == 10
         expected = ["deterministic", "stochastic", "discrete-event",

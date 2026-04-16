@@ -6,8 +6,7 @@ Implements the GDB RSP protocol for register/memory access, breakpoints,
 and execution control. Works with any GDB server (QEMU -gdb, OpenOCD, etc.).
 """
 import socket
-import re
-from typing import Optional, List, Dict
+from typing import Optional
 
 
 class GDBError(Exception):
@@ -91,7 +90,7 @@ class GDBRemoteClient:
 
     # --- Register access ---
 
-    def read_all_registers(self) -> Dict[str, int]:
+    def read_all_registers(self) -> dict[str, int]:
         """Read all CPU registers. Returns dict of name→value."""
         resp = self._command('g')
         if not resp or resp.startswith('E'):
@@ -182,7 +181,7 @@ class GDBRemoteClient:
 
     # --- Target info ---
 
-    def get_thread_info(self) -> List[str]:
+    def get_thread_info(self) -> list[str]:
         """Get thread/CPU list."""
         threads = []
         resp = self._command('qfThreadInfo')
@@ -230,7 +229,7 @@ class GDBRemoteClient:
         return self._arch
 
     @property
-    def register_names(self) -> List[str]:
+    def register_names(self) -> list[str]:
         return list(self._reg_names)
 
     def disconnect(self):

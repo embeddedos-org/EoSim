@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """IoT / Smart Home simulator. Pure Python, cross-platform."""
-import random
 
 
 class IoTSimulator:
@@ -25,10 +24,14 @@ class IoTSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor, LightSensor, ADCChannel
         from eosim.engine.native.peripherals.actuators import RelayBank
-        from eosim.engine.native.peripherals.wireless import WiFiModule, BLEModule
         from eosim.engine.native.peripherals.composites import BatteryManagement, RTCModule
+        from eosim.engine.native.peripherals.sensors import (
+            ADCChannel,
+            LightSensor,
+            TemperatureSensor,
+        )
+        from eosim.engine.native.peripherals.wireless import BLEModule, WiFiModule
 
         self.vm.add_peripheral('temp0', TemperatureSensor('temp0', 0x40100000))
         self.vm.add_peripheral('light0', LightSensor('light0', 0x40100500))

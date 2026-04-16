@@ -9,14 +9,14 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
+from eosim.gui.product_templates import PRODUCT_CATALOG
 from eosim.gui.simulator_app import SimulatorApp
-from eosim.gui.widgets.build_panel import BuildPanel, PERIPHERAL_CATEGORIES
-from eosim.gui.widgets.peripheral_panel import PeripheralPanel
-from eosim.gui.widgets.uart_terminal import UARTTerminal
+from eosim.gui.widgets.build_panel import PERIPHERAL_CATEGORIES, BuildPanel
 from eosim.gui.widgets.cpu_panel import CPUPanel
 from eosim.gui.widgets.gpio_panel import GPIOPanel
 from eosim.gui.widgets.memory_view import MemoryView
-from eosim.gui.product_templates import PRODUCT_CATALOG
+from eosim.gui.widgets.peripheral_panel import PeripheralPanel
+from eosim.gui.widgets.uart_terminal import UARTTerminal
 from eosim.gui.widgets.viewer_3d import Viewer3DPanel
 
 

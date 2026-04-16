@@ -1,3 +1,3 @@
 # SPDX-License-Identifier: MIT
 """Engine package."""
-from eosim.engine.backend import RenodeEngine, QemuEngine, EoSimEngine, SimResult, get_engine
+from eosim.engine.backend import EoSimEngine, QemuEngine, RenodeEngine, SimResult, get_engine

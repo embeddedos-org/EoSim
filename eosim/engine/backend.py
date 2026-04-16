@@ -1,15 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Simulation engine backends — Renode, QEMU, EoSim native, X-Plane, Gazebo, OpenFOAM."""
-import subprocess
-import shutil
 import os
+import shutil
+import subprocess
 import time
-import threading
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional, List
+
 from eosim.core.platform import Platform
+
 
 @dataclass
 class SimResult:
@@ -22,7 +21,7 @@ class SimResult:
     engine: str = ""
     platform: str = ""
     boot_detected: bool = False
-    artifacts: List[str] = None
+    artifacts: list[str] = None
 
     def __post_init__(self):
         if self.artifacts is None:
@@ -66,7 +65,7 @@ class RenodeEngine:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
             with open(log_file, "w") as f:
                 f.write("=== EoSim Renode Log ===\n")
-                f.write("Platform: %s\nArch: %s\n\n" % (platform.name, platform.arch))
+                f.write(f"Platform: {platform.name}\nArch: {platform.arch}\n\n")
                 f.write(result.stdout)
                 if result.stderr:
                     f.write("\n=== STDERR ===\n" + result.stderr)
@@ -100,14 +99,14 @@ class QemuEngine:
         binary = QemuEngine.ARCH_MAP.get(platform.arch, "qemu-system-" + platform.arch)
         qemu = shutil.which(binary)
         if not qemu:
-            result.stderr = "%s not installed" % binary
-            result.stdout = "QEMU not available for %s\n" % platform.arch
+            result.stderr = f"{binary} not installed"
+            result.stdout = f"QEMU not available for {platform.arch}\n"
             result.success = True
             result.boot_detected = False
             if log_file:
                 os.makedirs(os.path.dirname(log_file), exist_ok=True)
                 with open(log_file, "w") as f:
-                    f.write("QEMU %s not available — dry run\nPASSED (dry run)\n" % binary)
+                    f.write(f"QEMU {binary} not available — dry run\nPASSED (dry run)\n")
                 result.log_file = log_file
                 result.artifacts.append(log_file)
             return result
@@ -149,8 +148,7 @@ class QemuEngine:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
             with open(log_file, "w") as f:
                 f.write("=== EoSim QEMU Log ===\n")
-                f.write("Platform: %s\nArch: %s\nEngine: %s\n\n" % (
-                    platform.name, platform.arch, binary))
+                f.write(f"Platform: {platform.name}\nArch: {platform.arch}\nEngine: {binary}\n\n")
                 f.write(result.stdout)
                 if result.stderr:
                     f.write("\n=== STDERR ===\n" + result.stderr)
@@ -195,7 +193,7 @@ class EoSimEngine:
             os.makedirs(os.path.dirname(log_file) or '.', exist_ok=True)
             with open(log_file, 'w') as f:
                 f.write('=== EoSim Native Log ===\n')
-                f.write('Platform: %s\nArch: %s\n\n' % (platform.name, platform.arch))
+                f.write(f'Platform: {platform.name}\nArch: {platform.arch}\n\n')
                 f.write(result.stdout)
                 f.write('\n\n' + sim.get('cpu_state', ''))
             result.log_file = log_file
@@ -216,7 +214,7 @@ class XPlaneEngine:
             s.connect(('127.0.0.1', 49000))
             s.close()
             return True
-        except (socket.error, OSError):
+        except OSError:
             return False
 
     @staticmethod

@@ -4,11 +4,11 @@
 
 Case management, solver execution, result parsing.
 """
-import subprocess
-import shutil
 import os
 import re
-from typing import Optional, Dict, List
+import shutil
+import subprocess
+from typing import Optional
 
 
 class OpenFOAMRunner:
@@ -25,7 +25,7 @@ class OpenFOAMRunner:
         self.case_dir = case_dir
         self.solver = 'simpleFoam'
         self._process: Optional[subprocess.Popen] = None
-        self._results: Dict[str, list] = {}
+        self._results: dict[str, list] = {}
         self._log: str = ''
         self._converged = False
 
@@ -43,17 +43,17 @@ class OpenFOAMRunner:
         if solver in self.SOLVERS:
             self.solver = solver
 
-    def validate_case(self) -> List[str]:
+    def validate_case(self) -> list[str]:
         errors = []
         if not self.case_dir or not os.path.isdir(self.case_dir):
-            errors.append('Case directory does not exist: %s' % self.case_dir)
+            errors.append(f'Case directory does not exist: {self.case_dir}')
             return errors
         required = ['system/controlDict', 'system/fvSchemes',
                     'system/fvSolution', 'constant']
         for req in required:
             path = os.path.join(self.case_dir, req)
             if not os.path.exists(path):
-                errors.append('Missing: %s' % req)
+                errors.append(f'Missing: {req}')
         return errors
 
     def run(self, timeout: int = 300) -> dict:
@@ -72,7 +72,7 @@ class OpenFOAMRunner:
 
         solver_path = shutil.which(self.solver)
         if not solver_path:
-            result['log'] = 'Solver not found: %s' % self.solver
+            result['log'] = f'Solver not found: {self.solver}'
             return result
 
         try:
@@ -98,8 +98,8 @@ class OpenFOAMRunner:
 
         return result
 
-    def parse_residuals(self) -> Dict[str, List[float]]:
-        residuals: Dict[str, List[float]] = {}
+    def parse_residuals(self) -> dict[str, list[float]]:
+        residuals: dict[str, list[float]] = {}
         pattern = re.compile(
             r'Solving for (\w+),.*Initial residual = ([0-9.e+-]+)')
         for line in self._log.split('\n'):
@@ -128,7 +128,7 @@ class OpenFOAMRunner:
 
         field_path = os.path.join(self.case_dir, time_step, field)
         if not os.path.exists(field_path):
-            return {'error': 'Field file not found: %s' % field_path}
+            return {'error': f'Field file not found: {field_path}'}
 
         return {
             'field': field,

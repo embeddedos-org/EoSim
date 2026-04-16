@@ -1,14 +1,14 @@
 """Integration tests — full platform pipeline: YAML → Platform → Engine → SimResult → Checks."""
-import os
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
 
 from eosim.core.platform import Platform, discover_platforms
 from eosim.core.registry import PlatformRegistry
 from eosim.core.schema import validate_platform
 from eosim.engine.backend import EoSimEngine, SimResult, get_engine
-from eosim.tests.runner import run_checks, load_checks
+from eosim.tests.runner import load_checks, run_checks
 
 
 class TestPlatformPipeline:

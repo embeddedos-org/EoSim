@@ -9,8 +9,7 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Optional, List
-
+from typing import Optional
 
 ADAPTER_CONFIGS = {
     'stlink': 'interface/stlink.cfg',
@@ -82,7 +81,7 @@ class OpenOCDManager:
         return bool(OpenOCDManager.find_openocd())
 
     def launch(self, adapter: str = 'stlink', target: str = 'stm32f4',
-               gdb_port: int = 3333, extra_args: List[str] = None) -> bool:
+               gdb_port: int = 3333, extra_args: list[str] = None) -> bool:
         """Launch OpenOCD with the specified adapter and target config."""
         openocd = self.find_openocd()
         if not openocd:

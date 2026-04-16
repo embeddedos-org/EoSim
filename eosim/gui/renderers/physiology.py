@@ -2,6 +2,7 @@
 # Copyright (c) 2026 EoS Project
 """3D renderer for patient physiology (domain: physiology)."""
 import math
+
 from eosim.gui.renderers import BaseRenderer, register_renderer
 
 
@@ -62,7 +63,6 @@ class PhysiologyRenderer(BaseRenderer):
             f"BP: {bp_sys:.0f}/{bp_dia:.0f}", f"RR: {rr:.0f}",
             f"Temp: {temp:.1f}°C",
         ]
-        y_offset = 1.8
         for i, txt in enumerate(vitals):
             ax.text(-1.8, -1.5, 2.5 - i * 0.3, txt,
                     fontsize=7, color="#cccccc")

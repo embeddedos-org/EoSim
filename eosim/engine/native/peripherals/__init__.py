@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
-import time, threading
-from typing import Callable, Optional, List
+import threading
+import time
+from typing import Callable, List, Optional
+
 
 class UARTDevice:
     def __init__(self, name: str = 'uart0', base_addr: int = 0x40000000):

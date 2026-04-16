@@ -7,8 +7,8 @@ from tkinter import ttk
 try:
     import matplotlib
     matplotlib.use('TkAgg')
-    from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.figure import Figure
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
     HAS_MATPLOTLIB = True
 except ImportError:

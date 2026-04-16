@@ -39,11 +39,15 @@ class VehicleSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import IMUSensor, GPSModule, TemperatureSensor
         from eosim.engine.native.peripherals.actuators import (
-            MotorController, SteeringActuator, ThrottleActuator, BrakeActuator)
+            BrakeActuator,
+            MotorController,
+            SteeringActuator,
+            ThrottleActuator,
+        )
         from eosim.engine.native.peripherals.buses import CANBusController, LINBusController
         from eosim.engine.native.peripherals.composites import BatteryManagement, WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import GPSModule, IMUSensor, TemperatureSensor
 
         self.vm.add_peripheral('imu0', IMUSensor('imu0', 0x40100200))
         self.vm.add_peripheral('gps0', GPSModule('gps0', 0x40100300))
@@ -85,7 +89,7 @@ class VehicleSimulator:
 
         throttle = self.vm.peripherals.get('throttle')
         brake = self.vm.peripherals.get('brake')
-        motor = self.vm.peripherals.get('motor0')
+        self.vm.peripherals.get('motor0')
         bms = self.vm.peripherals.get('bms0')
         gps = self.vm.peripherals.get('gps0')
         steering = self.vm.peripherals.get('steering')

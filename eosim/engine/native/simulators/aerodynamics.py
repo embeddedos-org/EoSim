@@ -50,10 +50,16 @@ class AerodynamicsSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors_aerodynamics import (
-            WindTunnelSensor, AirflowSensor, PitotTube, ForceBalance)
         from eosim.engine.native.peripherals.actuators_aerodynamics import (
-            AeroActuator, TunnelFanController)
+            AeroActuator,
+            TunnelFanController,
+        )
+        from eosim.engine.native.peripherals.sensors_aerodynamics import (
+            AirflowSensor,
+            ForceBalance,
+            PitotTube,
+            WindTunnelSensor,
+        )
 
         self.vm.add_peripheral('wind_tunnel', WindTunnelSensor('wind_tunnel', 0x40110000))
         self.vm.add_peripheral('airflow', AirflowSensor('airflow', 0x40110100))
@@ -92,7 +98,7 @@ class AerodynamicsSimulator:
         tunnel = self.vm.peripherals.get('wind_tunnel')
         airflow = self.vm.peripherals.get('airflow')
         balance = self.vm.peripherals.get('balance')
-        fan = self.vm.peripherals.get('fan')
+        self.vm.peripherals.get('fan')
 
         airspeed = tunnel.airspeed_mps if tunnel else 0
         self.state['airspeed_mps'] = round(airspeed, 2)
@@ -170,7 +176,7 @@ class AerodynamicsSimulator:
         return dict(self.vm.peripherals)
 
     def get_status_text(self):
-        scn = " [%s]" % self.scenario if self.scenario else ""
+        scn = f" [{self.scenario}]" if self.scenario else ""
         return "%s | Tick %d%s" % (self.DISPLAY_NAME, self.tick_count, scn)
 
     def reset(self):
