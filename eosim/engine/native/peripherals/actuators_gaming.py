@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
-import random
 from eosim.engine.native.peripherals.actuators import ActuatorBase
 
 

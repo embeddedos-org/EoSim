@@ -26,9 +26,9 @@ class HomeCameraSimulator:
         self._motion_cooldown = 0
 
     def setup(self):
+        from eosim.engine.native.peripherals.composites import BatteryManagement, RTCModule
+        from eosim.engine.native.peripherals.sensors import LightSensor, TemperatureSensor
         from eosim.engine.native.peripherals.wireless import WiFiModule
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor, LightSensor
-        from eosim.engine.native.peripherals.composites import RTCModule, BatteryManagement
 
         self.vm.add_peripheral('wifi0', WiFiModule('wifi0', 0x40400000))
         self.vm.add_peripheral('temp0', TemperatureSensor('temp0', 0x40100000))

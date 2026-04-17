@@ -2,12 +2,12 @@
 # Copyright (c) 2026 EoS Project
 """EoS Integration — build and test EoS apps through EoSim."""
 import os
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 import time
-from typing import Optional, List
 from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -26,15 +26,15 @@ class EosTestSuite:
     passed: int = 0
     failed: int = 0
     skipped: int = 0
-    results: List[EosTestResult] = field(default_factory=list)
+    results: list[EosTestResult] = field(default_factory=list)
     duration_s: float = 0.0
     build_log: str = ""
 
     def summary(self) -> str:
-        lines = ["EoSim Test Suite: %s" % self.platform]
+        lines = [f"EoSim Test Suite: {self.platform}"]
         lines.append("  Total: %d | Passed: %d | Failed: %d | Skipped: %d" % (
             self.total, self.passed, self.failed, self.skipped))
-        lines.append("  Duration: %.2fs" % self.duration_s)
+        lines.append(f"  Duration: {self.duration_s:.2f}s")
         lines.append("")
         for r in self.results:
             status = "PASS" if r.passed else "FAIL"
@@ -104,7 +104,7 @@ def build_eos(source_dir: str, build_dir: str = None,
             log_lines.append(r.stderr)
             return False, "\n".join(log_lines)
     except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        return False, "Build configure failed: %s" % str(e)
+        return False, f"Build configure failed: {str(e)}"
 
     # Build
     build_cmd = [cmake, "--build", build_dir]
@@ -120,7 +120,7 @@ def build_eos(source_dir: str, build_dir: str = None,
             log_lines.append(r.stderr)
             return False, "\n".join(log_lines)
     except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        return False, "Build failed: %s" % str(e)
+        return False, f"Build failed: {str(e)}"
 
     return True, "\n".join(log_lines)
 

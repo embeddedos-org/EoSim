@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Smart Speaker simulator. Pure Python, cross-platform."""
-import random
 
 
 class SmartSpeakerSimulator:
@@ -25,9 +24,9 @@ class SmartSpeakerSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.wireless import WiFiModule, BLEModule
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor
         from eosim.engine.native.peripherals.composites import BatteryManagement
+        from eosim.engine.native.peripherals.sensors import TemperatureSensor
+        from eosim.engine.native.peripherals.wireless import BLEModule, WiFiModule
 
         self.vm.add_peripheral('wifi0', WiFiModule('wifi0', 0x40400000))
         self.vm.add_peripheral('ble0', BLEModule('ble0', 0x40400100))

@@ -5,24 +5,24 @@
 All simulators are pure Python, cross-platform (Linux/Windows/macOS).
 No OS-specific dependencies. No tkinter, no C extensions.
 """
-from eosim.engine.native.simulators.vehicle import VehicleSimulator
-from eosim.engine.native.simulators.drone import DroneSimulator
-from eosim.engine.native.simulators.robot import RobotSimulator
+from eosim.engine.native.simulators.aerodynamics import AerodynamicsSimulator
 from eosim.engine.native.simulators.aircraft import AircraftSimulator
-from eosim.engine.native.simulators.medical import MedicalSimulator
+from eosim.engine.native.simulators.camera import HomeCameraSimulator
+from eosim.engine.native.simulators.drone import DroneSimulator
+from eosim.engine.native.simulators.energy import EnergySimulator
+from eosim.engine.native.simulators.finance import FinanceSimulator
+from eosim.engine.native.simulators.gaming import GamingSimulator
 from eosim.engine.native.simulators.industrial import IndustrialSimulator
 from eosim.engine.native.simulators.iot import IoTSimulator
-from eosim.engine.native.simulators.satellite import SatelliteSimulator
-from eosim.engine.native.simulators.energy import EnergySimulator
-from eosim.engine.native.simulators.wearable import WearableSimulator
 from eosim.engine.native.simulators.media import MediaDeviceSimulator
-from eosim.engine.native.simulators.speaker import SmartSpeakerSimulator
-from eosim.engine.native.simulators.camera import HomeCameraSimulator
-from eosim.engine.native.simulators.aerodynamics import AerodynamicsSimulator
+from eosim.engine.native.simulators.medical import MedicalSimulator
 from eosim.engine.native.simulators.physiology import PhysiologySimulator
-from eosim.engine.native.simulators.finance import FinanceSimulator
+from eosim.engine.native.simulators.robot import RobotSimulator
+from eosim.engine.native.simulators.satellite import SatelliteSimulator
+from eosim.engine.native.simulators.speaker import SmartSpeakerSimulator
+from eosim.engine.native.simulators.vehicle import VehicleSimulator
+from eosim.engine.native.simulators.wearable import WearableSimulator
 from eosim.engine.native.simulators.weather import WeatherSimulator
-from eosim.engine.native.simulators.gaming import GamingSimulator
 
 
 class BaseSimulator:

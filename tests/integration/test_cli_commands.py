@@ -1,6 +1,7 @@
 """Integration tests — CLI commands via Click test runner."""
 import pytest
 from click.testing import CliRunner
+
 from eosim.cli.main import cli
 
 

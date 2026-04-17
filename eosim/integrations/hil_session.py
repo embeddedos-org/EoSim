@@ -26,10 +26,10 @@ class HILSession:
               serial_port: str = '', baudrate: int = 115200,
               gdb_port: int = 3333, arch: str = 'arm'):
         """Start a full HIL session: OpenOCD → GDB → serial → state bridge."""
-        from eosim.integrations.openocd import OpenOCDManager
         from eosim.engine.qemu.gdb_client import GDBRemoteClient
-        from eosim.integrations.serial_bridge import SerialBridge
         from eosim.engine.qemu.state_bridge import TargetStateBridge
+        from eosim.integrations.openocd import OpenOCDManager
+        from eosim.integrations.serial_bridge import SerialBridge
 
         self._config = {
             'adapter': adapter, 'target': target,

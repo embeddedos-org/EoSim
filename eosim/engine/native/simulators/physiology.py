@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Physiology simulator — patient cardiovascular, respiratory, pharmacokinetics."""
-import math
 import random
 
 
@@ -40,10 +39,16 @@ class PhysiologySimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors_physiology import (
-            HeartModel, LungModel, BloodPressureSensor)
         from eosim.engine.native.peripherals.actuators_physiology import (
-            VentilatorActuator, InfusionPump, SurgicalTool)
+            InfusionPump,
+            SurgicalTool,
+            VentilatorActuator,
+        )
+        from eosim.engine.native.peripherals.sensors_physiology import (
+            BloodPressureSensor,
+            HeartModel,
+            LungModel,
+        )
         self.vm.add_peripheral('heart', HeartModel('heart', 0x40120000))
         self.vm.add_peripheral('lung', LungModel('lung', 0x40120100))
         self.vm.add_peripheral('bp', BloodPressureSensor('bp', 0x40120200))
@@ -93,7 +98,7 @@ class PhysiologySimulator:
         return dict(self.vm.peripherals)
 
     def get_status_text(self):
-        scn = " [%s]" % self.scenario if self.scenario else ""
+        scn = f" [{self.scenario}]" if self.scenario else ""
         return "%s | Tick %d%s" % (self.DISPLAY_NAME, self.tick_count, scn)
 
     def reset(self):

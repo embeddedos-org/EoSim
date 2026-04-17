@@ -26,10 +26,14 @@ class WearableSimulator:
         self._step_acc = 0.0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import IMUSensor, PulseOximeter, TemperatureSensor
         from eosim.engine.native.peripherals.actuators import DisplayDriver, HapticDriver
-        from eosim.engine.native.peripherals.wireless import BLEModule
         from eosim.engine.native.peripherals.composites import BatteryManagement
+        from eosim.engine.native.peripherals.sensors import (
+            IMUSensor,
+            PulseOximeter,
+            TemperatureSensor,
+        )
+        from eosim.engine.native.peripherals.wireless import BLEModule
 
         self.vm.add_peripheral('imu0', IMUSensor('imu0', 0x40100200))
         self.vm.add_peripheral('spo2_0', PulseOximeter('spo2_0', 0x40100900))

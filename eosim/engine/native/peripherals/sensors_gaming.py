@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Gaming domain sensors — physics engine, terrain sensor, entity manager."""
-import math
-import random
 
 from eosim.engine.native.peripherals.sensors import SensorBase
 

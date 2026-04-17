@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: MIT
 """Extended GUI tests — new product templates, simulators, renderers, panels."""
-import pytest
 
 
 class TestNewProductTemplates:
@@ -15,7 +14,7 @@ class TestNewProductTemplates:
         new_templates = ["wind_tunnel", "patient_model", "stock_market",
                          "weather_station_sim", "game_world"]
         for t in new_templates:
-            assert t in PRODUCT_CATALOG, "Missing template: %s" % t
+            assert t in PRODUCT_CATALOG, f"Missing template: {t}"
 
     def test_wind_tunnel_fields(self):
         from eosim.gui.product_templates import get_template
@@ -75,24 +74,24 @@ class TestNewProductTemplates:
                 elif field == "peripherals":
                     assert isinstance(val, list) and len(val) > 0
                 else:
-                    assert val, "%s.%s is empty" % (key, field)
+                    assert val, f"{key}.{field} is empty"
 
     def test_new_templates_valid_domain(self):
-        from eosim.gui.product_templates import PRODUCT_CATALOG
         from eosim.core.schema import VALID_DOMAINS
+        from eosim.gui.product_templates import PRODUCT_CATALOG
         new = ["wind_tunnel", "patient_model", "stock_market",
                "weather_station_sim", "game_world"]
         for key in new:
             tpl = PRODUCT_CATALOG[key]
-            assert tpl.domain in VALID_DOMAINS, "%s invalid domain: %s" % (key, tpl.domain)
+            assert tpl.domain in VALID_DOMAINS, f"{key} invalid domain: {tpl.domain}"
 
     def test_new_templates_valid_modeling(self):
-        from eosim.gui.product_templates import PRODUCT_CATALOG
         from eosim.core.schema import VALID_MODELING
+        from eosim.gui.product_templates import PRODUCT_CATALOG
         new = ["wind_tunnel", "stock_market", "game_world"]
         for key in new:
             tpl = PRODUCT_CATALOG[key]
-            assert tpl.modeling in VALID_MODELING, "%s invalid modeling: %s" % (key, tpl.modeling)
+            assert tpl.modeling in VALID_MODELING, f"{key} invalid modeling: {tpl.modeling}"
 
 
 class TestNewSimulatorMap:
@@ -141,7 +140,7 @@ class TestNewRenderers:
         from eosim.gui.renderers import get_renderer
         for domain in ['aerodynamics', 'physiology', 'finance', 'weather', 'gaming']:
             r = get_renderer(domain)
-            assert r.DOMAIN == domain, "Renderer for %s not found" % domain
+            assert r.DOMAIN == domain, f"Renderer for {domain} not found"
 
     def test_renderer_has_setup_and_update(self):
         from eosim.gui.renderers import get_renderer
@@ -158,8 +157,11 @@ class TestNewPeripheralPanels:
 
     def test_panel_classes_exist(self):
         from eosim.gui.widgets.peripheral_panel import (
-            AerodynamicsPanel, PhysiologyPanel, FinancePanel,
-            WeatherPanel, GamingPanel,
+            AerodynamicsPanel,
+            FinancePanel,
+            GamingPanel,
+            PhysiologyPanel,
+            WeatherPanel,
         )
         for cls in [AerodynamicsPanel, PhysiologyPanel, FinancePanel,
                     WeatherPanel, GamingPanel]:
@@ -170,7 +172,7 @@ class TestNewPeripheralPanels:
     def test_domain_panel_map_has_new_entries(self):
         from eosim.gui.widgets.peripheral_panel import DOMAIN_PANEL_MAP
         for domain in ['aerodynamics', 'physiology', 'finance', 'weather', 'gaming']:
-            assert domain in DOMAIN_PANEL_MAP, "Missing domain panel: %s" % domain
+            assert domain in DOMAIN_PANEL_MAP, f"Missing domain panel: {domain}"
 
     def test_device_domain_map_has_new_entries(self):
         from eosim.gui.widgets.peripheral_panel import DEVICE_DOMAIN_MAP
@@ -180,7 +182,7 @@ class TestNewPeripheralPanels:
             'PhysicsEngine', 'EntityManager', 'GameController',
         ]
         for dev in new_devices:
-            assert dev in DEVICE_DOMAIN_MAP, "Missing device mapping: %s" % dev
+            assert dev in DEVICE_DOMAIN_MAP, f"Missing device mapping: {dev}"
 
 
 class TestNewBuildPanelPeripherals:
@@ -191,4 +193,4 @@ class TestNewBuildPanelPeripherals:
         new_periphs = ['heart_model', 'bp_sensor', 'market_feed', 'order_book',
                        'anemometer', 'radar', 'physics_engine', 'terrain', 'entities']
         for p in new_periphs:
-            assert p in ALL_PERIPHERALS, "Missing peripheral: %s" % p
+            assert p in ALL_PERIPHERALS, f"Missing peripheral: {p}"

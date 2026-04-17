@@ -52,20 +52,20 @@ class TestProductTemplates:
             assert tpl.simulator_class, f"{key} simulator_class is empty"
 
     def test_valid_arch(self):
-        from eosim.gui.product_templates import PRODUCT_CATALOG
         from eosim.core.schema import VALID_ARCHES
+        from eosim.gui.product_templates import PRODUCT_CATALOG
         for key, tpl in PRODUCT_CATALOG.items():
             assert tpl.arch in VALID_ARCHES, f"{key} invalid arch: {tpl.arch}"
 
     def test_valid_domain(self):
-        from eosim.gui.product_templates import PRODUCT_CATALOG
         from eosim.core.schema import VALID_DOMAINS
+        from eosim.gui.product_templates import PRODUCT_CATALOG
         for key, tpl in PRODUCT_CATALOG.items():
             assert tpl.domain in VALID_DOMAINS, f"{key} invalid domain: {tpl.domain}"
 
     def test_valid_modeling(self):
-        from eosim.gui.product_templates import PRODUCT_CATALOG
         from eosim.core.schema import VALID_MODELING
+        from eosim.gui.product_templates import PRODUCT_CATALOG
         for key, tpl in PRODUCT_CATALOG.items():
             assert tpl.modeling in VALID_MODELING, f"{key} invalid modeling"
 
@@ -170,7 +170,6 @@ class TestSensors:
     def test_temperature_sensor_tick(self):
         from eosim.engine.native.peripherals.sensors import TemperatureSensor
         s = TemperatureSensor('t', 0x1000)
-        initial = s.temperature
         for _ in range(100):
             s.simulate_tick()
         assert s._tick_count == 100
@@ -536,35 +535,35 @@ class TestSimulatorFactory:
 
     def test_factory_creates_drone(self):
         from eosim.engine.native import VirtualMachine
-        from eosim.engine.native.simulators import SimulatorFactory, DroneSimulator
+        from eosim.engine.native.simulators import DroneSimulator, SimulatorFactory
         vm = VirtualMachine(name="t", arch="arm", ram_mb=32)
         sim = SimulatorFactory.create("drone_controller", vm)
         assert isinstance(sim, DroneSimulator)
 
     def test_factory_creates_medical(self):
         from eosim.engine.native import VirtualMachine
-        from eosim.engine.native.simulators import SimulatorFactory, MedicalSimulator
+        from eosim.engine.native.simulators import MedicalSimulator, SimulatorFactory
         vm = VirtualMachine(name="t", arch="arm", ram_mb=32)
         sim = SimulatorFactory.create("medical_monitor", vm)
         assert isinstance(sim, MedicalSimulator)
 
     def test_factory_creates_robot(self):
         from eosim.engine.native import VirtualMachine
-        from eosim.engine.native.simulators import SimulatorFactory, RobotSimulator
+        from eosim.engine.native.simulators import RobotSimulator, SimulatorFactory
         vm = VirtualMachine(name="t", arch="arm", ram_mb=32)
         sim = SimulatorFactory.create("robot_controller", vm)
         assert isinstance(sim, RobotSimulator)
 
     def test_factory_fallback_generic(self):
         from eosim.engine.native import VirtualMachine
-        from eosim.engine.native.simulators import SimulatorFactory, BaseSimulator
+        from eosim.engine.native.simulators import BaseSimulator, SimulatorFactory
         vm = VirtualMachine(name="t", arch="arm", ram_mb=32)
         sim = SimulatorFactory.create("unknown_product", vm)
         assert isinstance(sim, BaseSimulator)
 
     def test_factory_all_product_types_mapped(self):
-        from eosim.gui.product_templates import PRODUCT_CATALOG
         from eosim.engine.native.simulators import SIMULATOR_MAP
+        from eosim.gui.product_templates import PRODUCT_CATALOG
         for key in PRODUCT_CATALOG:
             assert key in SIMULATOR_MAP, f"Product '{key}' not in SIMULATOR_MAP"
 
@@ -705,6 +704,7 @@ class TestCPUPanel:
     def test_update_state_from_dict(self):
         """CPUPanel.update_state should accept a dict and store values."""
         import tkinter as tk
+
         from eosim.gui.widgets.cpu_panel import CPUPanel
         root = tk.Tk()
         root.withdraw()
@@ -733,6 +733,7 @@ class TestCPUPanel:
     def test_update_state_from_cpu_state_object(self):
         """CPUPanel.update_state should accept a CPUState-like object."""
         import tkinter as tk
+
         from eosim.gui.widgets.cpu_panel import CPUPanel
         root = tk.Tk()
         root.withdraw()
@@ -758,6 +759,7 @@ class TestCPUPanel:
     def test_reset_clears_state(self):
         """CPUPanel.reset should zero out all previous values."""
         import tkinter as tk
+
         from eosim.gui.widgets.cpu_panel import CPUPanel
         root = tk.Tk()
         root.withdraw()
@@ -942,9 +944,15 @@ class TestScenarioLoading:
     def test_all_simulators_have_scenarios(self):
         """Every non-base simulator should have a SCENARIOS dict."""
         from eosim.engine.native.simulators import (
-            VehicleSimulator, DroneSimulator, MedicalSimulator,
-            RobotSimulator, AircraftSimulator, IndustrialSimulator,
-            IoTSimulator, SatelliteSimulator, EnergySimulator,
+            AircraftSimulator,
+            DroneSimulator,
+            EnergySimulator,
+            IndustrialSimulator,
+            IoTSimulator,
+            MedicalSimulator,
+            RobotSimulator,
+            SatelliteSimulator,
+            VehicleSimulator,
             WearableSimulator,
         )
         for cls in [VehicleSimulator, DroneSimulator, MedicalSimulator,
@@ -957,7 +965,7 @@ class TestScenarioLoading:
     def test_all_simulators_load_scenario(self):
         """Every simulator's load_scenario should set scenario name in state."""
         from eosim.engine.native import VirtualMachine
-        from eosim.engine.native.simulators import SimulatorFactory, SIMULATOR_MAP
+        from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
         tested = set()
         for product_type, cls in SIMULATOR_MAP.items():
             if cls.__name__ in tested or cls.__name__ == 'BaseSimulator':

@@ -7,7 +7,7 @@ the EoSim UART terminal / VirtualMachine UART peripheral.
 """
 import threading
 import time
-from typing import Optional, Callable, List
+from typing import Callable, Optional
 
 try:
     import serial
@@ -38,7 +38,7 @@ class SerialBridge:
         return HAS_SERIAL
 
     @staticmethod
-    def list_ports() -> List[dict]:
+    def list_ports() -> list[dict]:
         """Enumerate available serial ports."""
         if not HAS_SERIAL:
             return []
@@ -55,7 +55,7 @@ class SerialBridge:
         return ports
 
     @staticmethod
-    def detect_dev_boards() -> List[dict]:
+    def detect_dev_boards() -> list[dict]:
         """Detect common development board serial adapters."""
         if not HAS_SERIAL:
             return []

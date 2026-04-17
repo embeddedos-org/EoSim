@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for external tool integrations — XPlane, Gazebo, OpenFOAM."""
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestXPlaneConnection:
@@ -32,10 +31,10 @@ class TestXPlaneConnection:
 
     @patch('socket.socket')
     def test_connect_failure(self, mock_socket_cls):
-        import socket
+
         from eosim.integrations.xplane import XPlaneConnection
         mock_sock = MagicMock()
-        mock_sock.connect.side_effect = socket.error("Connection refused")
+        mock_sock.connect.side_effect = OSError("Connection refused")
         mock_socket_cls.return_value = mock_sock
         conn = XPlaneConnection()
         result = conn.connect()
@@ -181,24 +180,27 @@ class TestEngineDispatch:
     """Test get_engine dispatches correctly for new engine types."""
 
     def test_xplane_engine_dispatch(self):
-        from eosim.engine.backend import get_engine, XPlaneEngine
         from unittest.mock import MagicMock
+
+        from eosim.engine.backend import XPlaneEngine, get_engine
         platform = MagicMock()
         platform.engine = 'xplane'
         engine = get_engine(platform)
         assert isinstance(engine, XPlaneEngine)
 
     def test_gazebo_engine_dispatch(self):
-        from eosim.engine.backend import get_engine, GazeboEngine
         from unittest.mock import MagicMock
+
+        from eosim.engine.backend import GazeboEngine, get_engine
         platform = MagicMock()
         platform.engine = 'gazebo'
         engine = get_engine(platform)
         assert isinstance(engine, GazeboEngine)
 
     def test_openfoam_engine_dispatch(self):
-        from eosim.engine.backend import get_engine, OpenFOAMEngine
         from unittest.mock import MagicMock
+
+        from eosim.engine.backend import OpenFOAMEngine, get_engine
         platform = MagicMock()
         platform.engine = 'openfoam'
         engine = get_engine(platform)

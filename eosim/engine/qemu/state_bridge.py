@@ -7,7 +7,7 @@ Works with both QEMU GDB stub and OpenOCD GDB server.
 """
 import threading
 import time
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 
 class TargetStateBridge:

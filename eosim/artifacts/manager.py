@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Artifact collection and export."""
-import os, json, shutil
+import json
+import os
+import shutil
 from datetime import datetime, timezone
-from pathlib import Path
+
 from eosim.engine.backend import SimResult
+
 
 def collect_artifacts(result: SimResult, output_dir: str = "out/artifacts") -> dict:
     os.makedirs(output_dir, exist_ok=True)
@@ -36,7 +39,7 @@ def generate_junit(results: list, output: str = "out/reports/junit.xml") -> str:
     for r in results:
         name = r.get("platform", "unknown")
         t = r.get("duration_s", 0)
-        lines.append('  <testcase name="%s" time="%.2f">' % (name, t))
+        lines.append(f'  <testcase name="{name}" time="{t:.2f}">')
         if not r.get("success", False):
             lines.append('    <failure>Simulation failed</failure>')
         lines.append('  </testcase>')

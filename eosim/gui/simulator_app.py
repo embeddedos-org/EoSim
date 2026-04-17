@@ -7,8 +7,8 @@ based on the selected product template. Manages VM lifecycle,
 simulation ticking, and panel updates.
 """
 from eosim.engine.native import VirtualMachine
-from eosim.engine.native.simulators import SimulatorFactory, BaseSimulator
-from eosim.gui.product_templates import PRODUCT_CATALOG, get_template
+from eosim.engine.native.simulators import BaseSimulator, SimulatorFactory
+from eosim.gui.product_templates import get_template
 
 
 class SimulatorApp:

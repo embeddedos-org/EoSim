@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Domain profiles catalog for simulation contexts."""
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import Optional
 
 
 @dataclass
@@ -9,14 +9,14 @@ class DomainProfile:
     name: str = ""
     display_name: str = ""
     description: str = ""
-    standards: List[str] = field(default_factory=list)
-    safety_levels: List[str] = field(default_factory=list)
-    typical_arches: List[str] = field(default_factory=list)
-    typical_classes: List[str] = field(default_factory=list)
-    test_scenarios: List[str] = field(default_factory=list)
+    standards: list[str] = field(default_factory=list)
+    safety_levels: list[str] = field(default_factory=list)
+    typical_arches: list[str] = field(default_factory=list)
+    typical_classes: list[str] = field(default_factory=list)
+    test_scenarios: list[str] = field(default_factory=list)
 
 
-DOMAIN_CATALOG: Dict[str, DomainProfile] = {
+DOMAIN_CATALOG: dict[str, DomainProfile] = {
     "automotive": DomainProfile(
         name="automotive",
         display_name="Automotive / Transportation",
@@ -173,7 +173,7 @@ DOMAIN_CATALOG: Dict[str, DomainProfile] = {
 }
 
 
-def list_domains() -> List[str]:
+def list_domains() -> list[str]:
     return list(DOMAIN_CATALOG.keys())
 
 
@@ -181,7 +181,7 @@ def get_domain(name: str) -> Optional[DomainProfile]:
     return DOMAIN_CATALOG.get(name)
 
 
-def suggest_platforms(domain: str, registry) -> List:
+def suggest_platforms(domain: str, registry) -> list:
     profile = get_domain(domain)
     if profile is None:
         return []

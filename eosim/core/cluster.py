@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Cluster definitions for multi-node simulations."""
-import yaml
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+
+import yaml
 
 
 @dataclass
@@ -14,8 +14,8 @@ class ClusterNode:
 @dataclass
 class Cluster:
     name: str = ""
-    nodes: List[ClusterNode] = field(default_factory=list)
-    links: List = field(default_factory=list)
+    nodes: list[ClusterNode] = field(default_factory=list)
+    links: list = field(default_factory=list)
 
     @classmethod
     def from_yaml(cls, path: str) -> "Cluster":
@@ -33,13 +33,13 @@ class Cluster:
             links=data.get("links", []),
         )
 
-    def validate(self, known_platforms: Dict) -> List[str]:
+    def validate(self, known_platforms: dict) -> list[str]:
         errors = []
         seen_names = set()
         for node in self.nodes:
             if node.name in seen_names:
-                errors.append("duplicate node name: %s" % node.name)
+                errors.append(f"duplicate node name: {node.name}")
             seen_names.add(node.name)
             if node.platform not in known_platforms:
-                errors.append("unknown platform: %s" % node.platform)
+                errors.append(f"unknown platform: {node.platform}")
         return errors

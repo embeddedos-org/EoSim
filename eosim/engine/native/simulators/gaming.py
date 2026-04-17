@@ -50,9 +50,12 @@ class GamingSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors_gaming import (
-            PhysicsEngine, TerrainSensor, EntityManager)
         from eosim.engine.native.peripherals.actuators_gaming import GameController
+        from eosim.engine.native.peripherals.sensors_gaming import (
+            EntityManager,
+            PhysicsEngine,
+            TerrainSensor,
+        )
 
         self.vm.add_peripheral('physics', PhysicsEngine('physics', 0x40150000))
         self.vm.add_peripheral('terrain', TerrainSensor('terrain', 0x40150100))

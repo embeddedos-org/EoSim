@@ -21,7 +21,7 @@ class FinanceRenderer(BaseRenderer):
     def update(self, ax, state):
         price = state.get("price", 100)
         pnl = state.get("pnl", 0)
-        ax.set_title("Market $%.2f PnL=$%.2f" % (price, pnl), fontsize=8)
+        ax.set_title(f"Market ${price:.2f} PnL=${pnl:.2f}", fontsize=8)
 
 
 register_renderer("finance", FinanceRenderer)

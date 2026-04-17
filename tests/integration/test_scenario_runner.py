@@ -1,7 +1,8 @@
 """Integration tests — YAML scenario loading and validation."""
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
 
 from eosim.engine.backend import SimResult
 from eosim.tests.runner import run_checks

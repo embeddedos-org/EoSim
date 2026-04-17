@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Modeling method catalog for simulation approaches."""
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import Optional
 
 
 @dataclass
@@ -9,12 +9,12 @@ class ModelingMethod:
     name: str = ""
     display_name: str = ""
     description: str = ""
-    engine_support: List[str] = field(default_factory=list)
-    use_cases: List[str] = field(default_factory=list)
-    parameters: Dict = field(default_factory=dict)
+    engine_support: list[str] = field(default_factory=list)
+    use_cases: list[str] = field(default_factory=list)
+    parameters: dict = field(default_factory=dict)
 
 
-MODELING_CATALOG: Dict[str, ModelingMethod] = {
+MODELING_CATALOG: dict[str, ModelingMethod] = {
     "deterministic": ModelingMethod(
         name="deterministic",
         display_name="Deterministic Simulation",
@@ -98,7 +98,7 @@ MODELING_CATALOG: Dict[str, ModelingMethod] = {
 }
 
 
-def list_modeling_methods() -> List[str]:
+def list_modeling_methods() -> list[str]:
     return list(MODELING_CATALOG.keys())
 
 
@@ -106,15 +106,15 @@ def get_modeling(name: str) -> Optional[ModelingMethod]:
     return MODELING_CATALOG.get(name)
 
 
-def validate_modeling_for_engine(method: str, engine: str) -> List[str]:
+def validate_modeling_for_engine(method: str, engine: str) -> list[str]:
     warnings = []
     m = get_modeling(method)
     if m is None:
-        warnings.append("Unknown modeling method: %s" % method)
+        warnings.append(f"Unknown modeling method: {method}")
         return warnings
     if engine not in m.engine_support:
         warnings.append(
-            "Modeling method '%s' is not supported by engine '%s'. "
-            "Supported engines: %s" % (method, engine, ", ".join(m.engine_support))
+            "Modeling method '{}' is not supported by engine '{}'. "
+            "Supported engines: {}".format(method, engine, ", ".join(m.engine_support))
         )
     return warnings

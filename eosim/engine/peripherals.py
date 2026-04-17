@@ -50,8 +50,8 @@ def generate_repl_peripherals(peripherals: list) -> str:
     for pname in peripherals:
         model = PERIPHERAL_MODELS.get(pname)
         if model:
-            lines.append("// %s — %s" % (pname, model["description"]))
-            lines.append("%s: %s @ sysbus" % (pname, model["renode_type"]))
+            lines.append("// {} — {}".format(pname, model["description"]))
+            lines.append("{}: {} @ sysbus".format(pname, model["renode_type"]))
             lines.append("")
     return "\n".join(lines)
 

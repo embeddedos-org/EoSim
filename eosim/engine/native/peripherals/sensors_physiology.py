@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Physiology domain sensors — heart model, lung model, blood pressure."""
-import math
 import random
 
 from eosim.engine.native.peripherals.sensors import SensorBase

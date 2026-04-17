@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: MIT
 """Platform dataclasses and discovery."""
 import os
-import yaml
 from dataclasses import dataclass, field
-from typing import Optional, Dict
+from typing import Optional
+
+import yaml
 
 
 @dataclass
@@ -44,8 +45,8 @@ class Platform:
     soc: str = ""
     domain: str = ""
     modeling: str = ""
-    domain_config: Dict = field(default_factory=dict)
-    modeling_config: Dict = field(default_factory=dict)
+    domain_config: dict = field(default_factory=dict)
+    modeling_config: dict = field(default_factory=dict)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
     qemu: QemuConfig = field(default_factory=QemuConfig)
     boot: BootConfig = field(default_factory=BootConfig)
@@ -91,7 +92,7 @@ class Platform:
         return cls(**kwargs)
 
 
-def discover_platforms(root_dir: str) -> Dict[str, "Platform"]:
+def discover_platforms(root_dir: str) -> dict[str, "Platform"]:
     platforms = {}
     if not os.path.isdir(root_dir):
         return platforms

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 from dataclasses import dataclass, field
-from typing import Optional, Callable
+from typing import Callable, Optional
+
 
 @dataclass
 class CPUState:
@@ -27,8 +28,8 @@ class CPUState:
         self.mode = 'supervisor'
 
     def dump(self) -> str:
-        lines = ['CPU State (%s):' % self.arch]
-        lines.append('  PC: 0x%08X  SP: 0x%08X  LR: 0x%08X' % (self.pc, self.sp, self.lr))
+        lines = [f'CPU State ({self.arch}):']
+        lines.append(f'  PC: 0x{self.pc:08X}  SP: 0x{self.sp:08X}  LR: 0x{self.lr:08X}')
         lines.append('  CPSR: 0x%08X  Mode: %s  Cycles: %d' % (self.cpsr, self.mode, self.cycles))
         for i in range(0, min(16, len(self.regs)), 4):
             lines.append('  R%-2d: 0x%08X  R%-2d: 0x%08X  R%-2d: 0x%08X  R%-2d: 0x%08X' % (

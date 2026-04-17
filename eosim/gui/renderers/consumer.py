@@ -2,6 +2,7 @@
 # Copyright (c) 2026 EoS Project
 """Consumer Electronics 3D renderer — bar chart of key media/speaker/camera state values."""
 import math
+
 from eosim.gui.renderers import BaseRenderer, register_renderer
 
 

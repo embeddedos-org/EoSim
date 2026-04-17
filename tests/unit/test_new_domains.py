@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: MIT
 """Extended unit tests for EoSim core — new domains, modeling, schema, simulators."""
-import pytest
 
 
 class TestDomainsExtended:
@@ -14,7 +13,7 @@ class TestDomainsExtended:
         from eosim.core.domains import DOMAIN_CATALOG
         new_domains = ["aerodynamics", "physiology", "finance", "weather", "gaming"]
         for d in new_domains:
-            assert d in DOMAIN_CATALOG, "Missing domain: %s" % d
+            assert d in DOMAIN_CATALOG, f"Missing domain: {d}"
 
     def test_aerodynamics_fields(self):
         from eosim.core.domains import get_domain
@@ -57,8 +56,8 @@ class TestDomainsExtended:
         from eosim.core.domains import DOMAIN_CATALOG
         for name, d in DOMAIN_CATALOG.items():
             assert d.name == name
-            assert d.display_name, "%s missing display_name" % name
-            assert d.description, "%s missing description" % name
+            assert d.display_name, f"{name} missing display_name"
+            assert d.description, f"{name} missing description"
             assert isinstance(d.standards, list)
             assert isinstance(d.typical_arches, list)
             assert isinstance(d.test_scenarios, list)
@@ -82,7 +81,7 @@ class TestModelingExtended:
         from eosim.core.modeling import MODELING_CATALOG
         new_methods = ["cfd", "monte-carlo", "finite-element", "particle-based"]
         for m in new_methods:
-            assert m in MODELING_CATALOG, "Missing method: %s" % m
+            assert m in MODELING_CATALOG, f"Missing method: {m}"
 
     def test_cfd_engine_support(self):
         from eosim.core.modeling import get_modeling
@@ -113,8 +112,8 @@ class TestModelingExtended:
     def test_all_methods_have_engine_support(self):
         from eosim.core.modeling import MODELING_CATALOG
         for name, m in MODELING_CATALOG.items():
-            assert len(m.engine_support) > 0, "%s has no engine_support" % name
-            assert "eosim" in m.engine_support, "%s missing eosim engine" % name
+            assert len(m.engine_support) > 0, f"{name} has no engine_support"
+            assert "eosim" in m.engine_support, f"{name} missing eosim engine"
 
 
 class TestSchemaExtended:
@@ -125,21 +124,21 @@ class TestSchemaExtended:
         for domain in ["aerodynamics", "physiology", "finance", "weather", "gaming"]:
             data = {"name": "t", "arch": "arm64", "engine": "eosim", "domain": domain}
             errors = validate_platform(data)
-            assert errors == [], "Domain %s should be valid, got: %s" % (domain, errors)
+            assert errors == [], f"Domain {domain} should be valid, got: {errors}"
 
     def test_new_modeling_valid(self):
         from eosim.core.schema import validate_platform
         for method in ["cfd", "monte-carlo", "finite-element", "particle-based"]:
             data = {"name": "t", "arch": "x86_64", "engine": "eosim", "modeling": method}
             errors = validate_platform(data)
-            assert errors == [], "Modeling %s should be valid, got: %s" % (method, errors)
+            assert errors == [], f"Modeling {method} should be valid, got: {errors}"
 
     def test_new_engines_valid(self):
         from eosim.core.schema import validate_platform
         for eng in ["xplane", "gazebo", "openfoam"]:
             data = {"name": "t", "arch": "x86_64", "engine": eng}
             errors = validate_platform(data)
-            assert errors == [], "Engine %s should be valid, got: %s" % (eng, errors)
+            assert errors == [], f"Engine {eng} should be valid, got: {errors}"
 
     def test_invalid_domain_still_fails(self):
         from eosim.core.schema import validate_platform
@@ -205,7 +204,7 @@ class TestNewSimulatorLifecycle:
         sim.tick()
         state = sim.get_state()
         for key in ['airspeed_mps', 'mach_number', 'cl', 'cd', 'lift_n', 'drag_n']:
-            assert key in state, "Missing key: %s" % key
+            assert key in state, f"Missing key: {key}"
 
     def test_physiology_state_keys(self):
         from eosim.engine.native import VirtualMachine
@@ -215,7 +214,7 @@ class TestNewSimulatorLifecycle:
         sim.tick()
         state = sim.get_state()
         for key in ['heart_rate', 'spo2', 'bp_sys', 'bp_dia', 'temperature']:
-            assert key in state, "Missing key: %s" % key
+            assert key in state, f"Missing key: {key}"
 
     def test_finance_state_keys(self):
         from eosim.engine.native import VirtualMachine
@@ -225,7 +224,7 @@ class TestNewSimulatorLifecycle:
         sim.tick()
         state = sim.get_state()
         for key in ['price', 'bid', 'ask', 'volume', 'pnl']:
-            assert key in state, "Missing key: %s" % key
+            assert key in state, f"Missing key: {key}"
 
     def test_weather_state_keys(self):
         from eosim.engine.native import VirtualMachine
@@ -235,7 +234,7 @@ class TestNewSimulatorLifecycle:
         sim.tick()
         state = sim.get_state()
         for key in ['temperature_c', 'pressure_hpa', 'wind_speed_mps', 'humidity_pct']:
-            assert key in state, "Missing key: %s" % key
+            assert key in state, f"Missing key: {key}"
 
     def test_gaming_state_keys(self):
         from eosim.engine.native import VirtualMachine
@@ -245,4 +244,4 @@ class TestNewSimulatorLifecycle:
         sim.tick()
         state = sim.get_state()
         for key in ['player_pos', 'entity_count', 'collision_count', 'fps']:
-            assert key in state, "Missing key: %s" % key
+            assert key in state, f"Missing key: {key}"

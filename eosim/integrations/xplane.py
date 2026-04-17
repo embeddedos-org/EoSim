@@ -3,7 +3,7 @@
 """X-Plane flight simulator integration — UDP dataref bridge."""
 import socket
 import struct
-from typing import Optional, Dict
+from typing import Optional
 
 
 class XPlaneConnection:
@@ -20,7 +20,7 @@ class XPlaneConnection:
         self.port = port
         self._sock: Optional[socket.socket] = None
         self.connected = False
-        self._datarefs: Dict[str, float] = {}
+        self._datarefs: dict[str, float] = {}
 
     def connect(self, timeout: float = 5.0) -> bool:
         try:
@@ -29,7 +29,7 @@ class XPlaneConnection:
             self._sock.connect((self.host, self.port))
             self.connected = True
             return True
-        except (socket.error, OSError):
+        except OSError:
             self.connected = False
             return False
 
@@ -54,7 +54,7 @@ class XPlaneConnection:
             msg += path.encode('ascii').ljust(500, b'\x00')
             self._sock.send(msg)
             self._datarefs[path] = value
-        except (socket.error, OSError):
+        except OSError:
             pass
 
     def set_position(self, lat: float, lon: float, alt_m: float,
@@ -67,7 +67,7 @@ class XPlaneConnection:
             msg += struct.pack('<dddffff', lat, lon, alt_m,
                                pitch, roll, heading, 0)
             self._sock.send(msg)
-        except (socket.error, OSError):
+        except OSError:
             pass
 
     def receive_data(self, timeout: float = 0.1) -> dict:
@@ -85,7 +85,7 @@ class XPlaneConnection:
                     result[idx] = values
                     offset += 36
                 return result
-        except (socket.timeout, socket.error, OSError):
+        except (socket.timeout, OSError):
             pass
         return {}
 

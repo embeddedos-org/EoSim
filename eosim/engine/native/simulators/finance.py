@@ -5,7 +5,6 @@
 Pure Python, cross-platform. No OS-specific dependencies.
 """
 import math
-import random
 
 
 class FinanceSimulator:
@@ -50,10 +49,8 @@ class FinanceSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors_finance import (
-            MarketFeed, OrderBook)
-        from eosim.engine.native.peripherals.actuators_finance import (
-            TradeExecutor, RiskEngine)
+        from eosim.engine.native.peripherals.actuators_finance import RiskEngine, TradeExecutor
+        from eosim.engine.native.peripherals.sensors_finance import MarketFeed, OrderBook
 
         self.vm.add_peripheral('market', MarketFeed('market', 0x40130000))
         self.vm.add_peripheral('orderbook', OrderBook('orderbook', 0x40130100))
@@ -113,7 +110,6 @@ class FinanceSimulator:
         if risk:
             self.state['var_95'] = round(risk.current_var, 2)
 
-        returns = []
         if market and market.price > 0 and self.state['open'] > 0:
             ret = (market.price - self.state['open']) / self.state['open']
             self.state['volatility'] = round(abs(ret) * math.sqrt(252), 4)

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Weather domain actuators — weather modification actuator."""
-import random
 
 from eosim.engine.native.peripherals.actuators import ActuatorBase
 
