@@ -66,6 +66,9 @@ The platform supports architectures from tiny Cortex-M0+ microcontrollers to pow
 
 ## 1.1 What is EoSim?
 
+
+![Figure: EoSim — 3D Product Visualization](images/product-3d.png)
+
 EoSim is a multi-architecture embedded simulation platform that enables developers to simulate, validate, and test embedded systems before hardware is ready. It is the simulation and validation component of the EmbeddedOS ecosystem, supporting **52+ platforms** across **12 architectures**.
 
 The platform provides:
