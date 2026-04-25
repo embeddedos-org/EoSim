@@ -4,6 +4,9 @@
 
 ## The Definitive Technical Reference
 
+![Figure: EoSim System Architecture — simulation orchestration with QEMU and Renode](images/architecture.png)
+
+
 **Version 1.0**
 
 **Srikanth Patchava & EmbeddedOS Contributors**
