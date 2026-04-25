@@ -7,6 +7,9 @@ and execution control. Works with any GDB server (QEMU -gdb, OpenOCD, etc.).
 """
 import socket
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GDBError(Exception):
@@ -49,7 +52,7 @@ class GDBRemoteClient:
             if resp == 'OK':
                 self._no_ack_mode = True
         except Exception:
-            pass
+            logger.debug("NoAckMode negotiation failed, using standard ack mode")
 
     # --- Packet framing ---
 
@@ -168,11 +171,17 @@ class GDBRemoteClient:
 
     def step(self) -> str:
         """Single-step one instruction. Returns stop reason."""
-        return self._command('s')
+        resp = self._command('s')
+        if resp.startswith('E'):
+            raise GDBError(f"Step failed: {resp}")
+        return resp
 
     def continue_execution(self) -> str:
         """Continue execution. Blocks until target stops."""
-        return self._command('c')
+        resp = self._command('c')
+        if resp.startswith('E'):
+            raise GDBError(f"Continue failed: {resp}")
+        return resp
 
     def halt(self) -> str:
         """Interrupt a running target."""
@@ -216,7 +225,7 @@ class GDBRemoteClient:
         try:
             self._command('D')
         except Exception:
-            pass
+            logger.debug("Detach failed (target may already be disconnected)")
 
     # --- Lifecycle ---
 
@@ -240,5 +249,5 @@ class GDBRemoteClient:
                 self.detach()
                 self._sock.close()
             except Exception:
-                pass
+                logger.debug("Error closing GDB socket", exc_info=True)
             self._sock = None

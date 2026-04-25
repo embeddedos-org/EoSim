@@ -1,6 +1,8 @@
 # 🖥 EoSim — Multi-Architecture Embedded Simulation Platform
 
 [![CI](https://github.com/embeddedos-org/eosim/actions/workflows/ci.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/embeddedos-org/eosim/actions/workflows/codeql.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/codeql.yml)
+[![Scorecard](https://github.com/embeddedos-org/eosim/actions/workflows/scorecard.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/scorecard.yml)
 [![Nightly](https://github.com/embeddedos-org/eosim/actions/workflows/nightly.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/nightly.yml)
 [![Release](https://github.com/embeddedos-org/eosim/actions/workflows/release.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/release.yml)
 [![Version](https://img.shields.io/github/v/tag/embeddedos-org/eosim?label=version)](https://github.com/embeddedos-org/eosim/releases/latest)
@@ -219,3 +221,7 @@ This project is part of the EoS ecosystem and aligns with international standard
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
+
+
+---
+Part of the [EmbeddedOS Organization](https://embeddedos-org.github.io).

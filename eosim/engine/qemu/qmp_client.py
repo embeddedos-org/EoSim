@@ -10,6 +10,9 @@ import socket
 import threading
 import time
 from typing import Any, Callable, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class QMPError(Exception):
@@ -162,7 +165,7 @@ class QMPClient:
             try:
                 h(event)
             except Exception:
-                pass
+                logger.exception("Event handler %s failed for event %s", h, name)
 
     def start_event_listener(self):
         """Start background thread for async QEMU events."""
@@ -194,7 +197,11 @@ class QMPClient:
         self._connected = False
         if self._sock:
             try:
+                self._sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
                 self._sock.close()
             except Exception:
-                pass
+                logger.debug("Error closing QMP socket", exc_info=True)
             self._sock = None

@@ -8,6 +8,9 @@ Works with both QEMU GDB stub and OpenOCD GDB server.
 import threading
 import time
 from typing import Callable, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TargetStateBridge:
@@ -105,7 +108,7 @@ class TargetStateBridge:
             try:
                 self._on_update()
             except Exception:
-                pass
+                logger.exception("State update callback failed")
 
     def start_polling(self):
         """Start background polling thread."""

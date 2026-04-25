@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Domain-specific actuator peripherals for EoSim simulation."""
+import logging
 import random
+
+logger = logging.getLogger(__name__)
 
 
 class ActuatorBase:
@@ -13,7 +16,7 @@ class ActuatorBase:
         self.enabled = False
 
     def simulate_tick(self):
-        pass
+        self._tick_count = getattr(self, '_tick_count', 0) + 1
 
     def io_handler(self, op: str, addr: int, val: int) -> int:
         offset = addr - self.base
@@ -27,7 +30,7 @@ class ActuatorBase:
         return 0
 
     def write_reg(self, offset: int, val: int):
-        pass
+        logger.debug("%s: unhandled write offset=0x%02x val=0x%08x", self.name, offset, val)
 
 
 class MotorController(ActuatorBase):

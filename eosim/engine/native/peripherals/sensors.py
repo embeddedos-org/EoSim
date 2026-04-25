@@ -2,7 +2,10 @@
 # Copyright (c) 2026 EoS Project
 """Domain-specific sensor peripherals for EoSim simulation."""
 import math
+import logging
 import random
+
+logger = logging.getLogger(__name__)
 
 
 class SensorBase:
@@ -30,7 +33,7 @@ class SensorBase:
         return 0
 
     def write_reg(self, offset: int, val: int):
-        pass
+        logger.debug("%s: unhandled write offset=0x%02x val=0x%08x", self.name, offset, val)
 
 
 class TemperatureSensor(SensorBase):
