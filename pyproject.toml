@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eosim"
-version = "0.1.0"
-description = "Multi-architecture embedded simulation platform for EoS"
+version = "2.0.0"
+description = "World-class multi-architecture embedded simulation platform — 150+ platforms, 40 domains, 26 architectures"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -16,7 +16,7 @@ maintainers = [
     {name = "EoS Project", email = "team@embeddedos.org"},
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
@@ -40,10 +40,14 @@ dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4.0"]
 viz = ["matplotlib>=3.5"]
 elf = ["pyelftools>=0.29"]
 hil = ["pyserial>=3.5"]
+api = ["fastapi>=0.100", "uvicorn>=0.23"]
+docs = ["doxypypy>=0.8"]
 all = [
     "matplotlib>=3.5",
     "pyelftools>=0.29",
     "pyserial>=3.5",
+    "fastapi>=0.100",
+    "uvicorn>=0.23",
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.4.0",

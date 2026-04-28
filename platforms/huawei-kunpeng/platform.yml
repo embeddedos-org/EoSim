@@ -1,0 +1,16 @@
+name: huawei-kunpeng
+display_name: Huawei Kunpeng 920
+arch: arm64
+engine: eosim
+class: hpc
+vendor: Huawei
+soc: Kunpeng 920
+domain: telecom
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: taishan-v110
+runtime:
+  memory_mb: 65536
+  headless: true
+  uart: sysbus.uart0

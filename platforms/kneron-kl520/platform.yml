@@ -1,0 +1,16 @@
+name: kneron-kl520
+display_name: Kneron KL520
+arch: arm
+engine: eosim
+class: ai-accelerator
+vendor: Kneron
+soc: KL520
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

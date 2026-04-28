@@ -1,0 +1,16 @@
+name: onsemi-rsl10
+display_name: onsemi RSL10
+arch: arm
+engine: eosim
+class: mcu
+vendor: onsemi
+soc: RSL10
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m3
+runtime:
+  memory_mb: 76
+  headless: true
+  uart: sysbus.uart0

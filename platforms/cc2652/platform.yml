@@ -1,0 +1,16 @@
+name: cc2652
+display_name: TI CC2652R
+arch: arm
+engine: eosim
+class: mcu
+vendor: Texas Instruments
+soc: CC2652R
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4f
+runtime:
+  memory_mb: 80
+  headless: true
+  uart: sysbus.uart0

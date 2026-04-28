@@ -1,0 +1,16 @@
+name: samd21
+display_name: Microchip SAMD21
+arch: arm
+engine: eosim
+class: mcu
+vendor: Microchip
+soc: ATSAMD21G18
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m0plus
+runtime:
+  memory_mb: 32
+  headless: true
+  uart: sysbus.uart0

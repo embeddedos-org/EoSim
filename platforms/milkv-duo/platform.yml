@@ -1,0 +1,16 @@
+name: milkv-duo
+display_name: Milk-V Duo
+arch: riscv64
+engine: eosim
+class: sbc
+vendor: Milk-V
+soc: CV1800B
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: c906
+runtime:
+  memory_mb: 64
+  headless: true
+  uart: sysbus.uart0

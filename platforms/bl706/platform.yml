@@ -1,0 +1,16 @@
+name: bl706
+display_name: Bouffalo BL706
+arch: riscv32
+engine: eosim
+class: mcu
+vendor: Bouffalo Lab
+soc: BL706
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: rv32imfc
+runtime:
+  memory_mb: 192
+  headless: true
+  uart: sysbus.uart0

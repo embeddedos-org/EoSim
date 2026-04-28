@@ -561,10 +561,11 @@ class TestDomains:
     def test_catalog_complete(self):
         from eosim.core.domains import list_domains
         domains = list_domains()
-        assert len(domains) == 15
+        assert len(domains) >= 40
         expected = ["automotive", "medical", "industrial", "consumer",
                      "aerospace", "iot", "robotics", "defense", "energy", "telecom",
-                     "aerodynamics", "physiology", "finance", "weather", "gaming"]
+                     "aerodynamics", "physiology", "finance", "weather", "gaming",
+                     "agriculture", "maritime", "nuclear", "railway", "quantum"]
         for d in expected:
             assert d in domains
 
@@ -598,7 +599,7 @@ class TestModeling:
     def test_catalog_complete(self):
         from eosim.core.modeling import list_modeling_methods
         methods = list_modeling_methods()
-        assert len(methods) == 10
+        assert len(methods) >= 20
         expected = ["deterministic", "stochastic", "discrete-event",
                      "continuous", "hybrid", "agent-based", "cfd",
                      "monte-carlo", "finite-element", "particle-based"]

@@ -1,0 +1,16 @@
+name: apple-m1
+display_name: Apple M1
+arch: arm64
+engine: eosim
+class: desktop
+vendor: Apple
+soc: M1
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: firestorm
+runtime:
+  memory_mb: 16384
+  headless: true
+  uart: sysbus.uart0

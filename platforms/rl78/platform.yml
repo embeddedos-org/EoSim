@@ -1,0 +1,16 @@
+name: rl78
+display_name: Renesas RL78/G14
+arch: rx
+engine: eosim
+class: mcu
+vendor: Renesas
+soc: RL78/G14
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: rl78
+runtime:
+  memory_mb: 64
+  headless: true
+  uart: sysbus.uart0

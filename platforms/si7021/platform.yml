@@ -1,0 +1,16 @@
+name: si7021
+display_name: Silicon Labs Si7021
+arch: arm
+engine: eosim
+class: sensor
+vendor: Silicon Labs
+soc: Si7021
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m0
+runtime:
+  memory_mb: 1
+  headless: true
+  uart: sysbus.uart0

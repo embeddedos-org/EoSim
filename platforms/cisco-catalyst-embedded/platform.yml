@@ -1,0 +1,16 @@
+name: cisco-catalyst-embedded
+display_name: Cisco Catalyst Embedded
+arch: arm64
+engine: eosim
+class: switch
+vendor: Cisco
+soc: ASIC Custom
+domain: telecom
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a72
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

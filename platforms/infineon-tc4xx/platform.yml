@@ -1,0 +1,16 @@
+name: infineon-tc4xx
+display_name: Infineon TC4xx
+arch: tricore
+engine: eosim
+class: automotive
+vendor: Infineon
+soc: TC4xx
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: tricore
+runtime:
+  memory_mb: 16384
+  headless: true
+  uart: sysbus.uart0

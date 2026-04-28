@@ -1,0 +1,16 @@
+name: omap-l138
+display_name: TI OMAP-L138
+arch: arm
+engine: eosim
+class: sbc
+vendor: Texas Instruments
+soc: OMAP-L138
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: arm926ej-s
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

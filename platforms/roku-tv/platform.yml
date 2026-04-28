@@ -1,0 +1,16 @@
+name: roku-tv
+display_name: Roku TV
+arch: arm64
+engine: eosim
+class: tv
+vendor: Roku
+soc: Roku SoC
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a55
+runtime:
+  memory_mb: 2048
+  headless: true
+  uart: sysbus.uart0

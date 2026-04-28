@@ -1,0 +1,16 @@
+name: switch-embedded
+display_name: Nintendo Switch
+arch: arm64
+engine: eosim
+class: mobile
+vendor: Nintendo
+soc: Tegra X1
+domain: gaming
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a57
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

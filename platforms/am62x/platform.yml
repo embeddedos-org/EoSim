@@ -1,0 +1,16 @@
+name: am62x
+display_name: TI AM625
+arch: arm64
+engine: eosim
+class: sbc
+vendor: Texas Instruments
+soc: AM625
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 2048
+  headless: true
+  uart: sysbus.uart0

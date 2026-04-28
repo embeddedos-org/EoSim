@@ -1,0 +1,16 @@
+name: intel-cyclone-v
+display_name: Intel Cyclone V
+arch: arm
+engine: eosim
+class: fpga
+vendor: Intel/Altera
+soc: Cyclone V SE
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a9
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

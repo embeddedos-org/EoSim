@@ -1,0 +1,16 @@
+name: arm-ethos-u55
+display_name: ARM Ethos-U55
+arch: arm
+engine: eosim
+class: ai-accelerator
+vendor: ARM
+soc: Ethos-U55
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m55
+runtime:
+  memory_mb: 64
+  headless: true
+  uart: sysbus.uart0

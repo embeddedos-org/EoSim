@@ -1,0 +1,16 @@
+name: efr32mg24
+display_name: Silicon Labs EFR32MG24
+arch: arm
+engine: eosim
+class: mcu
+vendor: Silicon Labs
+soc: EFR32MG24
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m33
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

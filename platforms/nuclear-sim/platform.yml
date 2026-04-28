@@ -1,0 +1,16 @@
+name: nuclear-sim
+display_name: Nuclear Simulator
+arch: arm64
+engine: eosim
+class: virtual
+vendor: EoSim
+soc: Virtual
+domain: nuclear
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

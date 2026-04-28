@@ -1,0 +1,16 @@
+name: ch32v307
+display_name: WCH CH32V307
+arch: riscv32
+engine: eosim
+class: mcu
+vendor: WCH
+soc: CH32V307
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: rv32imac
+runtime:
+  memory_mb: 64
+  headless: true
+  uart: sysbus.uart0

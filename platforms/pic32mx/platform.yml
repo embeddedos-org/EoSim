@@ -1,0 +1,16 @@
+name: pic32mx
+display_name: PIC32MX795
+arch: mips
+engine: eosim
+class: mcu
+vendor: Microchip
+soc: PIC32MX795
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: mips32r2
+runtime:
+  memory_mb: 128
+  headless: true
+  uart: sysbus.uart0

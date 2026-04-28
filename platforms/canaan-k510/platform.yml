@@ -1,0 +1,16 @@
+name: canaan-k510
+display_name: Canaan K510
+arch: riscv64
+engine: eosim
+class: sbc
+vendor: Canaan
+soc: K510
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: rv64gc
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

@@ -1,0 +1,16 @@
+name: xilinx-zynq7020
+display_name: Xilinx Zynq-7020
+arch: arm
+engine: eosim
+class: fpga
+vendor: AMD/Xilinx
+soc: Zynq-7020
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a9
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

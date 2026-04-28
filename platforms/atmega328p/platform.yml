@@ -1,0 +1,16 @@
+name: atmega328p
+display_name: ATmega328P
+arch: avr
+engine: eosim
+class: mcu
+vendor: Microchip
+soc: ATmega328P
+domain: education
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: avr6
+runtime:
+  memory_mb: 1
+  headless: true
+  uart: sysbus.uart0

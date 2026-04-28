@@ -46,9 +46,9 @@ def _load_registry():
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="eosim")
+@click.version_option(version="2.0.0", prog_name="eosim")
 def cli():
-    """EoSim - Multi-architecture embedded simulation platform."""
+    """EoSim - World-class embedded simulation platform (150+ platforms, 40 domains)."""
     pass
 
 
@@ -382,7 +382,7 @@ def artifact(platform, output):
     os.makedirs(output, exist_ok=True)
     manifest = {
         "platform": platform,
-        "version": "0.1.0",
+        "version": "2.0.0",
         "artifacts": ["logs", "traces", "reports"],
     }
     manifest_path = os.path.join(output, platform + "-manifest.json")
@@ -779,11 +779,17 @@ def bridge():
 @bridge.command("status")
 def bridge_status():
     """Show status of all external tool bridges."""
-    from eosim.engine.backend import GazeboEngine, OpenFOAMEngine, XPlaneEngine
+    from eosim.engine.backend import (
+        AirSimEngine, CARLAEngine, GazeboEngine, OpenFOAMEngine,
+        ROS2Engine, XPlaneEngine,
+    )
     click.echo("EoSim Bridge Status\n")
     click.echo("  %-15s %s" % ("X-Plane", "available" if XPlaneEngine.available() else "not connected"))
     click.echo("  %-15s %s" % ("Gazebo", "available" if GazeboEngine.available() else "not installed"))
     click.echo("  %-15s %s" % ("OpenFOAM", "available" if OpenFOAMEngine.available() else "not installed"))
+    click.echo("  %-15s %s" % ("CARLA", "available" if CARLAEngine.available() else "not connected"))
+    click.echo("  %-15s %s" % ("AirSim", "available" if AirSimEngine.available() else "not connected"))
+    click.echo("  %-15s %s" % ("ROS 2", "available" if ROS2Engine.available() else "not installed"))
 
 
 @bridge.group("xplane")
@@ -864,3 +870,85 @@ def openfoam_run(case_dir, solver):
 
 if __name__ == "__main__":
     cli()
+
+
+# --- API Server command ---
+
+@cli.command("api")
+@click.option("--host", default="0.0.0.0", help="API server host")
+@click.option("--port", default=8080, help="API server port")
+def api_server(host, port):
+    """Start the EoSim REST API server."""
+    click.echo(f"EoSim API Server starting on {host}:{port}")
+    click.echo("Swagger UI: http://%s:%d/docs" % (host if host != "0.0.0.0" else "localhost", port))
+    from eosim.api.server import EoSimAPIServer
+    server = EoSimAPIServer(host=host, port=port)
+    server.run()
+
+
+# --- Simulators command ---
+
+@cli.group("simulator")
+def simulator_group():
+    """Simulator management — list types, products, scenarios."""
+    pass
+
+
+@simulator_group.command("list")
+def simulator_list():
+    """List all available simulator types."""
+    from eosim.engine.native.simulators import SimulatorFactory
+    sims = SimulatorFactory.list_simulators()
+    click.echo("Available Simulators (%d):\n" % len(sims))
+    for s in sims:
+        click.echo("  " + s)
+
+
+@simulator_group.command("products")
+def simulator_products():
+    """List all product templates."""
+    from eosim.gui.product_templates import PRODUCT_CATALOG
+    click.echo("Product Templates (%d):\n" % len(PRODUCT_CATALOG))
+    click.echo("  %-25s %-25s %-15s %s" % ("NAME", "DISPLAY", "DOMAIN", "SIMULATOR"))
+    click.echo("  " + "-" * 90)
+    for name, t in sorted(PRODUCT_CATALOG.items()):
+        click.echo("  %-25s %-25s %-15s %s" % (
+            name, t.display_name, t.domain, t.simulator_class))
+
+
+@simulator_group.command("run")
+@click.argument("product_type")
+@click.option("--ticks", default=100, help="Number of simulation ticks")
+@click.option("--scenario", default="", help="Load a named scenario")
+def simulator_run(product_type, ticks, scenario):
+    """Run a product simulator interactively."""
+    from eosim.engine.native.simulators import SimulatorFactory, SIMULATOR_MAP
+    if product_type not in SIMULATOR_MAP:
+        click.echo(f"Unknown product type: {product_type}", err=True)
+        click.echo("Available: " + ", ".join(sorted(SIMULATOR_MAP.keys())[:20]) + " ...")
+        sys.exit(1)
+
+    class VM:
+        peripherals = {}
+        def add_peripheral(self, name, dev):
+            self.peripherals[name] = dev
+
+    vm = VM()
+    sim = SimulatorFactory.create(product_type, vm)
+    click.echo(f"Simulator: {sim.DISPLAY_NAME} ({sim.PRODUCT_TYPE})")
+    click.echo(f"Peripherals: {len(vm.peripherals)}")
+
+    if scenario:
+        sim.load_scenario(scenario)
+        click.echo(f"Scenario: {scenario}")
+
+    click.echo(f"Running {ticks} ticks...\n")
+    for i in range(ticks):
+        sim.tick()
+        if (i + 1) % (ticks // 5 or 1) == 0:
+            click.echo(f"  Tick {i+1}: {sim.get_status_text()}")
+
+    click.echo(f"\nFinal state:")
+    for k, v in sim.get_state().items():
+        if k != 'scenario':
+            click.echo(f"  {k}: {v}")

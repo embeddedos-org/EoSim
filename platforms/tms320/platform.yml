@@ -1,0 +1,16 @@
+name: tms320
+display_name: TI TMS320F28379D
+arch: arm
+engine: eosim
+class: mcu
+vendor: Texas Instruments
+soc: TMS320F28379D
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: c28x
+runtime:
+  memory_mb: 204
+  headless: true
+  uart: sysbus.uart0

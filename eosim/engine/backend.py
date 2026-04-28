@@ -280,6 +280,92 @@ class OpenFOAMEngine:
         return result
 
 
+class CARLAEngine:
+    """CARLA autonomous driving simulation engine bridge."""
+
+    @staticmethod
+    def available() -> bool:
+        import socket
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1.0)
+            s.connect(('127.0.0.1', 2000))
+            s.close()
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def run(platform, timeout=60, log_file=''):
+        from eosim.integrations.carla import CARLAConnection
+        result = SimResult(engine='carla', platform=platform.name)
+        conn = CARLAConnection()
+        if conn.connect(timeout=5.0):
+            result.success = True
+            result.stdout = f'CARLA connected on {conn.host}:{conn.port}'
+            conn.disconnect()
+        else:
+            result.stdout = 'CARLA not available (connection failed)'
+            result.success = False
+        return result
+
+
+class AirSimEngine:
+    """AirSim drone/car simulation engine bridge."""
+
+    @staticmethod
+    def available() -> bool:
+        import socket
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1.0)
+            s.connect(('127.0.0.1', 41451))
+            s.close()
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def run(platform, timeout=60, log_file=''):
+        from eosim.integrations.airsim import AirSimConnection
+        result = SimResult(engine='airsim', platform=platform.name)
+        conn = AirSimConnection()
+        if conn.connect(timeout=5.0):
+            result.success = True
+            result.stdout = 'AirSim connected'
+            conn.disconnect()
+        else:
+            result.stdout = 'AirSim not available'
+            result.success = False
+        return result
+
+
+class ROS2Engine:
+    """ROS 2 simulation engine bridge."""
+
+    @staticmethod
+    def available() -> bool:
+        try:
+            import rclpy  # noqa: F401
+            return True
+        except ImportError:
+            return False
+
+    @staticmethod
+    def run(platform, timeout=60, log_file=''):
+        from eosim.integrations.ros2 import ROS2Bridge
+        result = SimResult(engine='ros2', platform=platform.name)
+        bridge = ROS2Bridge()
+        if bridge.connect(timeout=5.0):
+            result.success = True
+            result.stdout = 'ROS 2 bridge connected'
+            bridge.disconnect()
+        else:
+            result.stdout = 'ROS 2 not available'
+            result.success = False
+        return result
+
+
 def get_engine(platform: Platform):
     """Get the best available engine for a platform."""
     if platform.engine == "qemu-live":
@@ -290,6 +376,12 @@ def get_engine(platform: Platform):
         return GazeboEngine()
     if platform.engine == "openfoam":
         return OpenFOAMEngine()
+    if platform.engine == "carla":
+        return CARLAEngine()
+    if platform.engine == "airsim":
+        return AirSimEngine()
+    if platform.engine == "ros2":
+        return ROS2Engine()
     if platform.engine == "eosim" and EoSimEngine.available():
         return EoSimEngine()
     if platform.engine == "renode" and RenodeEngine.available():

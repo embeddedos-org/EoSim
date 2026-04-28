@@ -1,0 +1,16 @@
+name: lpc4088
+display_name: NXP LPC4088
+arch: arm
+engine: eosim
+class: mcu
+vendor: NXP
+soc: LPC4088
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 96
+  headless: true
+  uart: sysbus.uart0

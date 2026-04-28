@@ -1,0 +1,16 @@
+name: samsung-exynos-auto-v9
+display_name: Samsung Exynos Auto V9
+arch: arm64
+engine: eosim
+class: automotive
+vendor: Samsung
+soc: Exynos Auto V9
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a76
+runtime:
+  memory_mb: 8192
+  headless: true
+  uart: sysbus.uart0

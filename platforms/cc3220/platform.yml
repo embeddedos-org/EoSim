@@ -1,0 +1,16 @@
+name: cc3220
+display_name: TI CC3220SF
+arch: arm
+engine: eosim
+class: mcu
+vendor: Texas Instruments
+soc: CC3220SF
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

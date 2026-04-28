@@ -1,0 +1,16 @@
+name: hailo-8
+display_name: Hailo-8
+arch: arm64
+engine: eosim
+class: ai-accelerator
+vendor: Hailo
+soc: Hailo-8
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 2048
+  headless: true
+  uart: sysbus.uart0

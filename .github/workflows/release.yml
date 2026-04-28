@@ -6,27 +6,132 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
-  test:
-    name: Validate
+  # ─── Pre-release Validation ────────────────────────────────────────
+  validate:
+    name: Pre-release Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]" 2>/dev/null || pip install -r requirements.txt 2>/dev/null || pip install pytest
-      - run: python -m pytest tests/ -v --tb=short || true
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Run full test suite
+        run: python -m pytest tests/ -v --tb=short --cov=eosim --cov-fail-under=60
+      - name: Validate all platforms
+        run: |
+          python -c "
+          import os, yaml
+          from eosim.core.schema import validate_platform
+          count = 0
+          for name in os.listdir('platforms'):
+              yml = os.path.join('platforms', name, 'platform.yml')
+              if os.path.isfile(yml):
+                  with open(yml) as f:
+                      data = yaml.safe_load(f)
+                  errs = validate_platform(data)
+                  assert not errs, f'{name}: {errs}'
+                  count += 1
+          print(f'{count} platforms validated')
+          "
+      - name: Smoke test simulators
+        run: |
+          python -c "
+          from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
 
+          class FakeVM:
+              def __init__(self): self.peripherals = {}
+              def add_peripheral(self, n, d): self.peripherals[n] = d
+
+          for k in SIMULATOR_MAP:
+              vm = FakeVM()
+              sim = SimulatorFactory.create(k, vm)
+              sim.tick()
+              sim.reset()
+          print(f'All {len(SIMULATOR_MAP)} simulators OK')
+          "
+
+  # ─── Build Package ─────────────────────────────────────────────────
+  build:
+    name: Build Package
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build
+        run: |
+          pip install build twine
+          python -m build
+          twine check dist/*
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # ─── Build Documentation ───────────────────────────────────────────
+  docs:
+    name: Build Docs
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
+      - name: Build docs
+        run: cd docs && doxygen Doxyfile
+      - name: Upload docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/output/html/
+
+  # ─── Docker Image ──────────────────────────────────────────────────
+  docker:
+    name: Build Docker Image
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t eosim:${{ github.ref_name }} .
+      - name: Test Docker image
+        run: |
+          docker run --rm eosim:${{ github.ref_name }} python -c "
+          from eosim.engine.native.simulators import SimulatorFactory
+          print('EoSim Docker image OK')
+          print(f'Simulators: {len(SimulatorFactory.list_simulators())}')
+          "
+
+  # ─── Create GitHub Release ─────────────────────────────────────────
   release:
     name: Create Release
-    needs: test
+    needs: [build, docs, docker]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Download docs
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: docs-html/
+      - name: Package docs
+        run: |
+          cd docs-html && zip -r ../eosim-docs-${{ github.ref_name }}.zip . && cd ..
       - name: Extract version
         id: version
         run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
@@ -36,3 +141,39 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "EoSim ${{ steps.version.outputs.tag }}"
           generate_release_notes: true
+          files: |
+            dist/*
+            eosim-docs-${{ steps.version.outputs.tag }}.zip
+          body: |
+            ## EoSim ${{ steps.version.outputs.tag }}
+
+            ### Highlights
+            - 150+ platform definitions across 26 architectures
+            - 40 industry domains with safety standard coverage
+            - 49 domain simulators + Android & iOS subsystem simulation
+            - REST API, plugin system, digital twin engine
+            - Power, thermal, safety, security, and WCET analysis
+
+            ### Assets
+            - **Python wheel** — `pip install eosim-*.whl`
+            - **Documentation** — `eosim-docs-*.zip` (HTML, generated by Doxygen)
+            - **Docker** — `docker pull ghcr.io/embeddedos-org/eosim:${{ steps.version.outputs.tag }}`
+
+  # ─── Publish to PyPI ───────────────────────────────────────────────
+  publish:
+    name: Publish to PyPI
+    needs: release
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true

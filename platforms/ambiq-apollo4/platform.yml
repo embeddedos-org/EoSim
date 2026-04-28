@@ -1,0 +1,16 @@
+name: ambiq-apollo4
+display_name: Ambiq Apollo4
+arch: arm
+engine: eosim
+class: mcu
+vendor: Ambiq
+soc: Apollo4
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4f
+runtime:
+  memory_mb: 2048
+  headless: true
+  uart: sysbus.uart0

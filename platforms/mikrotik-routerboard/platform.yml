@@ -1,0 +1,16 @@
+name: mikrotik-routerboard
+display_name: MikroTik RouterBOARD
+arch: arm64
+engine: eosim
+class: router
+vendor: MikroTik
+soc: IPQ-6010
+domain: telecom
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

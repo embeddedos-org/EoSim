@@ -1,0 +1,16 @@
+name: msp430
+display_name: TI MSP430FR5994
+arch: msp430
+engine: eosim
+class: mcu
+vendor: Texas Instruments
+soc: MSP430FR5994
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: msp430x
+runtime:
+  memory_mb: 1
+  headless: true
+  uart: sysbus.uart0

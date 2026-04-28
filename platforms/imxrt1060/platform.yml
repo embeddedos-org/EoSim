@@ -1,0 +1,16 @@
+name: imxrt1060
+display_name: NXP i.MX RT1060
+arch: arm
+engine: eosim
+class: mcu
+vendor: NXP
+soc: i.MX RT1060
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m7
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

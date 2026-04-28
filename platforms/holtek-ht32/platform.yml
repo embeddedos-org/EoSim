@@ -1,0 +1,16 @@
+name: holtek-ht32
+display_name: Holtek HT32
+arch: arm
+engine: eosim
+class: mcu
+vendor: Holtek
+soc: HT32F52352
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m0plus
+runtime:
+  memory_mb: 128
+  headless: true
+  uart: sysbus.uart0

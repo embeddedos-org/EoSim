@@ -424,6 +424,374 @@ PRODUCT_CATALOG: dict[str, ProductTemplate] = {
         default_platform="gaming-sim",
         simulator_class="GamingSimulator",
     ),
+    # ── Telecom ──────────────────────────────────────────────────────────
+    "lte_enodeb": ProductTemplate(
+        name="lte_enodeb", display_name="LTE eNodeB", icon="\U0001F4F6",
+        arch="arm64", ram_mb=2048,
+        peripherals=["ethernet", "rf", "adc", "gpio", "timer"],
+        domain="telecom", description="LTE base station radio controller",
+        default_platform="ericsson-baseband", simulator_class="TelecomSimulator",
+    ),
+    "network_switch": ProductTemplate(
+        name="network_switch", display_name="Network Switch", icon="\U0001F310",
+        arch="arm64", ram_mb=1024,
+        peripherals=["ethernet", "gpio", "uart", "watchdog"],
+        domain="telecom", description="Managed L2/L3 network switch",
+        default_platform="cisco-catalyst-embedded", simulator_class="TelecomSimulator",
+    ),
+    # ── Defense ───────────────────────────────────────────────────────────
+    "radar_system": ProductTemplate(
+        name="radar_system", display_name="Radar System", icon="\U0001F4E1",
+        arch="arm64", ram_mb=1024,
+        peripherals=["rf", "adc", "imu", "gps", "ethernet", "watchdog"],
+        domain="defense", description="Phased-array radar signal processor",
+        default_platform="stm32h7", simulator_class="DefenseSimulator",
+    ),
+    # ── Submarine ─────────────────────────────────────────────────────────
+    "auv": ProductTemplate(
+        name="auv", display_name="AUV (Autonomous Underwater Vehicle)", icon="\U0001F6A4",
+        arch="arm64", ram_mb=512,
+        peripherals=["imu", "gps", "barometer", "motor", "bms", "watchdog"],
+        domain="defense", description="Autonomous underwater vehicle for survey and inspection",
+        default_platform="stm32h7", simulator_class="SubmarineSimulator",
+    ),
+    # ── Network ───────────────────────────────────────────────────────────
+    "router": ProductTemplate(
+        name="router", display_name="Enterprise Router", icon="\U0001F310",
+        arch="arm64", ram_mb=2048,
+        peripherals=["ethernet", "uart", "gpio", "watchdog"],
+        domain="telecom", description="Enterprise router with BGP/OSPF",
+        default_platform="mikrotik-routerboard", simulator_class="NetworkSimulator",
+    ),
+    "sdn_controller": ProductTemplate(
+        name="sdn_controller", display_name="SDN Controller", icon="\U0001F5A7",
+        arch="x86_64", ram_mb=4096,
+        peripherals=["ethernet", "uart", "gpio"],
+        domain="telecom", description="Software-defined networking controller",
+        default_platform="x86_64", simulator_class="NetworkSimulator",
+    ),
+    # ── Smart City ────────────────────────────────────────────────────────
+    "smart_parking": ProductTemplate(
+        name="smart_parking", display_name="Smart Parking", icon="\U0001F17F",
+        arch="arm", ram_mb=64,
+        peripherals=["proximity", "wifi", "ble", "gpio"],
+        domain="smart-city", description="IoT parking occupancy sensor",
+        default_platform="esp32", simulator_class="SmartCitySimulator",
+    ),
+    "traffic_light": ProductTemplate(
+        name="traffic_light", display_name="Smart Traffic Light", icon="\U0001F6A6",
+        arch="arm", ram_mb=128,
+        peripherals=["gpio", "ethernet", "proximity", "light"],
+        domain="traffic", description="Adaptive traffic signal controller",
+        default_platform="smart-city-sim", simulator_class="SmartCitySimulator",
+    ),
+    # ── Railway ───────────────────────────────────────────────────────────
+    "train_control": ProductTemplate(
+        name="train_control", display_name="Train Control System", icon="\U0001F686",
+        arch="arm64", ram_mb=1024,
+        peripherals=["gps", "imu", "can", "motor", "brake", "watchdog"],
+        domain="railway", description="European Train Control System (ETCS) onboard unit",
+        default_platform="railway-sim", simulator_class="RailwaySimulator",
+    ),
+    "signaling": ProductTemplate(
+        name="signaling", display_name="Railway Signaling", icon="\U0001F6A5",
+        arch="arm", ram_mb=256,
+        peripherals=["gpio", "ethernet", "watchdog"],
+        domain="railway", description="Wayside signaling interlocking controller",
+        default_platform="railway-sim", simulator_class="RailwaySimulator",
+    ),
+    # ── Agriculture ───────────────────────────────────────────────────────
+    "irrigation": ProductTemplate(
+        name="irrigation", display_name="Irrigation Controller", icon="\U0001F4A7",
+        arch="arm", ram_mb=64,
+        peripherals=["adc", "gpio", "wifi", "rtc", "relay"],
+        domain="agriculture", description="Smart irrigation zone controller",
+        default_platform="agriculture-sim", simulator_class="AgricultureSimulator",
+    ),
+    "greenhouse": ProductTemplate(
+        name="greenhouse", display_name="Greenhouse Controller", icon="\U0001F33F",
+        arch="arm", ram_mb=128,
+        peripherals=["temp", "adc", "relay", "wifi", "gpio"],
+        domain="agriculture", description="Greenhouse climate and lighting controller",
+        default_platform="agriculture-sim", simulator_class="AgricultureSimulator",
+    ),
+    "tractor_ecu": ProductTemplate(
+        name="tractor_ecu", display_name="Tractor ECU", icon="\U0001F69C",
+        arch="arm", ram_mb=256,
+        peripherals=["can", "gps", "imu", "motor", "watchdog"],
+        domain="agriculture", description="ISOBUS tractor electronic control unit",
+        default_platform="stm32h7", simulator_class="AgricultureSimulator",
+    ),
+    # ── Maritime ──────────────────────────────────────────────────────────
+    "ship_autopilot": ProductTemplate(
+        name="ship_autopilot", display_name="Ship Autopilot", icon="\U0001F6A2",
+        arch="arm64", ram_mb=512,
+        peripherals=["gps", "imu", "motor", "watchdog"],
+        domain="maritime", description="Marine autopilot heading controller",
+        default_platform="maritime-sim", simulator_class="MaritimeSimulator",
+    ),
+    "ais_transponder": ProductTemplate(
+        name="ais_transponder", display_name="AIS Transponder", icon="\U0001F6E5",
+        arch="arm", ram_mb=128,
+        peripherals=["gps", "rf", "uart", "watchdog"],
+        domain="maritime", description="Automatic Identification System transponder",
+        default_platform="maritime-sim", simulator_class="MaritimeSimulator",
+    ),
+    # ── Mining ────────────────────────────────────────────────────────────
+    "drill_controller": ProductTemplate(
+        name="drill_controller", display_name="Drill Controller", icon="\u26CF",
+        arch="arm", ram_mb=128,
+        peripherals=["motor", "adc", "temp", "watchdog"],
+        domain="mining", description="Rotary drill bit controller with torque/depth monitoring",
+        default_platform="mining-sim", simulator_class="MiningSimulator",
+    ),
+    # ── Construction ──────────────────────────────────────────────────────
+    "crane_controller": ProductTemplate(
+        name="crane_controller", display_name="Crane Controller", icon="\U0001F3D7",
+        arch="arm", ram_mb=256,
+        peripherals=["imu", "gps", "motor", "proximity", "watchdog"],
+        domain="construction", description="Tower crane load moment controller",
+        default_platform="construction-sim", simulator_class="ConstructionSimulator",
+    ),
+    # ── Retail ────────────────────────────────────────────────────────────
+    "pos_terminal": ProductTemplate(
+        name="pos_terminal", display_name="POS Terminal", icon="\U0001F4B3",
+        arch="arm", ram_mb=256,
+        peripherals=["uart", "gpio", "display", "ble", "wifi"],
+        domain="retail", description="Point-of-sale payment terminal",
+        default_platform="stm32h7", simulator_class="RetailSimulator",
+    ),
+    "vending_machine": ProductTemplate(
+        name="vending_machine", display_name="Vending Machine", icon="\U0001F3B0",
+        arch="arm", ram_mb=128,
+        peripherals=["motor", "proximity", "display", "ble"],
+        domain="retail", description="Smart vending machine controller",
+        default_platform="esp32s3", simulator_class="RetailSimulator",
+    ),
+    # ── Education ─────────────────────────────────────────────────────────
+    "stem_kit": ProductTemplate(
+        name="stem_kit", display_name="STEM Learning Kit", icon="\U0001F9EA",
+        arch="arm", ram_mb=64,
+        peripherals=["adc", "gpio", "temp", "light", "display"],
+        domain="education", description="Educational STEM sensor kit for students",
+        default_platform="samd21", simulator_class="EducationSimulator",
+    ),
+    "coding_robot": ProductTemplate(
+        name="coding_robot", display_name="Coding Robot", icon="\U0001F916",
+        arch="arm", ram_mb=128,
+        peripherals=["motor", "proximity", "imu", "ble", "display"],
+        domain="education", description="Programmable educational robot",
+        default_platform="esp32", simulator_class="EducationSimulator",
+    ),
+    # ── Nuclear ───────────────────────────────────────────────────────────
+    "reactor_control": ProductTemplate(
+        name="reactor_control", display_name="Reactor Controller", icon="\u2622",
+        arch="arm64", ram_mb=2048,
+        peripherals=["temp", "pressure", "adc", "watchdog", "ethernet"],
+        domain="nuclear", description="Nuclear reactor instrumentation and control",
+        default_platform="nuclear-sim", simulator_class="NuclearSimulator",
+    ),
+    "radiation_monitor": ProductTemplate(
+        name="radiation_monitor", display_name="Radiation Monitor", icon="\u2623",
+        arch="arm", ram_mb=128,
+        peripherals=["adc", "gpio", "watchdog", "ethernet"],
+        domain="nuclear", description="Area radiation monitoring system",
+        default_platform="stm32h7", simulator_class="NuclearSimulator",
+    ),
+    # ── Rover / Space ─────────────────────────────────────────────────────
+    "mars_rover": ProductTemplate(
+        name="mars_rover", display_name="Mars Rover", icon="\U0001F680",
+        arch="arm64", ram_mb=2048,
+        peripherals=["imu", "gps", "motor", "bms", "temp", "watchdog"],
+        domain="space", description="Planetary surface exploration rover",
+        default_platform="stm32h7", simulator_class="RoverSimulator",
+    ),
+    # ── Launch Vehicle ────────────────────────────────────────────────────
+    "rocket_guidance": ProductTemplate(
+        name="rocket_guidance", display_name="Rocket Guidance", icon="\U0001F680",
+        arch="arm64", ram_mb=1024,
+        peripherals=["imu", "gps", "pressure", "temp", "watchdog"],
+        domain="space", description="Launch vehicle guidance, navigation, and control",
+        default_platform="stm32h7", simulator_class="LaunchVehicleSimulator",
+    ),
+    # ── Smart Grid ────────────────────────────────────────────────────────
+    "substation": ProductTemplate(
+        name="substation", display_name="Substation Controller", icon="\u26A1",
+        arch="arm64", ram_mb=512,
+        peripherals=["adc", "ethernet", "modbus", "relay", "watchdog"],
+        domain="energy", description="IEC 61850 substation automation controller",
+        default_platform="stm32h7", simulator_class="SmartGridSimulator",
+    ),
+    # ── Printer ───────────────────────────────────────────────────────────
+    "3d_printer": ProductTemplate(
+        name="3d_printer", display_name="3D Printer Controller", icon="\U0001F5A8",
+        arch="arm", ram_mb=256,
+        peripherals=["motor", "temp", "adc", "display", "watchdog"],
+        domain="printing", description="FDM/SLA 3D printer motion and thermal controller",
+        default_platform="stm32h7", simulator_class="PrinterSimulator",
+    ),
+    # ── HVAC ──────────────────────────────────────────────────────────────
+    "thermostat": ProductTemplate(
+        name="thermostat", display_name="Smart Thermostat", icon="\U0001F321",
+        arch="arm", ram_mb=64,
+        peripherals=["temp", "display", "wifi", "ble", "gpio"],
+        domain="hvac", description="Smart thermostat with WiFi connectivity",
+        default_platform="esp32", simulator_class="HVACSimulator",
+    ),
+    # ── Elevator ──────────────────────────────────────────────────────────
+    "lift_controller": ProductTemplate(
+        name="lift_controller", display_name="Elevator Controller", icon="\U0001F6D7",
+        arch="arm", ram_mb=256,
+        peripherals=["motor", "proximity", "display", "watchdog"],
+        domain="elevator", description="Elevator traction and door controller",
+        default_platform="stm32h7", simulator_class="ElevatorSimulator",
+    ),
+    # ── Traffic ───────────────────────────────────────────────────────────
+    "speed_camera": ProductTemplate(
+        name="speed_camera", display_name="Speed Camera", icon="\U0001F4F7",
+        arch="arm64", ram_mb=512,
+        peripherals=["camera", "radar", "gps", "ethernet"],
+        domain="traffic", description="Automated speed enforcement camera system",
+        default_platform="jetson-nano", simulator_class="TrafficSimulator",
+    ),
+    # ── Water ─────────────────────────────────────────────────────────────
+    "water_treatment": ProductTemplate(
+        name="water_treatment", display_name="Water Treatment", icon="\U0001F4A7",
+        arch="arm", ram_mb=256,
+        peripherals=["adc", "pressure", "temp", "relay", "modbus", "watchdog"],
+        domain="water", description="Water treatment plant PLC controller",
+        default_platform="stm32h7", simulator_class="WaterSimulator",
+    ),
+    # ── Oil & Gas ─────────────────────────────────────────────────────────
+    "pipeline_scada": ProductTemplate(
+        name="pipeline_scada", display_name="Pipeline SCADA", icon="\U0001F6E2",
+        arch="arm64", ram_mb=512,
+        peripherals=["pressure", "temp", "modbus", "ethernet", "watchdog"],
+        domain="oil-gas", description="Pipeline SCADA RTU for flow and pressure monitoring",
+        default_platform="stm32h7", simulator_class="OilGasSimulator",
+    ),
+    # ── Logistics ─────────────────────────────────────────────────────────
+    "warehouse_robot": ProductTemplate(
+        name="warehouse_robot", display_name="Warehouse Robot (AGV)", icon="\U0001F916",
+        arch="arm64", ram_mb=1024,
+        peripherals=["imu", "proximity", "motor", "ble", "wifi", "watchdog"],
+        domain="logistics", description="Autonomous guided vehicle for warehouse logistics",
+        default_platform="logistics-sim", simulator_class="LogisticsSimulator",
+    ),
+    # ── AR/VR ─────────────────────────────────────────────────────────────
+    "ar_glasses": ProductTemplate(
+        name="ar_glasses", display_name="AR Smart Glasses", icon="\U0001F453",
+        arch="arm64", ram_mb=4096,
+        peripherals=["imu", "camera", "display", "ble", "wifi", "bms"],
+        domain="ar-vr", description="Augmented reality smart glasses with see-through display",
+        default_platform="qualcomm-qcs610", simulator_class="ARVRSimulator",
+    ),
+    "vr_headset": ProductTemplate(
+        name="vr_headset", display_name="VR Headset", icon="\U0001F3AE",
+        arch="arm64", ram_mb=8192,
+        peripherals=["imu", "camera", "display", "ble", "wifi", "bms", "haptic"],
+        domain="ar-vr", description="Standalone VR headset with inside-out tracking",
+        default_platform="qualcomm-qcs610", simulator_class="ARVRSimulator",
+    ),
+    # ── Cybersecurity ─────────────────────────────────────────────────────
+    "firewall_appliance": ProductTemplate(
+        name="firewall_appliance", display_name="Firewall Appliance", icon="\U0001F6E1",
+        arch="arm64", ram_mb=4096,
+        peripherals=["ethernet", "crypto", "watchdog"],
+        domain="cybersecurity", description="Network firewall with deep packet inspection",
+        default_platform="stm32h7", simulator_class="CybersecuritySimulator",
+    ),
+    "hsm": ProductTemplate(
+        name="hsm", display_name="Hardware Security Module", icon="\U0001F510",
+        arch="arm64", ram_mb=512,
+        peripherals=["crypto", "ethernet", "watchdog"],
+        domain="cybersecurity", description="FIPS 140-3 hardware security module",
+        default_platform="stm32h7", simulator_class="CybersecuritySimulator",
+    ),
+    # ── Quantum ───────────────────────────────────────────────────────────
+    "quantum_processor": ProductTemplate(
+        name="quantum_processor", display_name="Quantum Processor", icon="\u269B",
+        arch="x86_64", ram_mb=65536,
+        peripherals=["temp", "adc", "ethernet"],
+        domain="quantum", description="Superconducting quantum processor control system",
+        default_platform="x86_64", simulator_class="QuantumSimulator",
+    ),
+    # ── Sports ────────────────────────────────────────────────────────────
+    "performance_tracker": ProductTemplate(
+        name="performance_tracker", display_name="Performance Tracker", icon="\U0001F3C3",
+        arch="arm", ram_mb=32,
+        peripherals=["imu", "gps", "ble", "display", "bms"],
+        domain="sports", description="Athletic performance tracking wearable",
+        default_platform="nrf5340", simulator_class="SportsSimulator",
+    ),
+    # ── Forestry ──────────────────────────────────────────────────────────
+    "fire_detection_node": ProductTemplate(
+        name="fire_detection_node", display_name="Fire Detection Node", icon="\U0001F525",
+        arch="arm", ram_mb=64,
+        peripherals=["temp", "adc", "gps", "lora", "bms"],
+        domain="forestry", description="Remote wildfire detection sensor node",
+        default_platform="nrf52", simulator_class="ForestrySimulator",
+    ),
+    # ── Fisheries ─────────────────────────────────────────────────────────
+    "aquaculture_controller": ProductTemplate(
+        name="aquaculture_controller", display_name="Aquaculture Controller", icon="\U0001F41F",
+        arch="arm", ram_mb=128,
+        peripherals=["temp", "adc", "relay", "wifi", "watchdog"],
+        domain="fisheries", description="Fish farm water quality and feeding controller",
+        default_platform="esp32", simulator_class="FisheriesSimulator",
+    ),
+    # ── V2X ───────────────────────────────────────────────────────────────
+    "v2x_rsu": ProductTemplate(
+        name="v2x_rsu", display_name="V2X Roadside Unit", icon="\U0001F6E3",
+        arch="arm64", ram_mb=512,
+        peripherals=["gps", "rf", "ethernet", "watchdog"],
+        domain="automotive", description="V2X roadside unit for intersection safety",
+        default_platform="stm32h7", simulator_class="AutomotiveV2XSimulator",
+    ),
+    # ── Android ───────────────────────────────────────────────────────────
+    "android_phone": ProductTemplate(
+        name="android_phone", display_name="Android Phone", icon="\U0001F4F1",
+        arch="arm64", ram_mb=8192,
+        peripherals=["imu", "gps", "temp", "light", "proximity", "bms", "wifi", "ble", "nfc", "camera"],
+        domain="consumer", description="Android smartphone — sensor HAL, PMIC, camera ISP, modem, touch IC",
+        default_platform="android-arm64", simulator_class="AndroidSimulator",
+    ),
+    "android_tablet": ProductTemplate(
+        name="android_tablet", display_name="Android Tablet", icon="\U0001F4BB",
+        arch="arm64", ram_mb=8192,
+        peripherals=["imu", "gps", "temp", "light", "proximity", "bms", "wifi", "ble", "camera"],
+        domain="consumer", description="Android tablet — large display, stylus, multi-window",
+        default_platform="android-arm64", simulator_class="AndroidSimulator",
+    ),
+    "android_auto": ProductTemplate(
+        name="android_auto", display_name="Android Automotive", icon="\U0001F697",
+        arch="arm64", ram_mb=4096,
+        peripherals=["can", "imu", "gps", "temp", "wifi", "ble", "camera"],
+        domain="automotive", description="Android Automotive OS — IVI, cluster, ADAS display",
+        default_platform="android-arm64", simulator_class="AndroidSimulator",
+    ),
+    # ── iOS ───────────────────────────────────────────────────────────────
+    "iphone": ProductTemplate(
+        name="iphone", display_name="iPhone", icon="\U0001F4F1",
+        arch="arm64", ram_mb=6144,
+        peripherals=["imu", "gps", "barometer", "temp", "light", "proximity", "bms", "wifi", "ble", "uwb", "nfc", "camera"],
+        domain="consumer", description="iPhone — A-series SoC, Face ID, Taptic Engine, UWB, secure enclave",
+        default_platform="ios-arm64", simulator_class="IOSSimulator",
+    ),
+    "ipad": ProductTemplate(
+        name="ipad", display_name="iPad", icon="\U0001F4BB",
+        arch="arm64", ram_mb=8192,
+        peripherals=["imu", "gps", "barometer", "temp", "light", "bms", "wifi", "ble", "camera"],
+        domain="consumer", description="iPad — M-series chip, ProMotion display, Apple Pencil support",
+        default_platform="ios-arm64", simulator_class="IOSSimulator",
+    ),
+    "apple_watch": ProductTemplate(
+        name="apple_watch", display_name="Apple Watch", icon="\u231A",
+        arch="arm64", ram_mb=1024,
+        peripherals=["imu", "gps", "temp", "spo2", "ecg", "bms", "ble", "uwb"],
+        domain="consumer", description="Apple Watch — S-series SoC, health sensors, always-on display",
+        default_platform="ios-arm64", simulator_class="IOSSimulator",
+    ),
 }
 
 

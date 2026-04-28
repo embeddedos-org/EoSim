@@ -1,0 +1,16 @@
+name: nuvoton-m480
+display_name: Nuvoton M480
+arch: arm
+engine: eosim
+class: mcu
+vendor: Nuvoton
+soc: M480
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

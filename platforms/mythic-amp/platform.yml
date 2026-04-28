@@ -1,0 +1,16 @@
+name: mythic-amp
+display_name: Mythic M1076 AMP
+arch: arm64
+engine: eosim
+class: ai-accelerator
+vendor: Mythic
+soc: M1076 AMP
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

@@ -4,27 +4,40 @@
 VALID_ARCHES = [
     "arm", "arm64", "aarch64", "riscv64", "riscv32", "x86_64",
     "mips", "mipsel", "xtensa", "microblaze", "arc", "powerpc", "tricore",
+    "avr", "pic", "msp430", "sh", "sparc", "m68k", "ceva",
+    "tensilica", "nios2", "openrisc", "loongarch", "rx",
 ]
 
 VALID_ENGINES = [
     "renode", "qemu", "eosim", "xplane", "gazebo", "openfoam",
+    "carla", "airsim", "verilator", "matlab", "ros2", "ns3", "omnet",
 ]
 
 VALID_DOMAINS = [
     "automotive", "medical", "industrial", "consumer", "aerospace",
     "iot", "robotics", "defense", "energy", "telecom",
     "aerodynamics", "physiology", "finance", "weather", "gaming",
+    "agriculture", "maritime", "mining", "construction", "retail",
+    "education", "sports", "nuclear", "railway", "smart-city",
+    "space", "quantum", "photonics", "neuromorphic", "hvac",
+    "printing", "elevator", "traffic", "water", "oil-gas",
+    "forestry", "fisheries", "logistics", "cybersecurity", "ar-vr",
 ]
 
 VALID_MODELING = [
     "deterministic", "stochastic", "discrete-event", "continuous",
     "hybrid", "agent-based", "cfd", "monte-carlo",
     "finite-element", "particle-based",
+    "neural-network", "reinforcement-learning", "digital-twin",
+    "system-dynamics", "cellular-automata", "lattice-boltzmann",
+    "spectral", "multi-body", "lumped-parameter", "bond-graph",
 ]
 
 VALID_CLASSES = [
     "mcu", "sbc", "devboard", "soc", "mpu", "fpga", "virtual",
     "automotive", "mobile", "tv", "industrial", "desktop", "safety",
+    "ai-accelerator", "gateway", "edge", "hpc", "wearable",
+    "sensor", "actuator", "router", "switch", "plc", "rtu",
 ]
 
 

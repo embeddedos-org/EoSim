@@ -1,0 +1,16 @@
+name: construction-sim
+display_name: Construction Simulator
+arch: arm
+engine: eosim
+class: virtual
+vendor: EoSim
+soc: Virtual
+domain: construction
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

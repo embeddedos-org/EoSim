@@ -1,0 +1,16 @@
+name: s32g274a
+display_name: NXP S32G274A
+arch: arm64
+engine: eosim
+class: automotive
+vendor: NXP
+soc: S32G274A
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

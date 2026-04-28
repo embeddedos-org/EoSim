@@ -1,0 +1,96 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [master, main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  # ─── Quick Checks ──────────────────────────────────────────────────
+  quick-check:
+    name: Quick Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check eosim/ --output-format=github
+      - name: Unit tests
+        run: python -m pytest tests/unit/ -x -q --tb=short
+      - name: Platform validation
+        run: |
+          python -c "
+          import os, yaml
+          from eosim.core.schema import validate_platform
+          count = err = 0
+          for d in os.listdir('platforms'):
+              f = os.path.join('platforms', d, 'platform.yml')
+              if not os.path.isfile(f): continue
+              count += 1
+              with open(f) as fh: data = yaml.safe_load(fh)
+              if validate_platform(data): err += 1
+          print(f'{count} platforms, {err} errors')
+          assert err == 0
+          "
+
+  # ─── Coverage Gate ─────────────────────────────────────────────────
+  coverage-gate:
+    name: Coverage Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Run with coverage
+        run: |
+          python -m pytest tests/unit/ \
+            --cov=eosim \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
+            -q --tb=short
+      - name: Post coverage to PR
+        if: always()
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          python -m pytest tests/unit/ --cov=eosim --cov-report=term -q 2>/dev/null | tail -15 >> $GITHUB_STEP_SUMMARY || true
+
+  # ─── Simulator Smoke ───────────────────────────────────────────────
+  smoke:
+    name: Simulator Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e "."
+      - name: Smoke test
+        run: |
+          python -c "
+          from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
+
+          class FakeVM:
+              def __init__(self): self.peripherals = {}
+              def add_peripheral(self, n, d): self.peripherals[n] = d
+
+          ok = 0
+          for k in SIMULATOR_MAP:
+              vm = FakeVM()
+              sim = SimulatorFactory.create(k, vm)
+              sim.tick()
+              ok += 1
+          print(f'{ok}/{len(SIMULATOR_MAP)} simulators passed')
+          "

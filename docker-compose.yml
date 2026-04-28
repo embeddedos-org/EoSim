@@ -1,16 +1,103 @@
-services:
-  eosim:
-    build: .
-    volumes:
-      - ./platforms:/opt/eosim/platforms:ro
-      - ./examples:/opt/eosim/examples:ro
-      - ./out:/opt/eosim/out
-    entrypoint: ["eosim"]
-    command: ["--help"]
+# ============================================================================
+# EoSim — Docker Compose Production Stack
+# ============================================================================
+#
+# Usage:
+#   docker compose up -d                    # Start all services
+#   docker compose up api -d                # Start API server only
+#   docker compose run --rm cli list        # Run CLI command
+#   docker compose run --rm test            # Run tests
+#   docker compose logs -f api              # Follow API logs
+#   docker compose down                     # Stop all services
+#
+# ============================================================================
 
-  test:
-    build: .
-    entrypoint: ["eosim"]
-    command: ["validate", "--all"]
+services:
+  # ── REST API Server ──────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      target: api-server
+    container_name: eosim-api
+    ports:
+      - "8080:8080"
     volumes:
       - ./platforms:/opt/eosim/platforms:ro
+      - ./plugins:/opt/eosim/plugins:ro
+      - eosim-data:/opt/eosim/out
+    environment:
+      - EOSIM_LOG_LEVEL=INFO
+      - EOSIM_WORKERS=2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/platforms"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+  # ── CLI Runner ───────────────────────────────────────────────────────
+  cli:
+    build:
+      context: .
+      target: production
+    volumes:
+      - ./platforms:/opt/eosim/platforms:ro
+      - eosim-data:/opt/eosim/out
+    entrypoint: ["tini", "--", "eosim"]
+    command: ["--help"]
+    profiles:
+      - cli
+
+  # ── CLI with QEMU ───────────────────────────────────────────────────
+  cli-qemu:
+    build:
+      context: .
+      target: production-qemu
+    volumes:
+      - ./platforms:/opt/eosim/platforms:ro
+      - eosim-data:/opt/eosim/out
+    entrypoint: ["tini", "--", "eosim"]
+    command: ["--help"]
+    profiles:
+      - cli
+
+  # ── Test Runner ──────────────────────────────────────────────────────
+  test:
+    build:
+      context: .
+      target: test
+    volumes:
+      - ./platforms:/opt/eosim/platforms:ro
+      - ./tests:/app/tests:ro
+    entrypoint: ["python", "-m", "pytest"]
+    command: ["tests/unit/", "-v", "--tb=short"]
+    profiles:
+      - test
+
+  # ── Development Environment ──────────────────────────────────────────
+  dev:
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/workspace
+    ports:
+      - "8080:8080"
+      - "8888:8888"
+    environment:
+      - EOSIM_DEV=1
+    profiles:
+      - dev
+
+volumes:
+  eosim-data:
+    driver: local

@@ -1,0 +1,16 @@
+name: atmega2560
+display_name: ATmega2560
+arch: avr
+engine: eosim
+class: mcu
+vendor: Microchip
+soc: ATmega2560
+domain: education
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: avr6
+runtime:
+  memory_mb: 8
+  headless: true
+  uart: sysbus.uart0

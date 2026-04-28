@@ -1,0 +1,16 @@
+name: dialog-da14695
+display_name: Dialog DA14695
+arch: arm
+engine: eosim
+class: mcu
+vendor: Dialog
+soc: DA14695
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m33
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

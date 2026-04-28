@@ -1,0 +1,16 @@
+name: qualcomm-qcs610
+display_name: Qualcomm QCS610
+arch: arm64
+engine: eosim
+class: sbc
+vendor: Qualcomm
+soc: QCS610
+domain: robotics
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a73
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

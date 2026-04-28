@@ -1,0 +1,16 @@
+name: starfive-jh7110
+display_name: StarFive JH7110
+arch: riscv64
+engine: eosim
+class: sbc
+vendor: StarFive
+soc: JH7110
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: u74
+runtime:
+  memory_mb: 8192
+  headless: true
+  uart: sysbus.uart0

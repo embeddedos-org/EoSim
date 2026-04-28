@@ -1,0 +1,16 @@
+name: intel-movidius
+display_name: Intel Movidius Myriad X
+arch: arm64
+engine: eosim
+class: ai-accelerator
+vendor: Intel
+soc: Movidius Myriad X
+domain: robotics
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

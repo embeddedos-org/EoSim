@@ -1,0 +1,16 @@
+name: mcxn947
+display_name: NXP MCXN947
+arch: arm
+engine: eosim
+class: mcu
+vendor: NXP
+soc: MCXN947
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m33
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

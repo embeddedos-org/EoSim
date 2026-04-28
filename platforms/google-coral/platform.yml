@@ -1,0 +1,16 @@
+name: google-coral
+display_name: Google Coral Edge TPU
+arch: arm64
+engine: eosim
+class: ai-accelerator
+vendor: Google
+soc: Edge TPU
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

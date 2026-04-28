@@ -1,0 +1,16 @@
+name: steamdeck-embedded
+display_name: Steam Deck
+arch: x86_64
+engine: eosim
+class: desktop
+vendor: Valve
+soc: AMD Van Gogh
+domain: gaming
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: zen2
+runtime:
+  memory_mb: 16384
+  headless: true
+  uart: sysbus.uart0

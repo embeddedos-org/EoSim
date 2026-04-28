@@ -1,0 +1,16 @@
+name: railway-sim
+display_name: Railway Simulator
+arch: arm64
+engine: eosim
+class: virtual
+vendor: EoSim
+soc: Virtual
+domain: railway
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

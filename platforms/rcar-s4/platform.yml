@@ -1,0 +1,16 @@
+name: rcar-s4
+display_name: Renesas R-Car S4
+arch: arm64
+engine: eosim
+class: automotive
+vendor: Renesas
+soc: R-Car S4
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a55
+runtime:
+  memory_mb: 8192
+  headless: true
+  uart: sysbus.uart0

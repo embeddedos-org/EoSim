@@ -1,4 +1,4 @@
-# 🖥 EoSim — Multi-Architecture Embedded Simulation Platform
+# EoSim — World-Class Multi-Architecture Embedded Simulation Platform
 
 [![CI](https://github.com/embeddedos-org/eosim/actions/workflows/ci.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/embeddedos-org/eosim/actions/workflows/codeql.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/codeql.yml)
@@ -6,223 +6,426 @@
 [![Nightly](https://github.com/embeddedos-org/eosim/actions/workflows/nightly.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/nightly.yml)
 [![Release](https://github.com/embeddedos-org/eosim/actions/workflows/release.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/release.yml)
 [![Version](https://img.shields.io/github/v/tag/embeddedos-org/eosim?label=version)](https://github.com/embeddedos-org/eosim/releases/latest)
-[![Book](https://github.com/embeddedos-org/EoSim/actions/workflows/book-build.yml/badge.svg)](https://github.com/embeddedos-org/EoSim/actions/workflows/book-build.yml)
+[![Docs](https://img.shields.io/badge/docs-PDF%20%7C%20HTML-blue)](https://github.com/embeddedos-org/eosim/tree/main/docs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Simulate, validate, and test embedded systems before hardware is ready.**
+**The most comprehensive open-source embedded simulation platform — simulate, validate, and test embedded systems across 150+ platforms, 40 domains, and 26 architectures before hardware is ready.**
 
-EoSim is the simulation and validation platform for the EmbeddedOS ecosystem — supporting **52+ platforms** across **12 architectures** with native Python simulation engine, Renode support, GUI dashboard, cluster simulation, and CI-native configuration-driven testing.
+EoSim rivals industry leaders like Wind River Simics, MATLAB/Simulink, dSPACE, and Vector CANoe — with the flexibility of open source, pure Python implementation, and seamless CI/CD integration.
 
-## Install
+---
+
+## Key Numbers
+
+| Metric | Count |
+|--------|-------|
+| Platform Definitions | **150+** |
+| Architectures | **26** (ARM, RISC-V, x86, AVR, PIC, MIPS, TriCore, ...) |
+| Industry Domains | **40** (automotive, aerospace, medical, nuclear, ...) |
+| Domain Simulators | **49** |
+| Product Templates | **80+** |
+| Peripheral Models | **100+** |
+| Engine Backends | **10** (EoSim, QEMU, Renode, CARLA, AirSim, ROS 2, ...) |
+| GUI Renderers | **33** domain-specific 3D renderers |
+
+---
+
+## Installation
 
 ```bash
+# Basic install
 pip install git+https://github.com/embeddedos-org/eosim.git
+
+# With all optional dependencies
+pip install "eosim[all]"
+
+# Development install
+git clone https://github.com/embeddedos-org/eosim.git
+cd eosim
+pip install -e ".[dev]"
+
+# With REST API support
+pip install "eosim[api]"
 ```
+
+### System Requirements
+
+- Python 3.9+
+- No C extensions required — pure Python, cross-platform
+- Optional: QEMU, Renode, Matplotlib, FastAPI
+
+---
 
 ## Quick Start
 
 ```bash
-eosim list                        # show available platforms
-eosim info arm64-linux            # platform details
-eosim run arm64-linux             # launch simulation
-eosim test arm64-linux            # run validation tests
-eosim doctor                      # check environment
-eosim stats                       # platform registry statistics
-eosim gui stm32f4                 # open GUI dashboard
+# List all 150+ platforms
+eosim list
+
+# Filter by architecture or domain
+eosim list --arch arm64
+eosim list --domain automotive
+
+# Platform details
+eosim info stm32h7
+
+# Run simulation
+eosim run stm32f4
+
+# Run validation tests
+eosim test arm64-linux
+
+# Open GUI dashboard
+eosim gui stm32f4
+
+# Platform statistics
+eosim stats
+
+# Search platforms by keyword
+eosim search "bluetooth"
+
+# Health check
+eosim doctor
 ```
 
-## Supported Platforms (52+)
+### Python API
 
-### ARM Cortex-M (MCU)
+```python
+from eosim.engine.native.simulators import SimulatorFactory
 
-| Platform | SoC | Description |
-|---|---|---|
-| `stm32f4` | STM32F407 | Cortex-M4F, 168 MHz, FPU |
-| `stm32h7` | STM32H743 | Cortex-M7, 480 MHz, Dual-core |
-| `stm32l4` | STM32L4xx | Cortex-M4, Ultra-low-power |
-| `nrf52` | nRF52840 | Cortex-M4F, BLE 5.0 |
-| `nrf5340` | nRF5340 | Cortex-M33, Dual-core, BLE 5.3 |
-| `nrf9160` | nRF9160 | Cortex-M33, LTE-M/NB-IoT |
-| `samd51` | ATSAMD51 | Cortex-M4F, Arduino/Adafruit |
-| `samc21` | ATSAMC21 | Cortex-M0+, CAN, Industrial |
-| `k64f` | MK64FN1M0 | Cortex-M4F, Ethernet |
-| `rp2040` | RP2040 | Dual Cortex-M0+, PIO |
-| `psoc6` | PSoC 6 | Cortex-M4F + M0+, BLE |
-| `s32k344` | S32K344 | Cortex-M7, Automotive CAN-FD |
-| `renesas-ra6m5` | RA6M5 | Cortex-M33, TrustZone |
+# Create a vehicle simulator
+class FakeVM:
+    peripherals = {}
+    def add_peripheral(self, name, dev):
+        self.peripherals[name] = dev
 
-### ARM Cortex-A (Application Processors)
+vm = FakeVM()
+sim = SimulatorFactory.create('automotive_ecu', vm)
 
-| Platform | SoC | Description |
-|---|---|---|
-| `raspi2b` | BCM2836 | Cortex-A7, Quad-core |
-| `raspi3` | BCM2837 | Cortex-A53, 64-bit |
-| `raspi4` | BCM2711 | Cortex-A72, 4-core, 8GB |
-| `raspi5` | BCM2712 | Cortex-A76, 4-core |
-| `raspi-zero2w` | BCM2710A1 | Cortex-A53, Compact |
-| `imx8m` | i.MX8M | Cortex-A53, NPU, 4K |
-| `am64x` | AM6442 | Cortex-A53 + R5F, Industrial |
-| `stm32mp1` | STM32MP1 | Cortex-A7 + M4, Linux |
-| `jetson-nano` | Tegra X1 | Cortex-A57, 128 CUDA |
-| `jetson-orin` | Orin | Cortex-A78AE, 40 TOPS |
-| `arm-vexpress` | Versatile Express | Cortex-A9/A15 development |
-| `vexpress-a9` | VExpress A9 | Cortex-A9 QEMU target |
-| `vexpress-a15` | VExpress A15 | Cortex-A15 QEMU target |
-| `arm64` | Generic | AArch64 Linux |
-| `arm-mcu` | Generic | ARM MCU reference |
-| `beaglebone` | AM335x | Cortex-A8, PRU |
+# Run simulation
+for _ in range(100):
+    sim.tick()
 
-### RISC-V
+print(sim.get_state())
+print(sim.get_status_text())
+```
 
-| Platform | SoC | Description |
-|---|---|---|
-| `riscv64` | Generic | RISC-V 64-bit Linux |
-| `sifive_u` | FU740 | RISC-V U74, Linux-capable |
-| `esp32c3` | ESP32-C3 | RISC-V, Wi-Fi/BLE, Single-core |
-| `kendryte-k210` | K210 | Dual-core RISC-V, AI |
-| `gd32vf103` | GD32VF103 | RISC-V, 108 MHz, USB OTG |
+### REST API
 
-### Xtensa
+```python
+from eosim.api.server import EoSimAPIServer
 
-| Platform | SoC | Description |
-|---|---|---|
-| `esp32` | ESP32 | Xtensa LX6, Wi-Fi/BLE, Dual-core |
-| `esp32s3` | ESP32-S3 | Xtensa LX7, AI acceleration |
-| `xtensa-esp` | Generic | Xtensa ESP reference |
+server = EoSimAPIServer(host='0.0.0.0', port=8080)
+server.run()
+# GET  /api/v1/platforms
+# GET  /api/v1/domains
+# GET  /api/v1/simulators
+# POST /api/v1/simulations/{name}/tick
+# WS   /ws/simulations/{name}
+```
 
-### x86 / MIPS / PowerPC / Other
+---
 
-| Platform | Arch | Description |
-|---|---|---|
-| `x86_64` | x86_64 | Generic Linux on q35 |
-| `qemu-q35` | x86_64 | QEMU Q35 chipset |
-| `mipsel` | MIPS | MIPS little-endian |
-| `ppce500` | PowerPC | PowerPC e500 |
-| `microblaze` | MicroBlaze | Xilinx soft-core FPGA |
-| `arc-em` | ARC EM | Synopsys ARC |
-| `versatilepb` | ARM | ARM Versatile PB |
-| `pic32mz` | MIPS | Microchip PIC32MZ |
-| `ti-msp432` | ARM | TI MSP432 |
-| `ti-tms570` | ARM | TI TMS570 Safety MCU |
+## Supported Platforms (150+)
 
-### Automotive / Safety
+### By Vendor
 
-| Platform | SoC | Description |
-|---|---|---|
-| `aurix-tc3xx` | AURIX TC3xx | TriCore, Automotive safety |
-| `renesas-rh850` | RH850 | Automotive MCU |
-| `cortex-r5` | Generic | Cortex-R5 safety MCU |
-| `cortex-r52` | Generic | Cortex-R52 safety MCU |
+| Vendor | Platforms | Architectures |
+|--------|-----------|---------------|
+| STMicroelectronics | stm32f4, stm32h7, stm32l4, stm32mp1 | ARM Cortex-M/A |
+| Nordic Semiconductor | nrf52, nrf5340, nrf9160 | ARM Cortex-M |
+| Espressif | esp32, esp32s3, esp32c3 | Xtensa, RISC-V |
+| Raspberry Pi | raspi2b, raspi3, raspi4, raspi5, raspi-zero2w | ARM Cortex-A |
+| NXP | s32k344, lpc55s69, imxrt1060, s32g274a, s32z, k64f | ARM Cortex-M/A/R |
+| Texas Instruments | msp430, cc2652, cc3220, am62x, tda4vm, tms320 | MSP430, ARM |
+| Renesas | ra4m1, rx65n, rl78, rcar-h3, rcar-s4, rza2m | ARM, RX |
+| Microchip | atmega328p, atmega2560, pic32mx, samd21, same70 | AVR, PIC, ARM |
+| Silicon Labs | efm32gg, efr32bg22, efr32mg24 | ARM Cortex-M |
+| NVIDIA | jetson-nano, jetson-orin | ARM Cortex-A |
+| AMD/Xilinx | xilinx-zynq7020, xilinx-versal | ARM, FPGA |
+| Intel/Altera | intel-cyclone-v | ARM, FPGA |
+| Lattice | lattice-ice40, lattice-ecp5 | RISC-V, FPGA |
+| Google | google-coral | Edge TPU |
+| Apple | apple-m1, apple-tv | ARM64 |
+| Qualcomm | qualcomm-qcs610 | ARM64 |
+| StarFive | starfive-jh7110 | RISC-V |
+| Allwinner | allwinner-d1 | RISC-V |
+| Bouffalo Lab | bl602, bl706 | RISC-V |
+| WCH | ch32v307 | RISC-V |
 
-### Specialty Simulators
+### By Domain
 
-| Platform | Type | Description |
-|---|---|---|
-| `aerodynamics-sim` | Physics | Aerodynamics simulation |
-| `finance-sim` | Domain | Financial modeling |
-| `gaming-sim` | Domain | Game engine simulation |
-| `physiology-sim` | Domain | Physiological simulation |
-| `weather-sim` | Domain | Weather modeling |
+| Domain | Simulator | Example Products |
+|--------|-----------|-----------------|
+| Automotive | VehicleSimulator | ECU, EV powertrain, ADAS |
+| Aerospace | AircraftSimulator, SatelliteSimulator | Fixed-wing, CubeSat |
+| Medical | MedicalSimulator | Patient monitor, surgical robot |
+| Defense | DefenseSimulator | Tactical radio, radar |
+| Robotics | RobotSimulator, DroneSimulator | Industrial robot, UAV |
+| Railway | RailwaySimulator | Train control, signaling, PTC |
+| Nuclear | NuclearSimulator | Reactor control, radiation monitor |
+| Maritime | MaritimeSimulator | Ship autopilot, AIS |
+| Agriculture | AgricultureSimulator | Irrigation, tractor ECU, greenhouse |
+| Smart City | SmartCitySimulator | Traffic lights, parking, street lighting |
+| HVAC | HVACSimulator | Thermostat, climate control |
+| Logistics | LogisticsSimulator | Warehouse AGV, conveyor sorting |
+| AR/VR | ARVRSimulator | Smart glasses, VR headset |
+| Quantum | QuantumSimulator | Quantum processor, error correction |
+| Cybersecurity | CybersecuritySimulator | Firewall, HSM, IDS/IPS |
+| Oil & Gas | OilGasSimulator | Pipeline SCADA, wellhead |
+| Water | WaterSimulator | Treatment, pump station |
+| Mining | MiningSimulator | Drill control, gas detection |
+| Construction | ConstructionSimulator | Crane controller, excavator |
+| Energy | EnergySimulator, SmartGridSimulator | Solar inverter, substation |
+| ... | ... | 40 domains total |
 
-## CLI Commands
-
-| Command | Description |
-|---|---|
-| `eosim list` | List available simulation platforms (filterable by arch, vendor, class, engine) |
-| `eosim info <platform>` | Show platform details (CPU, memory, peripherals) |
-| `eosim run <platform>` | Run simulation (headless or interactive) |
-| `eosim test <platform>` | Run validation tests |
-| `eosim validate <config>` | Validate platform config file |
-| `eosim artifact <platform>` | Export simulation artifacts |
-| `eosim doctor` | Check environment health |
-| `eosim stats` | Platform registry statistics |
-| `eosim search <query>` | Fuzzy search platforms |
-| `eosim gui [platform]` | Open GUI dashboard |
+---
 
 ## Architecture
 
 ```
 eosim/
 ├── eosim/
-│   ├── cli/              CLI entry point (click-based)
-│   ├── core/             Core simulation logic
-│   ├── engine/           Backend engines (EoSim native, Renode)
-│   ├── gui/              Tkinter GUI dashboard
-│   ├── integrations/     External tool integrations
-│   ├── artifacts/        Simulation artifact management
-│   └── platforms/        Platform abstraction
-├── platforms/            52+ platform definitions (YAML + Renode .repl/.resc)
-│   ├── stm32f4/          STM32F4 Discovery
-│   ├── raspi4/           Raspberry Pi 4
-│   ├── esp32/            ESP32
-│   ├── riscv64/          RISC-V 64-bit
-│   ├── jetson-orin/      NVIDIA Jetson Orin
-│   └── ...               + 47 more
-├── tests/                Unit + integration + scenario tests
-├── examples/             Demo scenarios (cluster-demo)
-├── pyproject.toml        Python package configuration
-└── pytest.ini            Test configuration
+│   ├── cli/                 CLI entry point (click-based)
+│   ├── core/                Core: schema, domains, registry, platform, modeling
+│   │   ├── schema.py        26 architectures, 40 domains, 20 modeling methods
+│   │   ├── domains.py       40 domain profiles with standards & safety levels
+│   │   ├── platform.py      Platform loader and YAML parser
+│   │   └── registry.py      Platform discovery and filtering
+│   ├── engine/
+│   │   ├── backend.py       10 engine backends (EoSim, QEMU, Renode, CARLA, ...)
+│   │   ├── native/
+│   │   │   ├── simulators/  49 domain simulators
+│   │   │   ├── peripherals/ 100+ peripheral models (sensors, actuators, buses)
+│   │   │   ├── cpu/         CPU core models
+│   │   │   ├── memory/      Memory subsystem
+│   │   │   └── bus/         Bus interconnect
+│   │   └── qemu/            QEMU QMP + GDB bridge
+│   ├── gui/
+│   │   ├── product_templates.py  80+ product templates
+│   │   ├── renderers/       33 domain-specific 3D renderers
+│   │   ├── widgets/         CPU, GPIO, UART, memory panels
+│   │   └── simulator_app.py GUI application
+│   ├── integrations/        External bridges (CARLA, AirSim, ROS 2, Verilator, ...)
+│   ├── api/                 REST API server (FastAPI) + WebSocket
+│   ├── plugins/             Plugin system (discovery, loading, base class)
+│   ├── analysis/            Power, thermal, safety, security, timing analysis
+│   ├── digital_twin/        Digital twin engine
+│   ├── codegen/             C code generation from simulation models
+│   ├── network/             Network topology simulation
+│   └── artifacts/           Simulation artifact management
+├── platforms/               150+ platform definitions (YAML)
+├── tests/                   Unit + integration + scenario tests
+├── docs/                    Documentation (Markdown, Doxygen, PDF)
+├── examples/                Demo scenarios
+└── pyproject.toml           Python package config
 ```
 
-## Platform Definition Format
+---
 
-```yaml
-name: arm64-linux
-display_name: ARM64 Generic Linux
-arch: arm64
-engine: renode
-simulation:
-  machine: virt
-  cpu: cortex-a57
-boot:
-  kernel: images/arm64-Image
-  rootfs: images/arm64-rootfs.ext4
-runtime:
-  memory_mb: 2048
-  headless: true
-  uart: sysbus.uart0
-```
-
-## Engines
+## Simulation Engines
 
 | Engine | Type | Speed | Fidelity | Use Case |
-|---|---|---|---|---|
-| **EoSim native** | Python simulation | Fast | Medium | Rapid prototyping, CI testing, peripheral logic |
-| **Renode** | Deterministic sim | Medium | High | Peripheral-accurate, multi-node, deterministic |
+|--------|------|-------|----------|----------|
+| **EoSim Native** | Python simulation | Fast | Medium | Rapid prototyping, CI, peripheral logic |
 | **QEMU** | Binary emulation | Medium | High | Full firmware on emulated CPU |
-| **HIL** | Hardware-in-loop | Real-time | Exact | Real hardware via debug probe |
+| **QEMU Live** | QEMU + QMP/GDB | Medium | High | Interactive debugging, register inspection |
+| **Renode** | Deterministic sim | Medium | High | Peripheral-accurate, multi-node |
+| **X-Plane** | Flight sim bridge | Real-time | High | Fixed-wing aircraft simulation |
+| **Gazebo** | Robot sim bridge | Real-time | High | ROS 2 robot simulation |
+| **OpenFOAM** | CFD solver | Slow | Very High | Aerodynamics, fluid dynamics |
+| **CARLA** | Driving sim | Real-time | High | Autonomous driving, V2X |
+| **AirSim** | Drone/car sim | Real-time | High | UAV, autonomous vehicles |
+| **ROS 2** | Robot framework | Real-time | High | ROS 2 node integration |
 
-## GUI Dashboard
+---
 
-The optional Tkinter GUI provides:
-- **GPIO panel** — pin visualizer with click-to-toggle
-- **UART terminal** — real-time serial output
-- **CPU state panel** — registers, PC, SP, flags, clock
-- **Memory view** — hex dump of RAM/Flash regions
-- **Peripheral registers** — TIM, ADC, SPI, I2C config
-- **3D renderers** — drone, robot, vehicle, aircraft, medical, satellite
+## Analysis & Advanced Features
+
+### Power Analysis
+```python
+from eosim.analysis.power import PowerAnalyzer, PowerProfile
+
+analyzer = PowerAnalyzer()
+analyzer.add_profile('nrf52', PowerProfile(
+    voltage_v=3.3, current_active_ma=5.0, current_sleep_ma=0.002))
+print(analyzer.estimate_battery_life('nrf52', capacity_mah=250, duty_cycle_pct=1))
+# → ~4995 hours
+```
+
+### Thermal Modeling
+```python
+from eosim.analysis.thermal import ThermalModel
+
+model = ThermalModel(ambient_c=25.0, thermal_resistance_cw=15.0)
+steady = model.steady_state(power_w=2.0)  # → 55.0°C
+```
+
+### Functional Safety (ISO 26262 / IEC 61508)
+```python
+from eosim.analysis.safety import SafetyAnalyzer, SafetyRequirement
+
+sa = SafetyAnalyzer()
+sa.add_requirement(SafetyRequirement(req_id='SWR-001', standard='ISO 26262', level='ASIL-D'))
+sa.verify('SWR-001')
+print(sa.report())  # coverage, verified/unverified counts
+```
+
+### Digital Twin
+```python
+from eosim.digital_twin.twin import DigitalTwin
+
+twin = DigitalTwin('engine_ecu', simulator)
+twin.sync()                    # Mirror current state
+states = twin.predict(steps=100)  # Predict future states
+twin.export_json('twin_data.json')
+```
+
+### Plugin System
+```python
+from eosim.plugins.base import PluginBase
+
+class MyPlugin(PluginBase):
+    NAME = "data-logger"
+    VERSION = "1.0.0"
+    def on_load(self):
+        print("Plugin loaded!")
+    def on_tick(self, simulator, state):
+        # Log state each tick
+        pass
+```
+
+---
+
+## Documentation
+
+### Generate PDF Documentation (Doxygen)
+
+```bash
+# Install Doxygen
+sudo apt install doxygen graphviz
+
+# Generate HTML + PDF
+cd docs
+doxygen Doxyfile
+
+# Output:
+#   docs/output/html/index.html   — HTML documentation
+#   docs/output/latex/refman.pdf  — PDF reference manual
+```
+
+### Documentation Structure
+
+```
+docs/
+├── Doxyfile                 Doxygen configuration
+├── getting-started.md       Installation and quick start
+├── architecture.md          System architecture overview
+├── api-reference.md         Python API reference
+├── cli-reference.md         CLI command reference
+├── platform-authoring.md    How to add new platforms
+├── simulator-guide.md       Writing custom simulators
+├── peripheral-guide.md      Creating peripheral models
+├── domain-guide.md          Adding new industry domains
+├── engine-integration.md    Integrating external engines
+├── analysis-guide.md        Power, thermal, safety analysis
+├── plugin-development.md    Plugin system guide
+├── rest-api-guide.md        REST API documentation
+├── digital-twin-guide.md    Digital twin usage
+├── production-deployment.md Production deployment guide
+├── hil-guide.md             Hardware-in-the-loop testing
+└── book/                    Academic book source
+```
+
+---
+
+## Production Deployment
+
+### Docker
+
+```bash
+docker build -t eosim .
+docker run -p 8080:8080 eosim python -m eosim.api.server
+```
+
+### Docker Compose
+
+```bash
+docker-compose up -d
+# API: http://localhost:8080
+# Docs: http://localhost:8080/docs
+```
+
+### CI/CD Integration
+
+```yaml
+# GitHub Actions
+- name: Run EoSim tests
+  run: |
+    pip install eosim
+    eosim validate --all
+    eosim test stm32f4
+    python -m pytest tests/ -v
+```
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ --cov=eosim --cov-report=html
+
+# Run only unit tests
+python -m pytest tests/unit/ -v
+
+# Run specific test
+python -m pytest tests/unit/test_new_simulators.py -v
+```
+
+---
+
+## Standards Compliance
+
+| Standard | Coverage |
+|----------|----------|
+| ISO 26262 (Automotive Safety) | ASIL-A through ASIL-D |
+| IEC 61508 (Functional Safety) | SIL-1 through SIL-4 |
+| DO-178C (Avionics) | DAL-A through DAL-E |
+| IEC 62304 (Medical Devices) | Class A, B, C |
+| ISO 21434 (Automotive Cybersecurity) | Security analysis |
+| FIPS 140-3 (Cryptographic Modules) | HSM simulation |
+| EN 50128 (Railway) | SIL-3, SIL-4 |
+| IEC 61513 (Nuclear) | Safety-critical control |
+
+---
 
 ## EoS Ecosystem
 
 | Repo | Description |
-|---|---|
-| [eos](https://github.com/embeddedos-org/eos) | Embedded OS — HAL, RTOS kernel, drivers, services |
-| [eboot](https://github.com/embeddedos-org/eboot) | Bootloader — 24 board ports, secure boot, A/B slots |
-| [ebuild](https://github.com/embeddedos-org/ebuild) | Build system — SDK generator, packaging |
-| [eipc](https://github.com/embeddedos-org/eipc) | IPC framework — Go + C SDK, HMAC auth |
-| [eai](https://github.com/embeddedos-org/eai) | AI layer — LLM inference, agent loop |
-| [eni](https://github.com/embeddedos-org/eni) | Neural interface — BCI, Neuralink adapter |
-| [eApps](https://github.com/embeddedos-org/eApps) | Cross-platform apps — 38 C + LVGL apps |
-| [EoStudio](https://github.com/embeddedos-org/EoStudio) | Design suite — 10 editors with LLM integration |
+|------|-------------|
+| [eos](https://github.com/embeddedos-org/eos) | Embedded OS — HAL, RTOS kernel, drivers |
+| [eboot](https://github.com/embeddedos-org/eboot) | Bootloader — 24 boards, secure boot |
+| [ebuild](https://github.com/embeddedos-org/ebuild) | Build system — SDK generator |
+| [eipc](https://github.com/embeddedos-org/eipc) | IPC framework — Go + C SDK |
+| [eai](https://github.com/embeddedos-org/eai) | AI layer — LLM inference |
+| [eApps](https://github.com/embeddedos-org/eApps) | Cross-platform apps — LVGL |
+| [EoStudio](https://github.com/embeddedos-org/EoStudio) | Design suite — 10 editors |
 | **EoSim** | **Simulation platform (this repo)** |
 
-## Standards Compliance
+---
 
-This project is part of the EoS ecosystem and aligns with international standards including ISO/IEC/IEEE 15288:2023, ISO/IEC 12207, ISO/IEC/IEEE 42010, ISO/IEC 25000, ISO/IEC 25010, ISO/IEC 27001, ISO/IEC 15408, IEC 61508, ISO 26262, DO-178C, FIPS 140-3, POSIX (IEEE 1003), WCAG 2.1, and more. See the [EoS Compliance Documentation](https://github.com/embeddedos-org/.github/tree/master/docs/compliance) for full details including NTIA SBOM, SPDX, CycloneDX, and OpenChain compliance.
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
-
 ---
+
 Part of the [EmbeddedOS Organization](https://embeddedos-org.github.io).

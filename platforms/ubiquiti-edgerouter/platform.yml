@@ -1,0 +1,16 @@
+name: ubiquiti-edgerouter
+display_name: Ubiquiti EdgeRouter
+arch: mipsel
+engine: eosim
+class: router
+vendor: Ubiquiti
+soc: Cavium Octeon
+domain: telecom
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: mips64
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

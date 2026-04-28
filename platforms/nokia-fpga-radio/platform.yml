@@ -1,0 +1,16 @@
+name: nokia-fpga-radio
+display_name: Nokia AirScale Radio
+arch: arm64
+engine: eosim
+class: fpga
+vendor: Nokia
+soc: AirScale
+domain: telecom
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a53
+runtime:
+  memory_mb: 8192
+  headless: true
+  uart: sysbus.uart0

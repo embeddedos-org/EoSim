@@ -1,0 +1,16 @@
+name: efr32bg22
+display_name: Silicon Labs EFR32BG22
+arch: arm
+engine: eosim
+class: mcu
+vendor: Silicon Labs
+soc: EFR32BG22
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m33
+runtime:
+  memory_mb: 32
+  headless: true
+  uart: sysbus.uart0

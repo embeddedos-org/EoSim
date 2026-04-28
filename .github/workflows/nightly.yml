@@ -9,14 +9,19 @@ concurrency:
   group: nightly-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
+  # ─── Full Matrix Test ──────────────────────────────────────────────
   test:
-    name: Nightly Tests (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
@@ -24,20 +29,161 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install -e ".[dev]" 2>/dev/null || pip install -r requirements.txt 2>/dev/null || pip install pytest
+        run: pip install -e ".[dev]"
       - name: Run full test suite
-        run: python -m pytest tests/ -v --tb=short || true
+        run: python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-results-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: test-results.xml
 
+  # ─── Coverage Report ───────────────────────────────────────────────
+  coverage:
+    name: Nightly Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Coverage
+        run: |
+          python -m pytest tests/ \
+            --cov=eosim \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:htmlcov \
+            --cov-report=term-missing \
+            -v --tb=short
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-coverage
+          path: |
+            coverage.xml
+            htmlcov/
+
+  # ─── Platform Exhaustive Validation ────────────────────────────────
+  validate:
+    name: Exhaustive Platform Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Validate all platforms
+        run: |
+          python -c "
+          import os, yaml, sys
+          from eosim.core.schema import validate_platform
+
+          count = errors = 0
+          for name in sorted(os.listdir('platforms')):
+              yml = os.path.join('platforms', name, 'platform.yml')
+              if not os.path.isfile(yml):
+                  continue
+              count += 1
+              with open(yml) as f:
+                  data = yaml.safe_load(f)
+              errs = validate_platform(data)
+              if errs:
+                  errors += 1
+                  print(f'FAIL: {name}: {errs}')
+          print(f'{count} platforms checked, {errors} errors')
+          sys.exit(1 if errors else 0)
+          "
+      - name: Smoke test all simulators
+        run: |
+          python -c "
+          from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
+
+          class FakeVM:
+              def __init__(self): self.peripherals = {}
+              def add_peripheral(self, name, dev): self.peripherals[name] = dev
+
+          passed = failed = 0
+          for ptype in sorted(SIMULATOR_MAP.keys()):
+              try:
+                  vm = FakeVM()
+                  sim = SimulatorFactory.create(ptype, vm)
+                  for _ in range(10):
+                      sim.tick()
+                  sim.reset()
+                  passed += 1
+              except Exception as e:
+                  failed += 1
+                  print(f'FAIL: {ptype}: {e}')
+
+          print(f'{passed} passed, {failed} failed out of {len(SIMULATOR_MAP)}')
+          exit(1 if failed else 0)
+          "
+      - name: Product template validation
+        run: |
+          python -c "
+          from eosim.gui.product_templates import PRODUCT_CATALOG
+          from eosim.core.schema import VALID_DOMAINS, VALID_ARCHES
+
+          errors = []
+          for name, t in PRODUCT_CATALOG.items():
+              if t.domain not in VALID_DOMAINS:
+                  errors.append(f'{name}: invalid domain {t.domain}')
+              if t.arch not in VALID_ARCHES:
+                  errors.append(f'{name}: invalid arch {t.arch}')
+              if not t.simulator_class:
+                  errors.append(f'{name}: missing simulator_class')
+
+          if errors:
+              for e in errors: print(f'FAIL: {e}')
+              exit(1)
+          print(f'All {len(PRODUCT_CATALOG)} product templates valid')
+          "
+
+  # ─── Nightly Report ────────────────────────────────────────────────
   report:
     name: Nightly Report
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, coverage, validate]
     if: always()
     steps:
-      - name: Summary
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e "." 2>/dev/null || true
+      - name: Generate report
         run: |
-          echo "## Nightly Report — EoSim"
-          echo "Date: $(date -u '+%Y-%m-%d %H:%M UTC')"
-          echo "| Job | Status |"
-          echo "|---|---|"
-          echo "| Tests | ${{ needs.test.result }} |"
+          echo "## Nightly Regression Report — EoSim v2.0.0" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Multi-OS Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage | ${{ needs.coverage.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          python -c "
+          from eosim.core.schema import VALID_ARCHES, VALID_DOMAINS, VALID_ENGINES
+          from eosim.engine.native.simulators import SIMULATOR_MAP
+          from eosim.gui.product_templates import PRODUCT_CATALOG
+          import os
+
+          platforms = len([d for d in os.listdir('platforms') if os.path.isdir(os.path.join('platforms', d))])
+
+          print(f'### Metrics')
+          print(f'| Metric | Count |')
+          print(f'|--------|-------|')
+          print(f'| Platforms | {platforms} |')
+          print(f'| Architectures | {len(VALID_ARCHES)} |')
+          print(f'| Domains | {len(VALID_DOMAINS)} |')
+          print(f'| Engines | {len(VALID_ENGINES)} |')
+          print(f'| Simulator Map Entries | {len(SIMULATOR_MAP)} |')
+          print(f'| Product Templates | {len(PRODUCT_CATALOG)} |')
+          " >> $GITHUB_STEP_SUMMARY 2>/dev/null || true

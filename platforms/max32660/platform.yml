@@ -1,0 +1,16 @@
+name: max32660
+display_name: ADI MAX32660
+arch: arm
+engine: eosim
+class: mcu
+vendor: Analog Devices
+soc: MAX32660
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

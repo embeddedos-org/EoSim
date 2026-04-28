@@ -1,0 +1,16 @@
+name: xilinx-versal-auto
+display_name: Xilinx Versal Auto
+arch: arm64
+engine: eosim
+class: automotive
+vendor: AMD/Xilinx
+soc: Versal AI Edge
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a72
+runtime:
+  memory_mb: 16384
+  headless: true
+  uart: sysbus.uart0

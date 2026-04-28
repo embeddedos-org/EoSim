@@ -1,0 +1,16 @@
+name: rza2m
+display_name: Renesas RZ/A2M
+arch: arm
+engine: eosim
+class: sbc
+vendor: Renesas
+soc: RZ/A2M
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a9
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

@@ -1,0 +1,54 @@
+# ============================================================================
+# .dockerignore — EoSim
+# ============================================================================
+
+# Version control
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+*.egg
+.pytest_cache
+.coverage
+htmlcov/
+coverage.xml
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation output (rebuilt in container)
+docs/output/
+
+# Development files
+.ruff_cache
+.mypy_cache
+.llms/
+
+# Large/unnecessary files
+*.bin
+*.elf
+*.hex
+*.sal
+*.zip
+*.pdf
+*.mp3
+*.mp4
+*.png
+*.jpg
+mobile/
+enterprise/

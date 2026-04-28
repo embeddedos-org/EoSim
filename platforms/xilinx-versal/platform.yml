@@ -1,0 +1,16 @@
+name: xilinx-versal
+display_name: Xilinx Versal
+arch: arm64
+engine: eosim
+class: fpga
+vendor: AMD/Xilinx
+soc: Versal AI Core
+domain: aerospace
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a72
+runtime:
+  memory_mb: 32768
+  headless: true
+  uart: sysbus.uart0

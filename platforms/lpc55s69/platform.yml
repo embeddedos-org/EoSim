@@ -1,0 +1,16 @@
+name: lpc55s69
+display_name: NXP LPC55S69
+arch: arm
+engine: eosim
+class: mcu
+vendor: NXP
+soc: LPC55S69
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m33
+runtime:
+  memory_mb: 320
+  headless: true
+  uart: sysbus.uart0

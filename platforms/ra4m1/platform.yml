@@ -1,0 +1,16 @@
+name: ra4m1
+display_name: Renesas RA4M1
+arch: arm
+engine: eosim
+class: mcu
+vendor: Renesas
+soc: RA4M1
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

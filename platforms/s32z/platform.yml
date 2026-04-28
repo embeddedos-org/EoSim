@@ -1,0 +1,16 @@
+name: s32z
+display_name: NXP S32Z270
+arch: arm64
+engine: eosim
+class: safety
+vendor: NXP
+soc: S32Z270
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-r52
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

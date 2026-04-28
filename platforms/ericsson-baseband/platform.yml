@@ -1,0 +1,16 @@
+name: ericsson-baseband
+display_name: Ericsson Baseband 6630
+arch: arm64
+engine: eosim
+class: sbc
+vendor: Ericsson
+soc: Baseband 6630
+domain: telecom
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a76
+runtime:
+  memory_mb: 16384
+  headless: true
+  uart: sysbus.uart0

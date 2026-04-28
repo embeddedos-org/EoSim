@@ -1,0 +1,16 @@
+name: ti-tda4vm
+display_name: TI TDA4VM Auto
+arch: arm64
+engine: eosim
+class: automotive
+vendor: Texas Instruments
+soc: TDA4VM
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a72
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

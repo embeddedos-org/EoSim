@@ -1,0 +1,16 @@
+name: adi-aducm4050
+display_name: ADI ADuCM4050
+arch: arm
+engine: eosim
+class: mcu
+vendor: Analog Devices
+soc: ADuCM4050
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 128
+  headless: true
+  uart: sysbus.uart0

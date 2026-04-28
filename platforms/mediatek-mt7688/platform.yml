@@ -1,0 +1,16 @@
+name: mediatek-mt7688
+display_name: MediaTek MT7688AN
+arch: mipsel
+engine: eosim
+class: sbc
+vendor: MediaTek
+soc: MT7688AN
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: mips24kec
+runtime:
+  memory_mb: 128
+  headless: true
+  uart: sysbus.uart0

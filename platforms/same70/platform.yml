@@ -1,0 +1,16 @@
+name: same70
+display_name: Microchip SAME70
+arch: arm
+engine: eosim
+class: mcu
+vendor: Microchip
+soc: ATSAME70Q21
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m7
+runtime:
+  memory_mb: 384
+  headless: true
+  uart: sysbus.uart0

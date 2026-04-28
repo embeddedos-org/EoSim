@@ -1,0 +1,16 @@
+name: fire-tv
+display_name: Amazon Fire TV
+arch: arm64
+engine: eosim
+class: tv
+vendor: Amazon
+soc: MT8695
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a73
+runtime:
+  memory_mb: 2048
+  headless: true
+  uart: sysbus.uart0

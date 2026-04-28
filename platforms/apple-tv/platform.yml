@@ -1,0 +1,16 @@
+name: apple-tv
+display_name: Apple TV
+arch: arm64
+engine: eosim
+class: tv
+vendor: Apple
+soc: A15 Bionic
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: avalanche
+runtime:
+  memory_mb: 4096
+  headless: true
+  uart: sysbus.uart0

@@ -3,11 +3,11 @@
 
 
 class TestDomainsExtended:
-    """Verify all 15 domains exist and have valid fields."""
+    """Verify all domains exist and have valid fields."""
 
-    def test_catalog_has_15_domains(self):
+    def test_catalog_has_many_domains(self):
         from eosim.core.domains import DOMAIN_CATALOG
-        assert len(DOMAIN_CATALOG) == 15
+        assert len(DOMAIN_CATALOG) >= 40
 
     def test_new_domain_names(self):
         from eosim.core.domains import DOMAIN_CATALOG
@@ -65,7 +65,7 @@ class TestDomainsExtended:
     def test_list_domains(self):
         from eosim.core.domains import list_domains
         domains = list_domains()
-        assert len(domains) == 15
+        assert len(domains) >= 40
         assert "aerodynamics" in domains
         assert "gaming" in domains
 

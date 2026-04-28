@@ -1,0 +1,16 @@
+name: agriculture-sim
+display_name: Agriculture Simulator
+arch: arm
+engine: eosim
+class: virtual
+vendor: EoSim
+soc: Virtual
+domain: agriculture
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

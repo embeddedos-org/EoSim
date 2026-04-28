@@ -1,0 +1,16 @@
+name: efm32gg
+display_name: Silicon Labs EFM32GG
+arch: arm
+engine: eosim
+class: mcu
+vendor: Silicon Labs
+soc: EFM32GG12B
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 192
+  headless: true
+  uart: sysbus.uart0

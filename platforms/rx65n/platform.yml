@@ -1,0 +1,16 @@
+name: rx65n
+display_name: Renesas RX65N
+arch: rx
+engine: eosim
+class: mcu
+vendor: Renesas
+soc: RX65N
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: rxv2
+runtime:
+  memory_mb: 640
+  headless: true
+  uart: sysbus.uart0

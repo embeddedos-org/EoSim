@@ -1,0 +1,16 @@
+name: gd32f303
+display_name: GigaDevice GD32F303
+arch: arm
+engine: eosim
+class: mcu
+vendor: GigaDevice
+soc: GD32F303
+domain: industrial
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m4
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0

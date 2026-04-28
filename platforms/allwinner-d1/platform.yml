@@ -1,0 +1,16 @@
+name: allwinner-d1
+display_name: Allwinner D1
+arch: riscv64
+engine: eosim
+class: sbc
+vendor: Allwinner
+soc: D1
+domain: consumer
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: c906
+runtime:
+  memory_mb: 1024
+  headless: true
+  uart: sysbus.uart0

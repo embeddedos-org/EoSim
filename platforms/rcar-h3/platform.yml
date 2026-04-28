@@ -1,0 +1,16 @@
+name: rcar-h3
+display_name: Renesas R-Car H3
+arch: arm64
+engine: eosim
+class: automotive
+vendor: Renesas
+soc: R-Car H3
+domain: automotive
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a57
+runtime:
+  memory_mb: 8192
+  headless: true
+  uart: sysbus.uart0

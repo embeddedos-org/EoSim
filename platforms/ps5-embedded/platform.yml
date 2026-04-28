@@ -1,0 +1,16 @@
+name: ps5-embedded
+display_name: PS5 Embedded
+arch: x86_64
+engine: eosim
+class: desktop
+vendor: Sony
+soc: AMD Zen 2
+domain: gaming
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: zen2
+runtime:
+  memory_mb: 16384
+  headless: true
+  uart: sysbus.uart0
