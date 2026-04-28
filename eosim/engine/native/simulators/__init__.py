@@ -294,6 +294,7 @@ SIMULATOR_MAP = {
     'sonar_finder': FisheriesSimulator,
     'fish_finder': FisheriesSimulator,
     'aquaculture': FisheriesSimulator,
+    'aquaculture_controller': FisheriesSimulator,
     # Android
     'android': AndroidSimulator,
     'android_phone': AndroidSimulator,

@@ -587,7 +587,7 @@ PRODUCT_CATALOG: dict[str, ProductTemplate] = {
     "reactor_control": ProductTemplate(
         name="reactor_control", display_name="Reactor Controller", icon="\u2622",
         arch="arm64", ram_mb=2048,
-        peripherals=["temp", "pressure", "adc", "watchdog", "ethernet"],
+        peripherals=["temp", "barometer", "adc", "watchdog", "ethernet"],
         domain="nuclear", description="Nuclear reactor instrumentation and control",
         default_platform="nuclear-sim", simulator_class="NuclearSimulator",
     ),
@@ -610,7 +610,7 @@ PRODUCT_CATALOG: dict[str, ProductTemplate] = {
     "rocket_guidance": ProductTemplate(
         name="rocket_guidance", display_name="Rocket Guidance", icon="\U0001F680",
         arch="arm64", ram_mb=1024,
-        peripherals=["imu", "gps", "pressure", "temp", "watchdog"],
+        peripherals=["imu", "gps", "barometer", "temp", "watchdog"],
         domain="space", description="Launch vehicle guidance, navigation, and control",
         default_platform="stm32h7", simulator_class="LaunchVehicleSimulator",
     ),
@@ -658,7 +658,7 @@ PRODUCT_CATALOG: dict[str, ProductTemplate] = {
     "water_treatment": ProductTemplate(
         name="water_treatment", display_name="Water Treatment", icon="\U0001F4A7",
         arch="arm", ram_mb=256,
-        peripherals=["adc", "pressure", "temp", "relay", "modbus", "watchdog"],
+        peripherals=["adc", "barometer", "temp", "relay", "modbus", "watchdog"],
         domain="water", description="Water treatment plant PLC controller",
         default_platform="stm32h7", simulator_class="WaterSimulator",
     ),
@@ -666,7 +666,7 @@ PRODUCT_CATALOG: dict[str, ProductTemplate] = {
     "pipeline_scada": ProductTemplate(
         name="pipeline_scada", display_name="Pipeline SCADA", icon="\U0001F6E2",
         arch="arm64", ram_mb=512,
-        peripherals=["pressure", "temp", "modbus", "ethernet", "watchdog"],
+        peripherals=["barometer", "temp", "modbus", "ethernet", "watchdog"],
         domain="oil-gas", description="Pipeline SCADA RTU for flow and pressure monitoring",
         default_platform="stm32h7", simulator_class="OilGasSimulator",
     ),

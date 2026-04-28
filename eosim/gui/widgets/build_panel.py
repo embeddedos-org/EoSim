@@ -25,7 +25,7 @@ PERIPHERAL_CATEGORIES = {
         'can', 'lin', 'modbus', 'ethernet', 'arinc429', 'mil1553',
     ],
     'Wireless': [
-        'wifi', 'ble', 'lora', 'zigbee', 'rf',
+        'wifi', 'ble', 'lora', 'zigbee', 'rf', 'nfc', 'uwb',
     ],
     'Composite': [
         'bms', 'psu', 'watchdog', 'crypto', 'rtc',
