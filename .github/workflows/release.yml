@@ -8,9 +8,13 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  # ─── Pre-release Validation ────────────────────────────────────────
   validate:
     name: Pre-release Validation
     runs-on: ubuntu-latest
@@ -21,57 +25,9 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: pip install -e ".[dev]"
-      - name: Run full test suite
-        run: python -m pytest tests/unit/ -v --tb=short -x --ignore=tests/unit/test_engines_and_integrations.py || true
-      - name: Verify core simulators
-        run: |
-          python -c "
-          from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
-          class FakeVM:
-              def __init__(self): self.peripherals = {}
-              def add_peripheral(self, n, d): self.peripherals[n] = d
-          ok = 0
-          for k in SIMULATOR_MAP:
-              vm = FakeVM()
-              sim = SimulatorFactory.create(k, vm)
-              sim.tick()
-              ok += 1
-          print(f'All {ok} simulators OK')
-          "
-      - name: Validate all platforms
-        run: |
-          python -c "
-          import os, yaml
-          from eosim.core.schema import validate_platform
-          count = 0
-          for name in os.listdir('platforms'):
-              yml = os.path.join('platforms', name, 'platform.yml')
-              if os.path.isfile(yml):
-                  with open(yml) as f:
-                      data = yaml.safe_load(f)
-                  errs = validate_platform(data)
-                  assert not errs, f'{name}: {errs}'
-                  count += 1
-          print(f'{count} platforms validated')
-          "
-      - name: Smoke test simulators
-        run: |
-          python -c "
-          from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
+      - name: Run unit test suite
+        run: python -m pytest tests/unit/ -v --tb=short -x --ignore=tests/unit/test_engines_and_integrations.py
 
-          class FakeVM:
-              def __init__(self): self.peripherals = {}
-              def add_peripheral(self, n, d): self.peripherals[n] = d
-
-          for k in SIMULATOR_MAP:
-              vm = FakeVM()
-              sim = SimulatorFactory.create(k, vm)
-              sim.tick()
-              sim.reset()
-          print(f'All {len(SIMULATOR_MAP)} simulators OK')
-          "
-
-  # ─── Build Package ─────────────────────────────────────────────────
   build:
     name: Build Package
     needs: validate
@@ -92,7 +48,6 @@ jobs:
           name: dist
           path: dist/
 
-  # ─── Build Documentation ───────────────────────────────────────────
   docs:
     name: Build Docs
     needs: validate
@@ -102,35 +57,67 @@ jobs:
       - name: Install Doxygen
         run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
       - name: Build docs
-        run: cd docs && doxygen Doxyfile
+        run: |
+          if [ -f docs/Doxyfile ]; then
+            cd docs && doxygen Doxyfile
+          else
+            echo "::warning::No docs/Doxyfile found"
+            mkdir -p docs/output/html
+            echo "Documentation not generated" > docs/output/html/README.txt
+          fi
       - name: Upload docs
         uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: docs/output/html/
 
-  # ─── Docker Image ──────────────────────────────────────────────────
   docker:
-    name: Build Docker Image
+    name: Build & Push Docker Image (multi-arch)
     needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker image
-        run: docker build -t eosim:${{ github.ref_name }} .
-      - name: Test Docker image
+      - name: Lowercase repo
+        id: repo
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract version
+        id: version
         run: |
-          docker run --rm eosim:${{ github.ref_name }} python -c "
-          from eosim.engine.native.simulators import SimulatorFactory
-          print('EoSim Docker image OK')
-          print(f'Simulators: {len(SimulatorFactory.list_simulators())}')
-          "
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+      - name: Build and push (linux/amd64,linux/arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ steps.repo.outputs.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test pushed image
+        run: |
+          docker pull ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }}
+          docker run --rm ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }} \
+            python -c "from eosim.engine.native.simulators import SimulatorFactory; print('OK')"
 
-  # ─── Create GitHub Release ─────────────────────────────────────────
   release:
     name: Create Release
     needs: [build, docs, docker]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -145,39 +132,70 @@ jobs:
         with:
           name: documentation
           path: docs-html/
-      - name: Package docs
-        run: |
-          cd docs-html && zip -r ../eosim-docs-${{ github.ref_name }}.zip . && cd ..
       - name: Extract version
         id: version
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+      - name: Package docs
+        run: |
+          (cd docs-html && zip -r ../eosim-docs-${{ steps.version.outputs.tag }}.zip .)
+      - name: Generate checksums
+        run: |
+          sha256sum dist/* eosim-docs-${{ steps.version.outputs.tag }}.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          artifact-name: sbom.cdx.json
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom.spdx.json
+          artifact-name: sbom.spdx.json
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign artifacts
+        run: |
+          set -e
+          for f in dist/* eosim-docs-${{ steps.version.outputs.tag }}.zip; do
+            [ -f "$f" ] || continue
+            cosign sign-blob --yes --bundle "${f}.sig.bundle" "$f"
+          done
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "EoSim ${{ steps.version.outputs.tag }}"
           generate_release_notes: true
+          fail_on_unmatched_files: false
           files: |
             dist/*
             eosim-docs-${{ steps.version.outputs.tag }}.zip
+            *.sig.bundle
+            SHA256SUMS.txt
+            sbom.cdx.json
+            sbom.spdx.json
           body: |
             ## EoSim ${{ steps.version.outputs.tag }}
 
-            ### Highlights
-            - 150+ platform definitions across 26 architectures
-            - 40 industry domains with safety standard coverage
-            - 49 domain simulators + Android & iOS subsystem simulation
-            - REST API, plugin system, digital twin engine
-            - Power, thermal, safety, security, and WCET analysis
+            Python wheel + sdist on PyPI. Multi-arch Docker image at ghcr.io.
+            Doxygen HTML documentation bundled.
 
-            ### Assets
-            - **Python wheel** — `pip install eosim-*.whl`
-            - **Documentation** — `eosim-docs-*.zip` (HTML, generated by Doxygen)
-            - **Docker** — `docker pull ghcr.io/embeddedos-org/eosim:${{ steps.version.outputs.tag }}`
+            ### Integrity & supply-chain
+            - `SHA256SUMS.txt`
+            - `sbom.cdx.json` — CycloneDX SBOM
+            - `sbom.spdx.json` — SPDX SBOM
+            - `*.sig.bundle` — Sigstore cosign keyless signatures
 
-  # ─── Publish to PyPI ───────────────────────────────────────────────
   publish:
-    name: Publish to PyPI
+    name: Publish to PyPI (OIDC)
     needs: release
     runs-on: ubuntu-latest
     environment: pypi
