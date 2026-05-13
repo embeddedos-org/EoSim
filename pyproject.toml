@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eosim"
-version = "2.0.0"
+version = "3.0.0"
 description = "World-class multi-architecture embedded simulation platform — 150+ platforms, 40 domains, 26 architectures"
 readme = "README.md"
 requires-python = ">=3.9"
