@@ -40,13 +40,27 @@ class CARLAConnection:
         return {'connected': True, 'host': self.host, 'port': self.port}
 
     def set_weather(self, preset='ClearNoon'):
-        pass
+        if not self._connected:
+            raise RuntimeError("CARLAConnection.set_weather: not connected")
+        raise NotImplementedError(
+            "CARLAConnection.set_weather is not yet implemented \u2014 contributions welcome"
+        )
 
     def spawn_vehicle(self, blueprint='vehicle.tesla.model3'):
-        pass
+        if not self._connected:
+            raise RuntimeError("CARLAConnection.spawn_vehicle: not connected")
+        raise NotImplementedError(
+            "CARLAConnection.spawn_vehicle is not yet implemented \u2014 contributions welcome"
+        )
 
     def get_sensor_data(self):
+        if not self._connected:
+            return {}
         return {}
 
     def apply_control(self, throttle=0, steer=0, brake=0):
-        pass
+        if not self._connected:
+            raise RuntimeError("CARLAConnection.apply_control: not connected")
+        raise NotImplementedError(
+            "CARLAConnection.apply_control is not yet implemented \u2014 contributions welcome"
+        )

@@ -34,10 +34,20 @@ class ROS2Bridge:
         self._connected = False
 
     def publish(self, topic, msg_type, data):
-        pass
+        if not self._connected:
+            raise RuntimeError("ROS2Bridge.publish: not connected; call connect() first or install rclpy")
+        raise NotImplementedError(
+            "ROS2Bridge.publish is not yet implemented — track issue at "
+            "https://github.com/embeddedos-org/EoSim/issues (label: ros2-integration)"
+        )
 
     def subscribe(self, topic, msg_type, callback):
-        pass
+        if not self._connected:
+            raise RuntimeError("ROS2Bridge.subscribe: not connected; call connect() first or install rclpy")
+        raise NotImplementedError(
+            "ROS2Bridge.subscribe is not yet implemented — track issue at "
+            "https://github.com/embeddedos-org/EoSim/issues (label: ros2-integration)"
+        )
 
     def spin_once(self, timeout_sec=0.1):
         if self._node:

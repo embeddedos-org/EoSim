@@ -29,13 +29,25 @@ class AirSimConnection:
         self._connected = False
 
     def arm(self):
-        pass
+        if not self._connected:
+            raise RuntimeError("AirSimConnection.arm: not connected")
+        raise NotImplementedError(
+            "AirSimConnection.arm is not yet implemented \u2014 contributions welcome"
+        )
 
     def takeoff(self, altitude_m=3.0):
-        pass
+        if not self._connected:
+            raise RuntimeError("AirSimConnection.takeoff: not connected")
+        raise NotImplementedError(
+            "AirSimConnection.takeoff is not yet implemented \u2014 contributions welcome"
+        )
 
     def move_to(self, x, y, z, velocity=5.0):
-        pass
+        if not self._connected:
+            raise RuntimeError("AirSimConnection.move_to: not connected")
+        raise NotImplementedError(
+            "AirSimConnection.move_to is not yet implemented \u2014 contributions welcome"
+        )
 
     def get_state(self):
         return {'connected': self._connected, 'vehicle': self.vehicle_type}
@@ -47,4 +59,8 @@ class AirSimConnection:
         return {'latitude': 0, 'longitude': 0, 'altitude': 0}
 
     def land(self):
-        pass
+        if not self._connected:
+            raise RuntimeError("AirSimConnection.land: not connected")
+        raise NotImplementedError(
+            "AirSimConnection.land is not yet implemented \u2014 contributions welcome"
+        )
