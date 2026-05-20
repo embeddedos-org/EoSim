@@ -5,9 +5,13 @@
 Bridges real serial port data between physical hardware and
 the EoSim UART terminal / VirtualMachine UART peripheral.
 """
+import logging
+import re
 import threading
 import time
 from typing import Callable, Optional
+
+logger = logging.getLogger(__name__)
 
 try:
     import serial
@@ -24,6 +28,29 @@ class SerialBridge:
     (feeds UART terminal).
     Writes from UART terminal → sends to hardware serial.
     """
+
+    # Characters that could be used for shell/command injection via serial input.
+    # Null bytes, escape sequences, and shell metacharacters are stripped.
+    _DANGEROUS_PATTERN = re.compile(r'[\x00-\x08\x0e-\x1f\x7f]')
+    _MAX_LINE_LENGTH = 4096
+
+    @staticmethod
+    def sanitize_input(text: str) -> str:
+        """Sanitize serial input to prevent command injection.
+
+        Strips control characters (except CR/LF/TAB) and enforces a maximum
+        line length to prevent buffer-based attacks.
+        """
+        # Remove dangerous control characters (keep \\t, \\n, \\r)
+        cleaned = SerialBridge._DANGEROUS_PATTERN.sub('', text)
+        # Enforce max line length
+        if len(cleaned) > SerialBridge._MAX_LINE_LENGTH:
+            logger.warning(
+                "Serial input truncated from %d to %d bytes",
+                len(cleaned), SerialBridge._MAX_LINE_LENGTH,
+            )
+            cleaned = cleaned[:SerialBridge._MAX_LINE_LENGTH]
+        return cleaned
 
     def __init__(self):
         self._port: Optional[object] = None
@@ -131,7 +158,9 @@ class SerialBridge:
                 data = self._port.read(self._port.in_waiting or 1)
                 if data and self._on_receive:
                     text = data.decode('utf-8', errors='replace')
-                    self._on_receive(text)
+                    text = self.sanitize_input(text)
+                    if text:
+                        self._on_receive(text)
             except Exception:
                 time.sleep(0.01)
 
