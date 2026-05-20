@@ -95,7 +95,7 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
       - name: Build and push (linux/amd64,linux/arm64)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
