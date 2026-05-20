@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 COPY pyproject.toml README.md LICENSE ./
@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir build && \
     python -m build --wheel && \
     pip install --no-cache-dir dist/*.whl
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Security: install packages then clean up in one layer
 RUN apt-get update && \
