@@ -1,5 +1,14 @@
 # 🖥 EoSim — Multi-Architecture Embedded Simulation Platform
 
+<!-- begin: org-uniform badges (audit-2026-05) -->
+[![CI](https://github.com/embeddedos-org/EoSim/actions/workflows/ci.yml/badge.svg)](https://github.com/embeddedos-org/EoSim/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/embeddedos-org/EoSim/actions/workflows/codeql.yml/badge.svg)](https://github.com/embeddedos-org/EoSim/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/embeddedos-org/EoSim/badge)](https://securityscorecards.dev/viewer/?uri=github.com/embeddedos-org/EoSim)
+[![Release](https://img.shields.io/github/v/tag/embeddedos-org/EoSim?label=release&sort=semver)](https://github.com/embeddedos-org/EoSim/releases)
+[![License](https://img.shields.io/github/license/embeddedos-org/EoSim)](LICENSE)
+<!-- end: org-uniform badges (audit-2026-05) -->
+
+
 [![CI](https://github.com/embeddedos-org/eosim/actions/workflows/ci.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/ci.yml)
 [![Nightly](https://github.com/embeddedos-org/eosim/actions/workflows/nightly.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/nightly.yml)
 [![Release](https://github.com/embeddedos-org/eosim/actions/workflows/release.yml/badge.svg)](https://github.com/embeddedos-org/eosim/actions/workflows/release.yml)
@@ -257,6 +266,19 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting procedures.
 ## Standards Compliance
 
 This project is part of the EoS ecosystem and aligns with international standards including ISO/IEC/IEEE 15288:2023, ISO/IEC 12207, ISO/IEC/IEEE 42010, ISO/IEC 25000, ISO/IEC 25010, ISO/IEC 27001, ISO/IEC 15408, IEC 61508, ISO 26262, DO-178C, FIPS 140-3, POSIX (IEEE 1003), WCAG 2.1, and more. See the [EoS Compliance Documentation](https://github.com/embeddedos-org/.github/tree/master/docs/compliance) for full details including NTIA SBOM, SPDX, CycloneDX, and OpenChain compliance.
+
+<!-- begin: release-model (audit-2026-05) -->
+## Release model
+
+`master` is the line of development; every PR lands here. `release` is a
+rolling pointer to the latest released `vX.Y.Z` tag, updated automatically
+by [`.github/workflows/sync-release-branch.yml`](.github/workflows/sync-release-branch.yml).
+Tags are immutable.
+
+See [embeddedos-org/.github/STANDARDS.md](https://github.com/embeddedos-org/.github/blob/master/STANDARDS.md)
+for the org-wide tag scheme, release model, and the compliance frameworks
+every product targets.
+<!-- end: release-model (audit-2026-05) -->
 
 ## License
 
