@@ -169,7 +169,7 @@ jobs:
             cosign sign-blob --yes --bundle "${f}.sig.bundle" "$f"
           done
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "EoSim ${{ steps.version.outputs.tag }}"
