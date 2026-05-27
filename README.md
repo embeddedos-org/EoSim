@@ -23,7 +23,7 @@ We continuously benchmark EoSim — Hardware Emulator against the entire Embedde
 
 ---
 
-## 🎬 Product Marketing Video
+## 🎬 Product Marketing Video (App Store Proof of Production)
 
 Experience EoSim — Hardware Emulator in action! Watch our high-fidelity product demonstration and marketing video:
 
