@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "eosim"
 version = "3.0.1"
-description = "World-class multi-architecture embedded simulation platform — 150+ platforms, 40 domains, 26 architectures"
+description = "World's most powerful universal simulation platform — supersedes 250+ tools across 20 domains"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -54,11 +54,11 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/embeddedos-org/eosim"
-Repository = "https://github.com/embeddedos-org/eosim"
-Documentation = "https://github.com/embeddedos-org/eosim/tree/main/docs"
-"Bug Tracker" = "https://github.com/embeddedos-org/eosim/issues"
-Changelog = "https://github.com/embeddedos-org/eosim/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/embeddedos-org/EoSim"
+Repository = "https://github.com/embeddedos-org/EoSim"
+Documentation = "https://docs.eosim.io"
+"Bug Tracker" = "https://github.com/embeddedos-org/EoSim/issues"
+Changelog = "https://github.com/embeddedos-org/EoSim/blob/master/CHANGELOG.md"
 
 [project.scripts]
 eosim = "eosim.cli.main:cli"

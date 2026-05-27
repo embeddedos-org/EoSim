@@ -1,25 +1,133 @@
-replicaCount: 2
+# ============================================================================
+# EoSim — Helm Chart Values (Production)
+# ============================================================================
+# Override with: helm install eosim ./enterprise/helm -f my-values.yaml
+
+replicaCount: 3
+
 image:
-  repository: embeddedos/eosim
-  tag: enterprise-latest
+  repository: ghcr.io/embeddedos-org/eosim
+  tag: "3.0.1"
   pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: "eosim"
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "eosim"
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/api/v1/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
 service:
   type: ClusterIP
   port: 8080
+  targetPort: 8080
+
 ingress:
   enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
   hosts:
-    - host: eosim.eos.local
-      paths: ["/"]
+    - host: api.eosim.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: eosim-tls
+      hosts:
+        - api.eosim.io
+
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: "2"
+    memory: 2Gi
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 250m
+    memory: 256Mi
+
 autoscaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 3
+  maxReplicas: 20
   targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+env:
+  EOSIM_ENV: "production"
+  EOSIM_LOG_LEVEL: "INFO"
+  EOSIM_WORKERS: "4"
+  EOSIM_API_URL: "https://api.eosim.io"
+  EOSIM_WS_URL: "wss://api.eosim.io"
+  EOSIM_DOCS_URL: "https://docs.eosim.io"
+  EOSIM_STATUS_URL: "https://status.eosim.io"
+
+# Secrets — set via: kubectl create secret generic eosim-secrets
+envFromSecret:
+  secretName: eosim-secrets
+  keys:
+    - EOSIM_SECRET_KEY
+    - EOSIM_API_KEY
+    - EOSIM_DB_URL
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  mountPath: /opt/eosim/data
+
+nodeSelector: {}
+tolerations: []
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: ["eosim"]
+          topologyKey: kubernetes.io/hostname

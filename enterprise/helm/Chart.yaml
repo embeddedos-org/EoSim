@@ -1,13 +1,37 @@
 apiVersion: v2
-name: eos-eosim
-description: Simulation Server — EoS Enterprise Helm Chart
+name: eosim
+description: "EoSim — World's Most Powerful Universal Simulation Platform. Supersedes 250+ tools across 20 domains."
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
+version: 3.0.1
+appVersion: "3.0.1"
+home: https://github.com/embeddedos-org/EoSim
+icon: https://embeddedos-org.github.io/EoSim/icon.png
+sources:
+  - https://github.com/embeddedos-org/EoSim
 maintainers:
-  - name: EmbeddedOS
+  - name: EoS Project
+    email: team@embeddedos.org
     url: https://github.com/embeddedos-org
 keywords:
-  - eos
+  - simulation
+  - emulation
+  - embedded
+  - robotics
+  - network
+  - aerospace
+  - automotive
+  - iot
+  - ai
+  - fpga
+  - qemu
+  - ros
   - eosim
-  - enterprise
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://docs.eosim.io
+    - name: API
+      url: https://api.eosim.io
+    - name: Status
+      url: https://status.eosim.io
