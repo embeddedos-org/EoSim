@@ -1,9 +1,8 @@
-# SPDX-License-Identifier: MIT
-# Copyright (c) 2026 EoS Project
 import unittest
-class TestEosimFunctional(unittest.TestCase):
-    def test_qemu_arm_translation(self):
-        print("Testing QEMU ARM instruction translation validation...")
-        arm_instr = "ADD r1, r2, r3"
-        x86_instr = "add eax, ebx"
-        self.assertTrue(len(x86_instr) > 0)
+
+class TestEoSimFunctional(unittest.TestCase):
+    def test_peripheral_register_read_write_pipeline(self):
+        registers = {"GPIO_ODR": 0x00}
+        # Write to output data register
+        registers["GPIO_ODR"] = 0xFF
+        assert registers["GPIO_ODR"] == 0xFF

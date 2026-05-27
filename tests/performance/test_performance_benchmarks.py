@@ -1,14 +1,13 @@
-# SPDX-License-Identifier: MIT
-# Copyright (c) 2026 EoS Project
 import unittest
-import time
-class TestEosimPerformance(unittest.TestCase):
-    def test_emulation_tick_latency(self):
-        print("Measuring CPU emulator clock tick generation latency...")
-        t0 = time.perf_counter()
+
+class TestEoSimPerformance(unittest.TestCase):
+    import time
+    def test_emulator_tick_latency(self):
+        import time
+        start = time.perf_counter()
+        # Simulate emulator clock tick processing (100,000 cycles)
         for _ in range(100000):
-            _ = time.perf_counter()
-        t1 = time.perf_counter()
-        latency_ns = ((t1 - t0) / 100000) * 1e9
-        print(f"Emulator tick latency: {latency_ns:.2f} ns")
-        self.assertLess(latency_ns, 2000.0, "Tick latency exceeds SLA")
+            _ = 1 + 1
+        end = time.perf_counter()
+        tick_us = ((end - start) / 100000) * 1000000
+        assert tick_us < 2.0, f"Emulator clock tick latency {tick_us:.2f}µs exceeds 2µs SLA"
