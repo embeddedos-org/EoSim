@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Configuration for EoSim Android App
+  All traffic goes to production HTTPS endpoints only.
+  Cleartext (HTTP) is blocked for security.
+-->
+<network-security-config>
+    <!-- Production API — certificate pinning -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.eosim.io</domain>
+        <domain includeSubdomains="true">eosim.io</domain>
+        <domain includeSubdomains="true">cdn.eosim.io</domain>
+        <domain includeSubdomains="true">auth.eosim.io</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <!-- Block all cleartext traffic globally -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EoSim</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0e1a;--bg2:#111827;--bg3:#1e293b;
+    --text:#e2e8f0;--text2:#94a3b8;
+    --accent:#60a5fa;--green:#34d399;--red:#f87171;--yellow:#fbbf24;
+    --radius:8px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
+  }
+  body{font-family:var(--font);background:var(--bg);color:var(--text);width:380px;min-height:500px;overflow-x:hidden}
+  .header{background:var(--bg2);border-bottom:1px solid var(--bg3);padding:12px 16px;display:flex;align-items:center;gap:10px}
+  .logo{font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-0.5px}
+  .logo span{color:var(--text2);font-weight:400;font-size:11px;display:block;margin-top:1px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);margin-left:auto;box-shadow:0 0 6px var(--green)}
+  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--bg3)}
+  .tab{flex:1;padding:8px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all .2s}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .content{padding:12px}
+  .section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+  .sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+  .sim-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:8px 10px;cursor:pointer;transition:all .2s}
+  .sim-card:hover{border-color:var(--accent);background:#1a2744}
+  .sim-card .icon{font-size:18px;margin-bottom:4px}
+  .sim-card .name{font-size:11px;font-weight:600;color:var(--text)}
+  .sim-card .status{font-size:10px;color:var(--text2)}
+  .sim-card.running{border-color:var(--green)}
+  .sim-card.running .status{color:var(--green)}
+  .quick-actions{display:flex;gap:6px;margin-bottom:12px}
+  .btn{flex:1;padding:8px;border-radius:var(--radius);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .2s}
+  .btn-primary{background:#1e3a5f;color:var(--accent)}
+  .btn-primary:hover{background:#1d4ed8;color:#fff}
+  .btn-success{background:#064e3b;color:var(--green)}
+  .btn-success:hover{background:#065f46}
+  .btn-danger{background:#450a0a;color:var(--red)}
+  .btn-danger:hover{background:#7f1d1d}
+  .metric-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bg3)}
+  .metric-row:last-child{border-bottom:none}
+  .metric-label{font-size:11px;color:var(--text2)}
+  .metric-value{font-size:12px;font-weight:700;color:var(--accent);font-family:monospace}
+  .lang-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .lang-btn{padding:4px;border-radius:4px;border:1px solid var(--bg3);background:var(--bg2);color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}
+  .lang-btn.active{border-color:var(--accent);color:var(--accent);background:#1a2744}
+  .open-app-btn{width:100%;padding:10px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;font-family:var(--font);transition:opacity .2s}
+  .open-app-btn:hover{opacity:0.9}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="logo">EoSim <span>Universal Simulation Platform v3.0.1</span></div>
+  </div>
+  <div class="status-dot" id="statusDot" title="Connected to api.eosim.io"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('sims')">Simulations</button>
+  <button class="tab" onclick="showTab('metrics')">Metrics</button>
+  <button class="tab" onclick="showTab('lang')">Language</button>
+</div>
+
+<div class="content">
+  <!-- Simulations Tab -->
+  <div id="tab-sims">
+    <div class="section-title">Quick Launch</div>
+    <div class="sim-grid" id="simGrid">
+      <div class="sim-card" onclick="launchSim('network')"><div class="icon">🌐</div><div class="name">Network</div><div class="status">Ready</div></div>
+      <div class="sim-card" onclick="launchSim('robotics')"><div class="icon">🤖</div><div class="name">Robotics</div><div class="status">Ready</div></div>
+      <div class="sim-card running" onclick="launchSim('aerospace')"><div class="icon">✈️</div><div class="name">Aerospace</div><div class="status">● Running</div></div>
+      <div class="sim-card" onclick="launchSim('security')"><div class="icon">🔐</div><div class="name">Security</div><div class="status">Ready</div></div>
+      <div class="sim-card" onclick="launchSim('ai')"><div class="icon">🧠</div><div class="name">AI / ML</div><div class="status">Ready</div></div>
+      <div class="sim-card" onclick="launchSim('iot')"><div class="icon">📡</div><div class="name">IoT</div><div class="status">Ready</div></div>
+    </div>
+    <div class="quick-actions">
+      <button class="btn btn-primary" onclick="openDashboard()">Open Dashboard</button>
+      <button class="btn btn-success" onclick="newSim()">+ New Sim</button>
+    </div>
+    <button class="open-app-btn" onclick="openApp()">Open EoSim Platform →</button>
+  </div>
+
+  <!-- Metrics Tab -->
+  <div id="tab-metrics" class="hidden">
+    <div class="section-title">Platform Metrics</div>
+    <div class="metric-row"><span class="metric-label">API Status</span><span class="metric-value" style="color:var(--green)">● ONLINE</span></div>
+    <div class="metric-row"><span class="metric-label">Active Simulations</span><span class="metric-value" id="activeSims">—</span></div>
+    <div class="metric-row"><span class="metric-label">Platform Version</span><span class="metric-value">3.0.1</span></div>
+    <div class="metric-row"><span class="metric-label">Modules Loaded</span><span class="metric-value">20</span></div>
+    <div class="metric-row"><span class="metric-label">Supported Tools</span><span class="metric-value">250+</span></div>
+    <div class="metric-row"><span class="metric-label">API Endpoint</span><span class="metric-value" style="font-size:9px">api.eosim.io</span></div>
+    <div class="metric-row"><span class="metric-label">Docs</span><span class="metric-value" style="font-size:9px">docs.eosim.io</span></div>
+    <button class="open-app-btn" style="margin-top:12px" onclick="openMetrics()">View Full Metrics →</button>
+  </div>
+
+  <!-- Language Tab -->
+  <div id="tab-lang" class="hidden">
+    <div class="section-title">Interface Language</div>
+    <div class="lang-grid">
+      <button class="lang-btn active" onclick="setLang('en','English')">EN</button>
+      <button class="lang-btn" onclick="setLang('es','Español')">ES</button>
+      <button class="lang-btn" onclick="setLang('zh','中文')">ZH</button>
+      <button class="lang-btn" onclick="setLang('hi','हिन्दी')">HI</button>
+      <button class="lang-btn" onclick="setLang('fr','Français')">FR</button>
+      <button class="lang-btn" onclick="setLang('ar','العربية')">AR</button>
+      <button class="lang-btn" onclick="setLang('pt','Português')">PT</button>
+      <button class="lang-btn" onclick="setLang('de','Deutsch')">DE</button>
+      <button class="lang-btn" onclick="setLang('ja','日本語')">JA</button>
+      <button class="lang-btn" onclick="setLang('ko','한국어')">KO</button>
+    </div>
+    <div style="margin-top:10px;padding:8px;background:var(--bg2);border-radius:var(--radius);font-size:11px;color:var(--text2)">
+      Selected: <span id="selectedLang" style="color:var(--accent);font-weight:700">English</span>
+    </div>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

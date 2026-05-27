@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Identity -->
+    <key>CFBundleIdentifier</key>
+    <string>io.eosim.app</string>
+    <key>CFBundleName</key>
+    <string>EoSim</string>
+    <key>CFBundleDisplayName</key>
+    <string>EoSim</string>
+    <key>CFBundleVersion</key>
+    <string>301</string>
+    <key>CFBundleShortVersionString</key>
+    <string>3.0.1</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+
+    <!-- Supported Interfaces -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- Production API — App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>api.eosim.io</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionRequiresForwardSecrecy</key>
+                <true/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.3</string>
+            </dict>
+        </dict>
+    </dict>
+
+    <!-- Location — GPS for region-aware API selection -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>EoSim uses your location to connect to the nearest API server for optimal performance.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>EoSim uses your location to connect to the nearest API server for optimal performance.</string>
+
+    <!-- Face ID / Touch ID -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>EoSim uses Face ID to securely authenticate your account.</string>
+
+    <!-- Deep Links -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>io.eosim.app</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>eosim</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Associated Domains (Universal Links) -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>applinks:app.eosim.io</string>
+        <string>applinks:eosim.io</string>
+    </array>
+
+    <!-- Supported Languages -->
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>es</string>
+        <string>zh-Hans</string>
+        <string>hi</string>
+        <string>fr</string>
+        <string>ar</string>
+        <string>pt</string>
+        <string>de</string>
+        <string>ja</string>
+        <string>ko</string>
+    </array>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+</dict>
+</plist>

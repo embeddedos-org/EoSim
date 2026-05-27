@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e1a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="https://embeddedos-org.github.io/eApps/icons/eosim-play.svg">
+<title>EoSim — Universal Simulation Platform</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--bg2:#111827;--bg3:#1e293b;
+  --text:#e2e8f0;--text2:#94a3b8;
+  --accent:#60a5fa;--green:#34d399;--red:#f87171;--yellow:#fbbf24;
+  --radius:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px)
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+/* Header */
+.header{background:var(--bg2);border-bottom:1px solid var(--bg3);padding:calc(var(--safe-top) + 10px) 16px 10px;flex-shrink:0;display:flex;align-items:center;gap:12px}
+.logo{font-size:17px;font-weight:800;color:var(--accent)}
+.logo small{color:var(--text2);font-weight:400;font-size:10px;display:block}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.status-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:700}
+.status-badge.online{background:#064e3b;color:var(--green)}
+.status-badge.offline{background:#450a0a;color:var(--red)}
+.lang-btn-sm{background:var(--bg3);border:none;color:var(--text2);font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer}
+/* Navigation */
+.nav{display:flex;background:var(--bg2);border-top:1px solid var(--bg3);padding:0 0 calc(var(--safe-bottom)) 0;flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px;cursor:pointer;border:none;background:transparent;color:var(--text2);font-size:9px;font-weight:600;gap:2px;-webkit-tap-highlight-color:transparent}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px}
+/* Main Content */
+.main{flex:1;overflow-y:auto;padding:12px 12px calc(70px + var(--safe-bottom));-webkit-overflow-scrolling:touch}
+/* Cards */
+.section-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin:16px 0 8px}
+.module-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.module-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;active:scale(0.97)}
+.module-card:active{transform:scale(0.97);border-color:var(--accent)}
+.module-card .icon{font-size:24px;margin-bottom:6px}
+.module-card .name{font-size:12px;font-weight:700;color:var(--text)}
+.module-card .desc{font-size:10px;color:var(--text2);margin-top:2px;line-height:1.4}
+.module-card .status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px}
+/* Metrics */
+.metric-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:8px}
+.metric-title{font-size:11px;color:var(--text2);margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:800;color:var(--accent);font-family:monospace}
+.metric-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* GPS */
+.gps-card{background:linear-gradient(135deg,#0f172a,#1e3a5f);border:1px solid #1d4ed8;border-radius:var(--radius);padding:14px;margin-bottom:8px}
+.gps-title{font-size:11px;color:#93c5fd;font-weight:700;margin-bottom:8px}
+.gps-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.gps-label{color:#94a3b8}
+.gps-value{color:#60a5fa;font-family:monospace;font-weight:700}
+/* Language selector */
+.lang-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
+.lang-option{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lang-option.active{border-color:var(--accent);background:#1a2744}
+.lang-option .flag{font-size:18px}
+.lang-option .code{font-size:10px;font-weight:700;color:var(--text2);margin-top:2px}
+.lang-option.active .code{color:var(--accent)}
+/* Buttons */
+.btn-full{width:100%;padding:14px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);margin-bottom:8px;-webkit-tap-highlight-color:transparent}
+.btn-full:active{opacity:0.85}
+.page{display:none}
+.page.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">EoSim <small id="headerSub">Universal Simulation Platform</small></div>
+  </div>
+  <div class="header-right">
+    <span class="status-badge online" id="statusBadge">● ONLINE</span>
+    <button class="lang-btn-sm" onclick="showPage('settings')" id="langDisplay">EN</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Dashboard Page -->
+  <div class="page active" id="page-home">
+    <div class="gps-card" id="gpsCard">
+      <div class="gps-title">📍 Location-Aware Simulation</div>
+      <div class="gps-row"><span class="gps-label">Latitude</span><span class="gps-value" id="gpsLat">Acquiring...</span></div>
+      <div class="gps-row"><span class="gps-label">Longitude</span><span class="gps-value" id="gpsLon">Acquiring...</span></div>
+      <div class="gps-row"><span class="gps-label">Region</span><span class="gps-value" id="gpsRegion">—</span></div>
+      <div class="gps-row"><span class="gps-label">API Region</span><span class="gps-value" id="gpsApiRegion">api.eosim.io</span></div>
+    </div>
+
+    <div class="section-title" id="titleModules">Simulation Modules</div>
+    <div class="module-grid">
+      <div class="module-card" onclick="launchModule('network')"><div class="icon">🌐</div><div class="name">Network</div><div class="desc"><span class="status-dot"></span>GNS3, ns-3, Mininet</div></div>
+      <div class="module-card" onclick="launchModule('robotics')"><div class="icon">🤖</div><div class="name">Robotics</div><div class="desc"><span class="status-dot"></span>ROS2, Gazebo, CARLA</div></div>
+      <div class="module-card" onclick="launchModule('aerospace')"><div class="icon">✈️</div><div class="name">Aerospace</div><div class="desc"><span class="status-dot"></span>X-Plane, JSBSim, PX4</div></div>
+      <div class="module-card" onclick="launchModule('automotive')"><div class="icon">🚗</div><div class="name">Automotive</div><div class="desc"><span class="status-dot"></span>CARLA, SUMO, Apollo</div></div>
+      <div class="module-card" onclick="launchModule('security')"><div class="icon">🔐</div><div class="name">Security</div><div class="desc"><span class="status-dot"></span>Metasploit, Burp Suite</div></div>
+      <div class="module-card" onclick="launchModule('ai')"><div class="icon">🧠</div><div class="name">AI / ML</div><div class="desc"><span class="status-dot"></span>Gym, MuJoCo, Isaac</div></div>
+      <div class="module-card" onclick="launchModule('iot')"><div class="icon">📡</div><div class="name">IoT</div><div class="desc"><span class="status-dot"></span>Node-RED, ThingsBoard</div></div>
+      <div class="module-card" onclick="launchModule('embedded')"><div class="icon">💻</div><div class="name">Embedded</div><div class="desc"><span class="status-dot"></span>Renode, Wokwi, QEMU</div></div>
+    </div>
+
+    <div class="section-title">Quick Actions</div>
+    <button class="btn-full" onclick="openPlatform()">Open EoSim Platform →</button>
+    <button class="btn-full" style="background:linear-gradient(135deg,#064e3b,#065f46)" onclick="openDocs()">View Documentation →</button>
+  </div>
+
+  <!-- Simulations Page -->
+  <div class="page" id="page-sims">
+    <div class="section-title" id="titleAllModules">All 20 Simulation Domains</div>
+    <div class="module-grid" id="allModulesGrid"></div>
+  </div>
+
+  <!-- Metrics Page -->
+  <div class="page" id="page-metrics">
+    <div class="section-title">Platform Metrics</div>
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-title">Modules</div><div class="metric-value">20</div><div class="metric-sub">Active domains</div></div>
+      <div class="metric-card"><div class="metric-title">Tools Covered</div><div class="metric-value">250+</div><div class="metric-sub">Industry tools</div></div>
+      <div class="metric-card"><div class="metric-title">Languages</div><div class="metric-value">10</div><div class="metric-sub">i18n support</div></div>
+      <div class="metric-card"><div class="metric-title">Version</div><div class="metric-value">3.0.1</div><div class="metric-sub">Production</div></div>
+    </div>
+    <div class="metric-card"><div class="metric-title">API Endpoint</div><div class="metric-value" style="font-size:14px">api.eosim.io</div><div class="metric-sub">Production server — globally distributed</div></div>
+    <div class="metric-card"><div class="metric-title">Active Simulations</div><div class="metric-value" id="mobileActiveSims">—</div><div class="metric-sub">Live on server</div></div>
+  </div>
+
+  <!-- Settings / Language Page -->
+  <div class="page" id="page-settings">
+    <div class="section-title">Interface Language</div>
+    <div class="lang-grid">
+      <div class="lang-option active" onclick="setLang('en','EN','ltr')" id="lang-en"><div class="flag">🇺🇸</div><div class="code">EN</div></div>
+      <div class="lang-option" onclick="setLang('es','ES','ltr')" id="lang-es"><div class="flag">🇪🇸</div><div class="code">ES</div></div>
+      <div class="lang-option" onclick="setLang('zh','ZH','ltr')" id="lang-zh"><div class="flag">🇨🇳</div><div class="code">ZH</div></div>
+      <div class="lang-option" onclick="setLang('hi','HI','ltr')" id="lang-hi"><div class="flag">🇮🇳</div><div class="code">HI</div></div>
+      <div class="lang-option" onclick="setLang('fr','FR','ltr')" id="lang-fr"><div class="flag">🇫🇷</div><div class="code">FR</div></div>
+      <div class="lang-option" onclick="setLang('ar','AR','rtl')" id="lang-ar"><div class="flag">🇸🇦</div><div class="code">AR</div></div>
+      <div class="lang-option" onclick="setLang('pt','PT','ltr')" id="lang-pt"><div class="flag">🇧🇷</div><div class="code">PT</div></div>
+      <div class="lang-option" onclick="setLang('de','DE','ltr')" id="lang-de"><div class="flag">🇩🇪</div><div class="code">DE</div></div>
+      <div class="lang-option" onclick="setLang('ja','JA','ltr')" id="lang-ja"><div class="flag">🇯🇵</div><div class="code">JA</div></div>
+      <div class="lang-option" onclick="setLang('ko','KO','ltr')" id="lang-ko"><div class="flag">🇰🇷</div><div class="code">KO</div></div>
+    </div>
+    <div class="section-title">About</div>
+    <div class="metric-card">
+      <div class="metric-title">EoSim Universal Simulation Platform</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:6px;line-height:1.6">
+        Version 3.0.1 — Production Release<br>
+        API: <span style="color:#60a5fa">https://api.eosim.io</span><br>
+        Docs: <span style="color:#60a5fa">https://docs.eosim.io</span><br>
+        Status: <span style="color:#60a5fa">https://status.eosim.io</span><br>
+        © 2026 EmbeddedOS Organization
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="nav">
+  <button class="nav-item active" onclick="showPage('home')" id="nav-home"><span class="nav-icon">🏠</span><span>Home</span></button>
+  <button class="nav-item" onclick="showPage('sims')" id="nav-sims"><span class="nav-icon">⚡</span><span>Simulate</span></button>
+  <button class="nav-item" onclick="showPage('metrics')" id="nav-metrics"><span class="nav-icon">📊</span><span>Metrics</span></button>
+  <button class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span><span>Settings</span></button>
+</nav>
+
+<script>
+const API_BASE = 'https://api.eosim.io';
+const APP_URL = 'https://app.eosim.io';
+const DOCS_URL = 'https://docs.eosim.io';
+
+const ALL_MODULES = [
+  {type:'virt',icon:'🖥️',name:'Virtualization',desc:'QEMU, Docker, K8s'},
+  {type:'mobile',icon:'📱',name:'Mobile Testing',desc:'Android, iOS, BrowserStack'},
+  {type:'network',icon:'🌐',name:'Network',desc:'GNS3, ns-3, Mininet'},
+  {type:'robotics',icon:'🤖',name:'Robotics',desc:'ROS2, Gazebo, CARLA'},
+  {type:'physics',icon:'⚛️',name:'Physics',desc:'ANSYS, OpenFOAM, FEniCS'},
+  {type:'embedded',icon:'💻',name:'Embedded',desc:'Renode, Wokwi, QEMU'},
+  {type:'fpga',icon:'🔧',name:'FPGA/HDL',desc:'Vivado, Verilator, GHDL'},
+  {type:'aerospace',icon:'✈️',name:'Aerospace',desc:'X-Plane, JSBSim, PX4'},
+  {type:'automotive',icon:'🚗',name:'Automotive',desc:'CARLA, SUMO, Apollo'},
+  {type:'security',icon:'🔐',name:'Security',desc:'Metasploit, Burp, Ghidra'},
+  {type:'ai',icon:'🧠',name:'AI/ML',desc:'Gym, MuJoCo, Isaac'},
+  {type:'iot',icon:'📡',name:'IoT',desc:'Node-RED, ThingsBoard'},
+  {type:'cloud',icon:'☁️',name:'Cloud/DevOps',desc:'LocalStack, Terraform'},
+  {type:'gamedev',icon:'🎮',name:'Game Dev',desc:'Unity, Unreal, Godot'},
+  {type:'data',icon:'📊',name:'Data',desc:'Kafka, Spark, Flink'},
+  {type:'energy',icon:'⚡',name:'Energy',desc:'ETAP, GridLAB-D'},
+  {type:'manufacturing',icon:'🏭',name:'Manufacturing',desc:'Tecnomatix, Siemens NX'},
+  {type:'xr',icon:'🥽',name:'VR/AR/XR',desc:'OpenXR, ARKit, ARCore'},
+  {type:'aicode',icon:'🤖',name:'AI Coding',desc:'Cursor, Devin, Copilot'},
+  {type:'process',icon:'🏢',name:'Enterprise',desc:'SAP, Salesforce, Stripe'},
+];
+
+// ─── Page Navigation ──────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`)?.classList.add('active');
+  document.getElementById(`nav-${name}`)?.classList.add('active');
+  if (name === 'sims') renderAllModules();
+  if (name === 'metrics') loadMetrics();
+}
+
+// ─── All Modules Grid ─────────────────────────────────────────────────────────
+function renderAllModules() {
+  const grid = document.getElementById('allModulesGrid');
+  if (!grid || grid.children.length > 0) return;
+  grid.innerHTML = ALL_MODULES.map(m => `
+    <div class="module-card" onclick="launchModule('${m.type}')">
+      <div class="icon">${m.icon}</div>
+      <div class="name">${m.name}</div>
+      <div class="desc"><span class="status-dot"></span>${m.desc}</div>
+    </div>
+  `).join('');
+}
+
+// ─── Module Launch ────────────────────────────────────────────────────────────
+function launchModule(type) {
+  window.open(`${APP_URL}/simulations/new?type=${type}`, '_blank');
+}
+
+function openPlatform() { window.open(APP_URL, '_blank'); }
+function openDocs() { window.open(DOCS_URL, '_blank'); }
+
+// ─── Language ─────────────────────────────────────────────────────────────────
+function setLang(code, display, dir) {
+  document.querySelectorAll('.lang-option').forEach(el => el.classList.remove('active'));
+  document.getElementById(`lang-${code}`)?.classList.add('active');
+  document.getElementById('langDisplay').textContent = display;
+  document.documentElement.lang = code;
+  document.documentElement.dir = dir;
+  localStorage.setItem('eosim_lang', code);
+}
+
+// ─── GPS ──────────────────────────────────────────────────────────────────────
+function initGPS() {
+  if (!navigator.geolocation) {
+    document.getElementById('gpsLat').textContent = 'Not available';
+    return;
+  }
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      const lat = pos.coords.latitude.toFixed(5);
+      const lon = pos.coords.longitude.toFixed(5);
+      document.getElementById('gpsLat').textContent = lat;
+      document.getElementById('gpsLon').textContent = lon;
+      // Select nearest API region based on longitude
+      const region = lon > -30 && lon < 60 ? 'eu.api.eosim.io' :
+                     lon >= 60 ? 'ap.api.eosim.io' : 'us.api.eosim.io';
+      document.getElementById('gpsApiRegion').textContent = region;
+      document.getElementById('gpsRegion').textContent =
+        lon > -30 && lon < 60 ? 'Europe/Africa' :
+        lon >= 60 ? 'Asia/Pacific' : 'Americas';
+    },
+    () => { document.getElementById('gpsLat').textContent = 'Permission denied'; },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+  );
+}
+
+// ─── Metrics ──────────────────────────────────────────────────────────────────
+async function loadMetrics() {
+  try {
+    const resp = await fetch(`${API_BASE}/api/v1/health`, { signal: AbortSignal.timeout(4000) });
+    if (resp.ok) {
+      const data = await resp.json();
+      const el = document.getElementById('mobileActiveSims');
+      if (el) el.textContent = data.active_simulations ?? data.activeSimulations ?? '0';
+      document.getElementById('statusBadge').textContent = '● ONLINE';
+      document.getElementById('statusBadge').className = 'status-badge online';
+    }
+  } catch {
+    document.getElementById('statusBadge').textContent = '● OFFLINE';
+    document.getElementById('statusBadge').className = 'status-badge offline';
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const savedLang = localStorage.getItem('eosim_lang') || 'en';
+  const dirMap = { ar: 'rtl' };
+  setLang(savedLang, savedLang.toUpperCase(), dirMap[savedLang] || 'ltr');
+  initGPS();
+  loadMetrics();
+  setInterval(loadMetrics, 30000);
+});
+</script>
+</body>
+</html>

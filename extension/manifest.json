@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "EoSim — Universal Simulation Platform",
+  "short_name": "EoSim",
+  "version": "3.0.1",
+  "description": "The world's most powerful simulation platform. Access EoSim simulations directly from your browser — virtualization, network, robotics, AI, IoT, aerospace, automotive, and 14 more domains.",
+  "homepage_url": "https://eosim.io",
+  "author": "EmbeddedOS Organization",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "EoSim Simulation Platform",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://eosim.io/*", "https://app.eosim.io/*", "https://api.eosim.io/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://api.eosim.io/*",
+    "https://eosim.io/*"
+  ],
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*", "assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "commands": {
+    "open-eosim": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Open EoSim simulation panel"
+    }
+  }
+}
