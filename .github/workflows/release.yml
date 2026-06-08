@@ -43,7 +43,7 @@ jobs:
           python -m build
           twine check dist/*
       - name: Upload dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -66,7 +66,7 @@ jobs:
             echo "Documentation not generated" > docs/output/html/README.txt
           fi
       - name: Upload docs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: documentation
           path: docs/output/html/

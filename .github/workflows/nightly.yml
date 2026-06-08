@@ -33,7 +33,7 @@ jobs:
       - name: Run full test suite
         run: python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: nightly-results-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -59,7 +59,7 @@ jobs:
             --cov-report=term-missing \
             -v --tb=short
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-coverage
           path: |
