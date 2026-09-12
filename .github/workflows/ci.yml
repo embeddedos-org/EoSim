@@ -259,3 +259,36 @@ jobs:
           echo "| Documentation | ${{ needs.docs.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+
+      # The step above only prints. `if: always()` makes this job run after a
+      # failure, and nothing here ever looked at `needs.*.result`, so `CI Summary`
+      # reported success with `lint` red and six jobs skipped -- on every open PR.
+      # Every job this one needs is unconditional, so `skipped` can only mean an
+      # upstream job failed or was cancelled; it is never a legitimate pass here.
+      # Results are passed through `env` rather than interpolated into `run:`.
+      - name: Gate
+        env:
+          RESULTS: >-
+            lint=${{ needs.lint.result }}
+            test=${{ needs.test.result }}
+            coverage=${{ needs.coverage.result }}
+            validate-platforms=${{ needs.validate-platforms.result }}
+            simulator-smoke=${{ needs.simulator-smoke.result }}
+            docs=${{ needs.docs.result }}
+            security=${{ needs.security.result }}
+            build=${{ needs.build.result }}
+        run: |
+          failed=0
+          for entry in $RESULTS; do
+            job=${entry%%=*}
+            result=${entry#*=}
+            if [ "$result" != "success" ]; then
+              echo "::error::job '$job' concluded '$result'"
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "CI Summary fails: at least one job above did not succeed."
+            exit 1
+          fi
+          echo "All jobs succeeded."
