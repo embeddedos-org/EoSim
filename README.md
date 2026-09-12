@@ -155,14 +155,13 @@ eosim/
 │   ├── gui/              Tkinter GUI dashboard
 │   ├── integrations/     External tool integrations
 │   ├── artifacts/        Simulation artifact management
-│   └── platforms/        Platform abstraction
-├── platforms/            52+ platform definitions (YAML + Renode .repl/.resc)
-│   ├── stm32f4/          STM32F4 Discovery
-│   ├── raspi4/           Raspberry Pi 4
-│   ├── esp32/            ESP32
-│   ├── riscv64/          RISC-V 64-bit
-│   ├── jetson-orin/      NVIDIA Jetson Orin
-│   └── ...               + 47 more
+│   └── platforms/        149 platform definitions (YAML + Renode .repl/.resc)
+│       ├── stm32f4/      STM32F4 Discovery
+│       ├── raspi4/       Raspberry Pi 4
+│       ├── esp32/        ESP32
+│       ├── riscv64/      RISC-V 64-bit
+│       ├── jetson-orin/  NVIDIA Jetson Orin
+│       └── ...           + 144 more
 ├── tests/                Unit + integration + scenario tests
 ├── examples/             Demo scenarios (cluster-demo)
 ├── pyproject.toml        Python package configuration
