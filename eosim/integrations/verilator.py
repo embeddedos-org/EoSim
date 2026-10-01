@@ -18,7 +18,7 @@ class VerilatorBridge:
             return False
         self.signals = {}
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 for line in f:
                     if line.startswith("$var"):
                         parts = line.split()

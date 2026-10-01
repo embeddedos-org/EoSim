@@ -27,8 +27,8 @@ class SmartGridSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor, ADCChannel
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import ADCChannel, TemperatureSensor
 
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))
         self.vm.add_peripheral("adc0", ADCChannel("adc0", 0x40100600))

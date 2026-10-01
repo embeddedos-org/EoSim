@@ -12,9 +12,9 @@ Production deployment:
 
 from __future__ import annotations
 
+import logging
 import os
 import time
-import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -102,6 +102,7 @@ class EoSimAPIServer:
         # Request-ID + timing headers
         try:
             import uuid
+
             from starlette.middleware.base import BaseHTTPMiddleware
             from starlette.requests import Request as _Req
 

@@ -3,6 +3,7 @@
 """Industrial sensor peripherals for EoSim simulation."""
 
 import random
+
 from eosim.engine.native.peripherals.sensors import SensorBase
 
 

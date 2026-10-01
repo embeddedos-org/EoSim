@@ -6,10 +6,10 @@ populates CPUState and MemoryBus models for GUI display.
 Works with both QEMU GDB stub and OpenOCD GDB server.
 """
 
+import logging
 import threading
 import time
 from typing import Callable, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

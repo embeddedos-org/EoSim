@@ -27,9 +27,9 @@ class ElevatorSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import ProximitySensor, TemperatureSensor
         from eosim.engine.native.peripherals.actuators import MotorController
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import ProximitySensor, TemperatureSensor
 
         self.vm.add_peripheral("prox0", ProximitySensor("prox0", 0x40100400))
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))

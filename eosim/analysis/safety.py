@@ -2,7 +2,7 @@
 # Copyright (c) 2026 EoS Project
 """Functional safety analysis (ISO 26262, IEC 61508)."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

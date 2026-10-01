@@ -6,9 +6,9 @@ Implements the GDB RSP protocol for register/memory access, breakpoints,
 and execution control. Works with any GDB server (QEMU -gdb, OpenOCD, etc.).
 """
 
+import logging
 import socket
 from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

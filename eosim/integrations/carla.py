@@ -3,7 +3,6 @@
 """CARLA autonomous driving simulator TCP bridge."""
 
 import socket
-import json
 
 
 class CARLAConnection:

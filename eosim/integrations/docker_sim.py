@@ -2,8 +2,8 @@
 # Copyright (c) 2026 EoS Project
 """Docker container-based simulation runner."""
 
-import subprocess
 import shutil
+import subprocess
 
 
 class DockerSimRunner:

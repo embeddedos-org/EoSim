@@ -27,8 +27,8 @@ class RetailSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import TemperatureSensor
 
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))
         self.vm.add_peripheral("wdt0", WatchdogTimer("wdt0", 0x40500200))

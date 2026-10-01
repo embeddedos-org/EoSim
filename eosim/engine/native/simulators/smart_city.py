@@ -26,12 +26,12 @@ class SmartCitySimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import (
-            TemperatureSensor,
-            LightSensor,
-            GPSModule,
-        )
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import (
+            GPSModule,
+            LightSensor,
+            TemperatureSensor,
+        )
 
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))
         self.vm.add_peripheral("light0", LightSensor("light0", 0x40100500))

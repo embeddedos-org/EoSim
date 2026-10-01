@@ -2,8 +2,8 @@
 # Copyright (c) 2026 EoS Project
 """Digital twin engine for real-time hardware mirroring."""
 
-import time
 import json
+import time
 
 
 class DigitalTwin:

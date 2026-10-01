@@ -27,9 +27,9 @@ class PrinterSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor
         from eosim.engine.native.peripherals.actuators import MotorController
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import TemperatureSensor
 
         self.vm.add_peripheral("temp_nozzle", TemperatureSensor("temp_nozzle", 0x40100010, 0, 300))
         self.vm.add_peripheral("temp_bed", TemperatureSensor("temp_bed", 0x40100020, 0, 120))

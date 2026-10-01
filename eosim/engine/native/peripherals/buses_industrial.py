@@ -2,7 +2,6 @@
 # Copyright (c) 2026 EoS Project
 """Industrial bus protocol peripherals for EoSim simulation."""
 
-from collections import deque
 from eosim.engine.native.peripherals.buses import BusBase
 
 

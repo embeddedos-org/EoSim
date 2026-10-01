@@ -27,8 +27,8 @@ class HVACSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import TemperatureSensor
 
         self.vm.add_peripheral("temp_room", TemperatureSensor("temp_room", 0x40100010, -10, 50))
         self.vm.add_peripheral(

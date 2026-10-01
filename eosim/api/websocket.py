@@ -2,7 +2,6 @@
 # Copyright (c) 2026 EoS Project
 """WebSocket support for live simulation data streaming."""
 
-import json
 import asyncio
 
 

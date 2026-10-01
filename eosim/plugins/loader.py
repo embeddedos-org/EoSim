@@ -3,8 +3,8 @@
 """Plugin discovery and loading system."""
 
 import importlib
-import os
 import logging
+import os
 
 from eosim.plugins.base import PluginBase
 

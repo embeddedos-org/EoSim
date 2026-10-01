@@ -8,6 +8,7 @@ only applied when EOSIM_ENV=development is explicitly set.
 """
 
 from __future__ import annotations
+
 import os
 
 # ─── Environment Detection ────────────────────────────────────────────────────

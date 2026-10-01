@@ -3,7 +3,6 @@
 """AirSim drone/car simulator API bridge."""
 
 import socket
-import json
 
 
 class AirSimConnection:

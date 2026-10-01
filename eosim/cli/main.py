@@ -11,6 +11,7 @@ from pathlib import Path
 
 import click
 import yaml
+
 from eosim import __version__
 
 EOSIM_ROOT = Path(__file__).parent.parent.parent
@@ -1072,7 +1073,7 @@ def simulator_products():
 @click.option("--scenario", default="", help="Load a named scenario")
 def simulator_run(product_type, ticks, scenario):
     """Run a product simulator interactively."""
-    from eosim.engine.native.simulators import SimulatorFactory, SIMULATOR_MAP
+    from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
 
     if product_type not in SIMULATOR_MAP:
         click.echo(f"Unknown product type: {product_type}", err=True)
@@ -1100,7 +1101,7 @@ def simulator_run(product_type, ticks, scenario):
         if (i + 1) % (ticks // 5 or 1) == 0:
             click.echo(f"  Tick {i + 1}: {sim.get_status_text()}")
 
-    click.echo(f"\nFinal state:")
+    click.echo("\nFinal state:")
     for k, v in sim.get_state().items():
         if k != "scenario":
             click.echo(f"  {k}: {v}")

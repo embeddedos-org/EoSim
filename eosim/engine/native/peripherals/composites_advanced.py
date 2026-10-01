@@ -3,6 +3,7 @@
 """Advanced composite peripherals for EoSim simulation."""
 
 import random
+
 from eosim.engine.native.peripherals.composites import CompositeBase
 
 

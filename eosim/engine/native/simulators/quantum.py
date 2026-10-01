@@ -27,8 +27,8 @@ class QuantumSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import TemperatureSensor
 
         self.vm.add_peripheral("temp_cryo", TemperatureSensor("temp_cryo", 0x40100010, 0, 1))
         self.vm.add_peripheral("wdt0", WatchdogTimer("wdt0", 0x40500200))

@@ -27,8 +27,8 @@ class AgricultureSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor, GPSModule
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import GPSModule, TemperatureSensor
 
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010, -10, 60))
         self.vm.add_peripheral("gps0", GPSModule("gps0", 0x40100300))

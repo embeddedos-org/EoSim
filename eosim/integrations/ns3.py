@@ -2,8 +2,8 @@
 # Copyright (c) 2026 EoS Project
 """ns-3 network simulator bridge."""
 
-import subprocess
 import shutil
+import subprocess
 
 
 class NS3Bridge:

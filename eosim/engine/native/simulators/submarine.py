@@ -5,7 +5,6 @@
 Pure Python, cross-platform (Linux/Windows/macOS). No OS-specific dependencies.
 """
 
-import math
 import random
 
 
@@ -28,14 +27,14 @@ class SubmarineSimulator:
         self._scenario_step = 0
 
     def setup(self):
+        from eosim.engine.native.peripherals.actuators import MotorController
+        from eosim.engine.native.peripherals.composites import BatteryManagement, WatchdogTimer
         from eosim.engine.native.peripherals.sensors import (
-            IMUSensor,
             GPSModule,
+            IMUSensor,
             PressureSensor,
             TemperatureSensor,
         )
-        from eosim.engine.native.peripherals.actuators import MotorController
-        from eosim.engine.native.peripherals.composites import BatteryManagement, WatchdogTimer
 
         self.vm.add_peripheral("imu0", IMUSensor("imu0", 0x40100200))
         self.vm.add_peripheral("gps0", GPSModule("gps0", 0x40100300))

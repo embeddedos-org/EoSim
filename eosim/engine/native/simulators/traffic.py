@@ -27,12 +27,12 @@ class TrafficSimulator:
         self._scenario_step = 0
 
     def setup(self):
+        from eosim.engine.native.peripherals.composites import WatchdogTimer
         from eosim.engine.native.peripherals.sensors import (
             LightSensor,
             ProximitySensor,
             TemperatureSensor,
         )
-        from eosim.engine.native.peripherals.composites import WatchdogTimer
 
         self.vm.add_peripheral("light0", LightSensor("light0", 0x40100500))
         self.vm.add_peripheral("prox0", ProximitySensor("prox0", 0x40100400))

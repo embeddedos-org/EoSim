@@ -2,8 +2,8 @@
 # Copyright (c) 2026 EoS Project
 """Environmental sensor peripherals for EoSim simulation."""
 
-import random
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 

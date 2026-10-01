@@ -61,15 +61,15 @@ class IOSSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import (
-            IMUSensor,
-            GPSModule,
-            TemperatureSensor,
-            PressureSensor,
-            LightSensor,
-            ProximitySensor,
-        )
         from eosim.engine.native.peripherals.composites import BatteryManagement, WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import (
+            GPSModule,
+            IMUSensor,
+            LightSensor,
+            PressureSensor,
+            ProximitySensor,
+            TemperatureSensor,
+        )
 
         self.vm.add_peripheral("imu0", IMUSensor("imu0", 0x40100200))
         self.vm.add_peripheral("gps0", GPSModule("gps0", 0x40100300))

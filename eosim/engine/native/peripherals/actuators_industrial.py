@@ -3,6 +3,7 @@
 """Industrial actuator peripherals for EoSim simulation."""
 
 import random
+
 from eosim.engine.native.peripherals.actuators import ActuatorBase
 
 

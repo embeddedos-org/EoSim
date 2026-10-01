@@ -27,8 +27,8 @@ class NuclearSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import TemperatureSensor, PressureSensor
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import PressureSensor, TemperatureSensor
 
         self.vm.add_peripheral(
             "temp_coolant", TemperatureSensor("temp_coolant", 0x40100010, 20, 350)

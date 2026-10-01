@@ -34,7 +34,7 @@ def register_routes(app, server) -> None:
 
     @app.get("/api/v1/version", tags=["Health"], summary="Version info")
     def version():
-        from eosim import __version__, __url__, __api_url__, __docs_url__
+        from eosim import __api_url__, __docs_url__, __url__, __version__
 
         return {
             "version": __version__,

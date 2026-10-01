@@ -27,12 +27,12 @@ class WaterSimulator:
         self._scenario_step = 0
 
     def setup(self):
+        from eosim.engine.native.peripherals.composites import WatchdogTimer
         from eosim.engine.native.peripherals.sensors import (
+            ADCChannel,
             PressureSensor,
             TemperatureSensor,
-            ADCChannel,
         )
-        from eosim.engine.native.peripherals.composites import WatchdogTimer
 
         self.vm.add_peripheral("pressure0", PressureSensor("pressure0", 0x40100100))
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))

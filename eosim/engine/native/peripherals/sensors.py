@@ -2,8 +2,8 @@
 # Copyright (c) 2026 EoS Project
 """Domain-specific sensor peripherals for EoSim simulation."""
 
-import math
 import logging
+import math
 import random
 
 logger = logging.getLogger(__name__)

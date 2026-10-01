@@ -27,8 +27,8 @@ class OilGasSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import PressureSensor, TemperatureSensor
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import PressureSensor, TemperatureSensor
 
         self.vm.add_peripheral("pressure0", PressureSensor("pressure0", 0x40100100))
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))

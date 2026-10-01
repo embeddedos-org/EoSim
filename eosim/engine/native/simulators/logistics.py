@@ -27,9 +27,9 @@ class LogisticsSimulator:
         self._scenario_step = 0
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import ProximitySensor, IMUSensor
         from eosim.engine.native.peripherals.actuators import MotorController
         from eosim.engine.native.peripherals.composites import WatchdogTimer
+        from eosim.engine.native.peripherals.sensors import IMUSensor, ProximitySensor
 
         self.vm.add_peripheral("prox0", ProximitySensor("prox0", 0x40100400))
         self.vm.add_peripheral("imu0", IMUSensor("imu0", 0x40100200))

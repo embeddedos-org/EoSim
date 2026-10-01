@@ -2,7 +2,7 @@
 # Copyright (c) 2026 EoS Project
 """Power consumption modeling and analysis."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
