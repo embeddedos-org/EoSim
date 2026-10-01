@@ -31,15 +31,15 @@ class PlatformRegistry:
                platform_class: str = None, engine: str = None,
                domain: str = None) -> list[Platform]:
         results = list(self._platforms.values())
-        if arch is not None:
+        if arch:
             results = [p for p in results if p.arch.lower() == arch.lower()]
-        if vendor is not None:
+        if vendor:
             results = [p for p in results if p.vendor.lower() == vendor.lower()]
-        if platform_class is not None:
+        if platform_class:
             results = [p for p in results if p.platform_class.lower() == platform_class.lower()]
-        if engine is not None:
+        if engine:
             results = [p for p in results if p.engine.lower() == engine.lower()]
-        if domain is not None:
+        if domain:
             results = [p for p in results if p.domain.lower() == domain.lower()]
         return results
 

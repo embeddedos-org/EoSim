@@ -21,10 +21,18 @@ class TestCLICommands:
     def test_list_command(self, runner):
         result = runner.invoke(cli, ["list"])
         assert result.exit_code == 0
+        # The CLI passes "" for every unset filter; that must not filter out
+        # every platform (regression: "Available platforms (0)").
+        assert "Available platforms (149)" in result.output
+        assert "stm32f4" in result.output
 
     def test_list_with_arch_filter(self, runner):
-        result = runner.invoke(cli, ["list", "--arch", "arm"])
+        result = runner.invoke(cli, ["list", "--arch", "arm", "--format", "json"])
         assert result.exit_code == 0
+        import json
+        rows = json.loads(result.output)
+        assert rows, "arm filter returned no platforms"
+        assert all(r["arch"].lower() == "arm" for r in rows)
 
     def test_stats_command(self, runner):
         result = runner.invoke(cli, ["stats"])
