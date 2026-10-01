@@ -14,7 +14,7 @@ This guide covers deploying EoSim in production environments.
 ## Python Package Deployment
 
 ```bash
-pip install eosim
+pip install embeddedos-eosim
 eosim doctor    # Verify installation
 eosim stats     # Check platform count
 ```
