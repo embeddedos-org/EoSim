@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Composite / domain-specific peripherals for EoSim simulation."""
+
 import random
 import time
 
@@ -18,7 +19,7 @@ class CompositeBase:
 
     def io_handler(self, op: str, addr: int, val: int) -> int:
         offset = addr - self.base
-        if 'read' in op:
+        if "read" in op:
             return self.read_reg(offset)
         else:
             self.write_reg(offset, val)
@@ -34,8 +35,13 @@ class CompositeBase:
 class BatteryManagement(CompositeBase):
     """Battery management system (BMS)."""
 
-    def __init__(self, name: str = 'bms0', base_addr: int = 0x40500000,
-                 cell_count: int = 4, capacity_mah: int = 5000):
+    def __init__(
+        self,
+        name: str = "bms0",
+        base_addr: int = 0x40500000,
+        cell_count: int = 4,
+        capacity_mah: int = 5000,
+    ):
         super().__init__(name, base_addr)
         self.cell_count = cell_count
         self.capacity_mah = capacity_mah
@@ -75,7 +81,7 @@ class BatteryManagement(CompositeBase):
         elif offset == 0x10:
             return int(self.charging)
         elif offset == 0x14:
-            return (int(self.low_voltage_alarm) | (int(self.over_temp_alarm) << 1))
+            return int(self.low_voltage_alarm) | (int(self.over_temp_alarm) << 1)
         return 0
 
     def write_reg(self, offset: int, val: int):
@@ -88,10 +94,10 @@ class BatteryManagement(CompositeBase):
 class PowerSupply(CompositeBase):
     """Multi-rail power supply."""
 
-    def __init__(self, name: str = 'psu0', base_addr: int = 0x40500100):
+    def __init__(self, name: str = "psu0", base_addr: int = 0x40500100):
         super().__init__(name, base_addr)
         self.input_voltage_mv = 12000
-        self.rails = {'3v3': 3300, '5v': 5000, '1v8': 1800}
+        self.rails = {"3v3": 3300, "5v": 5000, "1v8": 1800}
         self.efficiency_pct = 92.0
         self.load_pct = 0.0
         self.power_good = True
@@ -109,8 +115,7 @@ class PowerSupply(CompositeBase):
 class WatchdogTimer(CompositeBase):
     """Hardware watchdog timer for safety-critical systems."""
 
-    def __init__(self, name: str = 'wdt0', base_addr: int = 0x40500200,
-                 timeout_ms: int = 1000):
+    def __init__(self, name: str = "wdt0", base_addr: int = 0x40500200, timeout_ms: int = 1000):
         super().__init__(name, base_addr)
         self.timeout_ms = timeout_ms
         self.counter = timeout_ms
@@ -159,9 +164,9 @@ class WatchdogTimer(CompositeBase):
 class CryptoEngine(CompositeBase):
     """Hardware cryptographic engine."""
 
-    def __init__(self, name: str = 'crypto0', base_addr: int = 0x40500300):
+    def __init__(self, name: str = "crypto0", base_addr: int = 0x40500300):
         super().__init__(name, base_addr)
-        self.algorithm = 'AES-256'
+        self.algorithm = "AES-256"
         self.key_size = 256
         self.busy = False
         self.operations_done = 0
@@ -202,7 +207,7 @@ class CryptoEngine(CompositeBase):
 class RTCModule(CompositeBase):
     """Real-time clock module."""
 
-    def __init__(self, name: str = 'rtc0', base_addr: int = 0x40500400):
+    def __init__(self, name: str = "rtc0", base_addr: int = 0x40500400):
         super().__init__(name, base_addr)
         self.unix_time = int(time.time())
         self.alarm_time = 0
@@ -223,9 +228,11 @@ class RTCModule(CompositeBase):
         elif offset == 0x04:
             return self.alarm_time & 0xFFFFFFFF
         elif offset == 0x08:
-            return (int(self.alarm_enabled) |
-                    (int(self.alarm_triggered) << 1) |
-                    (int(self.battery_ok) << 2))
+            return (
+                int(self.alarm_enabled)
+                | (int(self.alarm_triggered) << 1)
+                | (int(self.battery_ok) << 2)
+            )
         return 0
 
     def write_reg(self, offset: int, val: int):

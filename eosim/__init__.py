@@ -11,6 +11,7 @@ Production API: https://api.eosim.io
 Documentation:  https://docs.eosim.io
 Status:         https://status.eosim.io
 """
+
 from __future__ import annotations
 
 __version__ = "3.0.1"
