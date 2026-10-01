@@ -181,11 +181,13 @@ def run_eos_tests(source_dir: str, build_dir: str = None) -> EosTestSuite:
             continue
 
         t_start = time.time()
+        return_code = -1
         try:
             r = subprocess.run(
                 [test_path], capture_output=True, text=True, timeout=30, cwd=build_dir
             )
             passed = r.returncode == 0
+            return_code = r.returncode
             output = r.stdout + r.stderr
         except subprocess.TimeoutExpired:
             passed = False
@@ -200,7 +202,7 @@ def run_eos_tests(source_dir: str, build_dir: str = None) -> EosTestSuite:
             passed=passed,
             output=output,
             duration_s=time.time() - t_start,
-            return_code=r.returncode if "r" in dir() else -1,
+            return_code=return_code,
         )
         suite.results.append(result)
         suite.total += 1
@@ -230,7 +232,7 @@ def run_eosuite_tests(eosuite_dir: str) -> EosTestSuite:
 
         # Parse pytest output
         for line in output.split("\n"):
-            if " passed" in line:
+            if " passed" in line or " failed" in line:
                 import re
 
                 m = re.search(r"(\d+) passed", line)
