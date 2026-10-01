@@ -85,27 +85,27 @@ def parse_elf_bytes(data: bytes) -> ELFInfo:
     if info.bits == 32:
         fmt = f"{endian_char}HHIIIIIHHHHHH"
         hdr = struct.unpack_from(fmt, data, 16)
-        info.arch = ELF_ARCH_MAP.get(hdr[0], f"unknown({hdr[0]:#x})")
-        info.entry_point = hdr[2]
-        phoff = hdr[3]
-        shoff = hdr[4]
-        phentsize = hdr[7]
-        phnum = hdr[8]
-        shentsize = hdr[9]
-        shnum = hdr[10]
-        shstrndx = hdr[11]
+        info.arch = ELF_ARCH_MAP.get(hdr[1], f"unknown({hdr[1]:#x})")
+        info.entry_point = hdr[3]
+        phoff = hdr[4]
+        shoff = hdr[5]
+        phentsize = hdr[8]
+        phnum = hdr[9]
+        shentsize = hdr[10]
+        shnum = hdr[11]
+        shstrndx = hdr[12]
     else:
         fmt = f"{endian_char}HHIQQQIHHHHHH"
         hdr = struct.unpack_from(fmt, data, 16)
-        info.arch = ELF_ARCH_MAP.get(hdr[0], f"unknown({hdr[0]:#x})")
-        info.entry_point = hdr[2]
-        phoff = hdr[3]
-        shoff = hdr[4]
-        phentsize = hdr[7]
-        phnum = hdr[8]
-        shentsize = hdr[9]
-        shnum = hdr[10]
-        shstrndx = hdr[11]
+        info.arch = ELF_ARCH_MAP.get(hdr[1], f"unknown({hdr[1]:#x})")
+        info.entry_point = hdr[3]
+        phoff = hdr[4]
+        shoff = hdr[5]
+        phentsize = hdr[8]
+        phnum = hdr[9]
+        shentsize = hdr[10]
+        shnum = hdr[11]
+        shstrndx = hdr[12]
 
     # Parse program headers
     for i in range(phnum):
