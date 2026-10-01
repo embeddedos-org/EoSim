@@ -56,7 +56,7 @@ class Platform:
 
     @classmethod
     def from_yaml(cls, path: str) -> "Platform":
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         runtime_data = data.pop("runtime", {}) or {}

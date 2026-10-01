@@ -8,7 +8,7 @@ from eosim.tests.runner import CheckResult
 
 
 def load_scenario(path: str) -> dict:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 

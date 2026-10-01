@@ -37,7 +37,7 @@ class DigitalTwin:
         return states
 
     def export_json(self, path):
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump({"name": self.name, "history": self.history[-1000:]}, f, indent=2)
 
     def status(self):

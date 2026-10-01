@@ -20,7 +20,7 @@ class Cluster:
 
     @classmethod
     def from_yaml(cls, path: str) -> "Cluster":
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         nodes = []
         for n in data.get("nodes", []):

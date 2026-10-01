@@ -26,7 +26,7 @@ def collect_artifacts(result: SimResult, output_dir: str = "out/artifacts") -> d
         shutil.copy2(result.log_file, dst)
         manifest["artifacts"].append(dst)
     report = os.path.join(output_dir, result.platform + "-report.json")
-    with open(report, "w") as f:
+    with open(report, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
     manifest["artifacts"].append(report)
     return manifest
@@ -46,6 +46,6 @@ def generate_junit(results: list, output: str = "out/reports/junit.xml") -> str:
             lines.append("    <failure>Simulation failed</failure>")
         lines.append("  </testcase>")
     lines.append("</testsuite>")
-    with open(output, "w") as f:
+    with open(output, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     return output

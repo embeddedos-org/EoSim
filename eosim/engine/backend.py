@@ -64,7 +64,7 @@ class RenodeEngine:
 
         if log_file:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
-            with open(log_file, "w") as f:
+            with open(log_file, "w", encoding="utf-8") as f:
                 f.write("=== EoSim Renode Log ===\n")
                 f.write(f"Platform: {platform.name}\nArch: {platform.arch}\n\n")
                 f.write(result.stdout)
@@ -106,7 +106,7 @@ class QemuEngine:
             result.boot_detected = False
             if log_file:
                 os.makedirs(os.path.dirname(log_file), exist_ok=True)
-                with open(log_file, "w") as f:
+                with open(log_file, "w", encoding="utf-8") as f:
                     f.write(f"QEMU {binary} not available — dry run\nPASSED (dry run)\n")
                 result.log_file = log_file
                 result.artifacts.append(log_file)
@@ -157,7 +157,7 @@ class QemuEngine:
 
         if log_file:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
-            with open(log_file, "w") as f:
+            with open(log_file, "w", encoding="utf-8") as f:
                 f.write("=== EoSim QEMU Log ===\n")
                 f.write(f"Platform: {platform.name}\nArch: {platform.arch}\nEngine: {binary}\n\n")
                 f.write(result.stdout)
@@ -201,7 +201,7 @@ class EoSimEngine:
 
         if log_file:
             os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
-            with open(log_file, "w") as f:
+            with open(log_file, "w", encoding="utf-8") as f:
                 f.write("=== EoSim Native Log ===\n")
                 f.write(f"Platform: {platform.name}\nArch: {platform.arch}\n\n")
                 f.write(result.stdout)

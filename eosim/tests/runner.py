@@ -21,7 +21,7 @@ def load_checks(platform_dir: str) -> list:
     test_file = os.path.join(platform_dir, "tests.yml")
     if not os.path.exists(test_file):
         return []
-    with open(test_file) as f:
+    with open(test_file, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return data.get("checks", [])
 

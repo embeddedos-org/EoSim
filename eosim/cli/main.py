@@ -43,7 +43,7 @@ def _find_platform(name):
     for sub in PLATFORMS_DIR.iterdir():
         for yml in sub.glob("*.yml"):
             try:
-                with open(yml) as f:
+                with open(yml, encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 if data and data.get("name") == name:
                     return yml, data
@@ -53,7 +53,7 @@ def _find_platform(name):
     candidate = PLATFORMS_DIR / name / "platform.yml"
     if candidate.exists():
         try:
-            with open(candidate) as f:
+            with open(candidate, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             if data:
                 return candidate, data
@@ -262,7 +262,7 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
     click.echo("Running: " + " ".join(cmd))
     try:
         result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True)
-        with open(log_file, "w") as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             f.write(result.stdout)
             f.write(result.stderr)
         click.echo("Log: " + log_file)
@@ -293,7 +293,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None):
     if not qemu:
         click.echo(f"QEMU not found for {arch} — simulation skipped")
         click.echo(f"Install: sudo apt install qemu-system-{arch}")
-        with open(log_file, "w") as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"QEMU not available for {arch}\nPASSED (dry run)\n")
         click.echo("PASSED (dry run)")
         return
@@ -324,7 +324,7 @@ def _run_eosim(p, platform, headless, timeout, log_file, firmware=None):
 
     result = vm.run(max_cycles=10000, timeout_s=float(timeout))
 
-    with open(log_file, "w") as f:
+    with open(log_file, "w", encoding="utf-8") as f:
         f.write("=== EoSim Native Log ===\n")
         f.write("Platform: %s\nArch: %s\n" % (platform, arch))
         f.write("Firmware: %s\n\n" % (firmware or "(none)"))
@@ -357,7 +357,7 @@ def test(platform, timeout, junit):
     test_cfg = cfg_path.parent / "tests.yml" if cfg_path else None
     checks = []
     if test_cfg and test_cfg.exists():
-        with open(test_cfg) as f:
+        with open(test_cfg, encoding="utf-8") as f:
             t = yaml.safe_load(f)
         checks = t.get("checks", [])
     click.echo("EoSim test: %s (%d checks)" % (platform, len(checks)))
@@ -383,7 +383,7 @@ def validate(platform_config, validate_all):
             cfg = sub / "platform.yml"
             if not cfg.exists() or sub.name == "templates":
                 continue
-            with open(cfg) as f:
+            with open(cfg, encoding="utf-8") as f:
                 p = yaml.safe_load(f)
             errors = validate_platform(p)
             if errors:
@@ -406,7 +406,7 @@ def validate(platform_config, validate_all):
         click.echo("File not found: " + platform_config, err=True)
         sys.exit(1)
 
-    with open(platform_config) as f:
+    with open(platform_config, encoding="utf-8") as f:
         p = yaml.safe_load(f)
     errors = validate_platform(p)
     if errors:
@@ -471,7 +471,7 @@ def artifact(platform, output):
         "artifacts": ["logs", "traces", "reports"],
     }
     manifest_path = os.path.join(output, platform + "-manifest.json")
-    with open(manifest_path, "w") as f:
+    with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
     click.echo("Artifacts exported to: " + output)
 
