@@ -1,4 +1,6 @@
 """Integration tests — CLI commands via Click test runner."""
+import json
+
 import pytest
 from click.testing import CliRunner
 
@@ -29,7 +31,6 @@ class TestCLICommands:
     def test_list_with_arch_filter(self, runner):
         result = runner.invoke(cli, ["list", "--arch", "arm", "--format", "json"])
         assert result.exit_code == 0
-        import json
         rows = json.loads(result.output)
         assert rows, "arm filter returned no platforms"
         assert all(r["arch"].lower() == "arm" for r in rows)
