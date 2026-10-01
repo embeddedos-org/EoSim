@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Test runner — validates simulation output against checks."""
+
 import os
 from dataclasses import dataclass
 
@@ -32,36 +33,42 @@ def run_checks(sim_result: SimResult, checks: list) -> list[CheckResult]:
         if ctype == "serial_contains":
             value = check.get("value", "")
             passed = value in sim_result.stdout
-            results.append(CheckResult(
-                name=f"serial_contains: {value}",
-                passed=passed,
-                message="found" if passed else "not found in output"))
+            results.append(
+                CheckResult(
+                    name=f"serial_contains: {value}",
+                    passed=passed,
+                    message="found" if passed else "not found in output",
+                )
+            )
         elif ctype == "exit_code":
             expected = check.get("value", 0)
             passed = sim_result.exit_code == int(expected)
-            results.append(CheckResult(
-                name=f"exit_code == {expected}",
-                passed=passed,
-                message="got %d" % sim_result.exit_code))
+            results.append(
+                CheckResult(
+                    name=f"exit_code == {expected}",
+                    passed=passed,
+                    message="got %d" % sim_result.exit_code,
+                )
+            )
         elif ctype == "timeout":
             seconds = check.get("seconds", 60)
             passed = sim_result.duration_s <= seconds
-            results.append(CheckResult(
-                name="timeout <= %ds" % seconds,
-                passed=passed,
-                message=f"took {sim_result.duration_s:.1f}s"))
+            results.append(
+                CheckResult(
+                    name="timeout <= %ds" % seconds,
+                    passed=passed,
+                    message=f"took {sim_result.duration_s:.1f}s",
+                )
+            )
         elif ctype == "boot_success":
             passed = sim_result.boot_detected
             results.append(
                 CheckResult(
                     name="boot_success",
                     passed=passed,
-                    message="boot %s" %
-                    ("detected" if passed else "not detected")))
+                    message="boot %s" % ("detected" if passed else "not detected"),
+                )
+            )
         else:
-            results.append(
-                CheckResult(
-                    name=ctype,
-                    passed=False,
-                    message="unknown check type"))
+            results.append(CheckResult(name=ctype, passed=False, message="unknown check type"))
     return results

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """EoS Integration — build and test EoS apps through EoSim."""
+
 import os
 import shutil
 import subprocess
@@ -32,15 +33,15 @@ class EosTestSuite:
 
     def summary(self) -> str:
         lines = [f"EoSim Test Suite: {self.platform}"]
-        lines.append("  Total: %d | Passed: %d | Failed: %d | Skipped: %d" % (
-            self.total, self.passed, self.failed, self.skipped))
+        lines.append(
+            "  Total: %d | Passed: %d | Failed: %d | Skipped: %d"
+            % (self.total, self.passed, self.failed, self.skipped)
+        )
         lines.append(f"  Duration: {self.duration_s:.2f}s")
         lines.append("")
         for r in self.results:
             status = "PASS" if r.passed else "FAIL"
-            lines.append(
-                "  [%s] %-30s (%.2fs)" %
-                (status, r.name, r.duration_s))
+            lines.append("  [%s] %-30s (%.2fs)" % (status, r.name, r.duration_s))
         return "\n".join(lines)
 
 
@@ -67,15 +68,13 @@ def find_cmake() -> Optional[str]:
     if cmake:
         return cmake
     # Try common locations
-    for p in ["/usr/bin/cmake", "/usr/local/bin/cmake",
-              "C:/Program Files/CMake/bin/cmake.exe"]:
+    for p in ["/usr/bin/cmake", "/usr/local/bin/cmake", "C:/Program Files/CMake/bin/cmake.exe"]:
         if os.path.exists(p):
             return p
     return None
 
 
-def build_eos(source_dir: str, build_dir: str = None,
-              tests: bool = True) -> tuple:
+def build_eos(source_dir: str, build_dir: str = None, tests: bool = True) -> tuple:
     """Build EoS from source with tests enabled."""
     if not build_dir:
         build_dir = os.path.join(source_dir, "eosim-build")
@@ -94,11 +93,7 @@ def build_eos(source_dir: str, build_dir: str = None,
 
     log_lines.append("$ " + " ".join(cfg_cmd))
     try:
-        r = subprocess.run(
-            cfg_cmd,
-            capture_output=True,
-            text=True,
-            timeout=120)
+        r = subprocess.run(cfg_cmd, capture_output=True, text=True, timeout=120)
         log_lines.append(r.stdout)
         if r.returncode != 0:
             log_lines.append(r.stderr)
@@ -110,11 +105,7 @@ def build_eos(source_dir: str, build_dir: str = None,
     build_cmd = [cmake, "--build", build_dir]
     log_lines.append("$ " + " ".join(build_cmd))
     try:
-        r = subprocess.run(
-            build_cmd,
-            capture_output=True,
-            text=True,
-            timeout=300)
+        r = subprocess.run(build_cmd, capture_output=True, text=True, timeout=300)
         log_lines.append(r.stdout)
         if r.returncode != 0:
             log_lines.append(r.stderr)
@@ -138,33 +129,33 @@ def run_eos_tests(source_dir: str, build_dir: str = None) -> EosTestSuite:
     suite.build_log = log
     if not ok:
         suite.results.append(
-            EosTestResult(
-                name="build",
-                passed=False,
-                output=log,
-                duration_s=time.time() -
-                start))
+            EosTestResult(name="build", passed=False, output=log, duration_s=time.time() - start)
+        )
         suite.total = 1
         suite.failed = 1
         suite.duration_s = time.time() - start
         return suite
 
-    suite.results.append(EosTestResult(
-        name="build", passed=True, output="Build successful",
-        duration_s=time.time() - start))
+    suite.results.append(
+        EosTestResult(
+            name="build", passed=True, output="Build successful", duration_s=time.time() - start
+        )
+    )
     suite.passed += 1
     suite.total += 1
 
     # Discover test executables
     test_dir = build_dir
-    if os.name == 'nt':
+    if os.name == "nt":
         # Windows: tests may be in Release/ or Debug/ subdirectory
-        for sub in ["", "tests", "tests/Release", "tests/Debug",
-                    "Release", "Debug"]:
+        for sub in ["", "tests", "tests/Release", "tests/Debug", "Release", "Debug"]:
             check = os.path.join(build_dir, sub)
             if os.path.isdir(check):
-                exes = [f for f in os.listdir(check) if f.startswith(
-                    "test_") and (f.endswith(".exe") or "." not in f)]
+                exes = [
+                    f
+                    for f in os.listdir(check)
+                    if f.startswith("test_") and (f.endswith(".exe") or "." not in f)
+                ]
                 if exes:
                     test_dir = check
                     break
@@ -172,15 +163,17 @@ def run_eos_tests(source_dir: str, build_dir: str = None) -> EosTestSuite:
         for sub in ["", "tests"]:
             check = os.path.join(build_dir, sub)
             if os.path.isdir(check):
-                exes = [f for f in os.listdir(check) if f.startswith(
-                    "test_") and os.access(os.path.join(check, f), os.X_OK)]
+                exes = [
+                    f
+                    for f in os.listdir(check)
+                    if f.startswith("test_") and os.access(os.path.join(check, f), os.X_OK)
+                ]
                 if exes:
                     test_dir = check
                     break
 
     # Run each test
-    test_files = sorted([f for f in os.listdir(test_dir)
-                         if f.startswith("test_")])
+    test_files = sorted([f for f in os.listdir(test_dir) if f.startswith("test_")])
 
     for tf in test_files:
         test_path = os.path.join(test_dir, tf)
@@ -189,8 +182,9 @@ def run_eos_tests(source_dir: str, build_dir: str = None) -> EosTestSuite:
 
         t_start = time.time()
         try:
-            r = subprocess.run([test_path], capture_output=True, text=True,
-                               timeout=30, cwd=build_dir)
+            r = subprocess.run(
+                [test_path], capture_output=True, text=True, timeout=30, cwd=build_dir
+            )
             passed = r.returncode == 0
             output = r.stdout + r.stderr
         except subprocess.TimeoutExpired:
@@ -206,7 +200,8 @@ def run_eos_tests(source_dir: str, build_dir: str = None) -> EosTestSuite:
             passed=passed,
             output=output,
             duration_s=time.time() - t_start,
-            return_code=r.returncode if 'r' in dir() else -1)
+            return_code=r.returncode if "r" in dir() else -1,
+        )
         suite.results.append(result)
         suite.total += 1
         if passed:
@@ -227,18 +222,17 @@ def run_eosuite_tests(eosuite_dir: str) -> EosTestSuite:
     if not pytest:
         pytest = sys.executable
 
-    cmd = [sys.executable, "-m", "pytest", os.path.join(eosuite_dir, "tests"),
-           "-q", "--tb=line"]
+    cmd = [sys.executable, "-m", "pytest", os.path.join(eosuite_dir, "tests"), "-q", "--tb=line"]
 
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True,
-                           timeout=120, cwd=eosuite_dir)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=eosuite_dir)
         output = r.stdout + r.stderr
 
         # Parse pytest output
         for line in output.split("\n"):
             if " passed" in line:
                 import re
+
                 m = re.search(r"(\d+) passed", line)
                 if m:
                     suite.passed = int(m.group(1))
@@ -250,13 +244,17 @@ def run_eosuite_tests(eosuite_dir: str) -> EosTestSuite:
                     suite.skipped = int(m.group(1))
 
         suite.total = suite.passed + suite.failed
-        suite.results.append(EosTestResult(
-            name="pytest", passed=(suite.failed == 0),
-            output=output, duration_s=time.time() - start,
-            return_code=r.returncode))
+        suite.results.append(
+            EosTestResult(
+                name="pytest",
+                passed=(suite.failed == 0),
+                output=output,
+                duration_s=time.time() - start,
+                return_code=r.returncode,
+            )
+        )
     except Exception as e:
-        suite.results.append(EosTestResult(
-            name="pytest", passed=False, output=str(e)))
+        suite.results.append(EosTestResult(name="pytest", passed=False, output=str(e)))
         suite.total = 1
         suite.failed = 1
 

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Plugin discovery and loading system."""
+
 import importlib
 import os
 import logging
@@ -23,20 +24,27 @@ class PluginLoader:
             if not os.path.isdir(d):
                 continue
             for fname in os.listdir(d):
-                if fname.endswith('.py') and not fname.startswith('_'):
+                if fname.endswith(".py") and not fname.startswith("_"):
                     module_name = fname[:-3]
                     try:
-                        spec = importlib.util.spec_from_file_location(module_name, os.path.join(d, fname))
+                        spec = importlib.util.spec_from_file_location(
+                            module_name, os.path.join(d, fname)
+                        )
                         if spec and spec.loader:
                             module = importlib.util.module_from_spec(spec)
                             spec.loader.exec_module(module)
                             for attr_name in dir(module):
                                 attr = getattr(module, attr_name)
-                                if (isinstance(attr, type) and issubclass(attr, PluginBase)
-                                        and attr is not PluginBase):
+                                if (
+                                    isinstance(attr, type)
+                                    and issubclass(attr, PluginBase)
+                                    and attr is not PluginBase
+                                ):
                                     plugin = attr()
                                     self.plugins[plugin.NAME] = plugin
-                                    logger.info("Loaded plugin: %s v%s", plugin.NAME, plugin.VERSION)
+                                    logger.info(
+                                        "Loaded plugin: %s v%s", plugin.NAME, plugin.VERSION
+                                    )
                     except Exception as e:
                         logger.warning("Failed to load plugin %s: %s", fname, e)
 

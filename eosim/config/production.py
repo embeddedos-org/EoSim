@@ -98,6 +98,7 @@ CORS_ORIGINS = [
     "moz-extension://",
 ]
 
+
 def get_config() -> dict:
     """Return the complete production configuration as a dictionary."""
     return {

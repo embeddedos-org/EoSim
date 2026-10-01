@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 @dataclass
 class CPUState:
-    arch: str = 'arm64'
+    arch: str = "arm64"
     regs: list = field(default_factory=lambda: [0] * 32)
     pc: int = 0
     sp: int = 0
@@ -15,7 +15,7 @@ class CPUState:
     halted: bool = False
     cycles: int = 0
     irq_enabled: bool = True
-    mode: str = 'supervisor'
+    mode: str = "supervisor"
 
     def reset(self, entry_point: int = 0, stack_top: int = 0x20000000):
         self.regs = [0] * 32
@@ -25,19 +25,31 @@ class CPUState:
         self.cpsr = 0
         self.halted = False
         self.cycles = 0
-        self.mode = 'supervisor'
+        self.mode = "supervisor"
 
     def dump(self) -> str:
-        lines = [f'CPU State ({self.arch}):']
-        lines.append(f'  PC: 0x{self.pc:08X}  SP: 0x{self.sp:08X}  LR: 0x{self.lr:08X}')
-        lines.append('  CPSR: 0x%08X  Mode: %s  Cycles: %d' % (self.cpsr, self.mode, self.cycles))
+        lines = [f"CPU State ({self.arch}):"]
+        lines.append(f"  PC: 0x{self.pc:08X}  SP: 0x{self.sp:08X}  LR: 0x{self.lr:08X}")
+        lines.append("  CPSR: 0x%08X  Mode: %s  Cycles: %d" % (self.cpsr, self.mode, self.cycles))
         for i in range(0, min(16, len(self.regs)), 4):
-            lines.append('  R%-2d: 0x%08X  R%-2d: 0x%08X  R%-2d: 0x%08X  R%-2d: 0x%08X' % (
-                i, self.regs[i], i+1, self.regs[i+1], i+2, self.regs[i+2], i+3, self.regs[i+3]))
-        return '\n'.join(lines)
+            lines.append(
+                "  R%-2d: 0x%08X  R%-2d: 0x%08X  R%-2d: 0x%08X  R%-2d: 0x%08X"
+                % (
+                    i,
+                    self.regs[i],
+                    i + 1,
+                    self.regs[i + 1],
+                    i + 2,
+                    self.regs[i + 2],
+                    i + 3,
+                    self.regs[i + 3],
+                )
+            )
+        return "\n".join(lines)
+
 
 class CPUSimulator:
-    def __init__(self, arch: str = 'arm64'):
+    def __init__(self, arch: str = "arm64"):
         self.state = CPUState(arch=arch)
         self.memory = None  # set by VirtualMachine
         self.breakpoints: set = set()
@@ -104,11 +116,13 @@ class CPUSimulator:
                 self.on_syscall(self.state)
         elif instr == 0xE7FFDEFE:  # UDF (halt/breakpoint)
             self.state.halted = True
-            if self.on_halt: self.on_halt(self.state)
+            if self.on_halt:
+                self.on_halt(self.state)
         elif (instr & 0xFF000000) == 0xEA000000:  # B (branch)
             offset = instr & 0x00FFFFFF
-            if offset & 0x800000: offset |= 0xFF000000  # sign extend
-            self.state.pc += (offset << 2)
+            if offset & 0x800000:
+                offset |= 0xFF000000  # sign extend
+            self.state.pc += offset << 2
         elif (instr & 0xFFF00000) == 0xE3A00000:  # MOV Rd, imm (ARM)
             rd = (instr >> 12) & 0xF
             imm = instr & 0xFF

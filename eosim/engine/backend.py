@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Simulation engine backends — Renode, QEMU, EoSim native, X-Plane, Gazebo, OpenFOAM."""
+
 import os
 import shutil
 import subprocess
@@ -111,9 +112,19 @@ class QemuEngine:
                 result.artifacts.append(log_file)
             return result
 
-        cmd = [qemu, "-machine", platform.qemu.machine,
-               "-m", str(platform.runtime.memory_mb),
-               "-nographic", "-no-reboot", "-monitor", "none", "-serial", "stdio"]
+        cmd = [
+            qemu,
+            "-machine",
+            platform.qemu.machine,
+            "-m",
+            str(platform.runtime.memory_mb),
+            "-nographic",
+            "-no-reboot",
+            "-monitor",
+            "none",
+            "-serial",
+            "stdio",
+        ]
         if platform.qemu.cpu:
             cmd += ["-cpu", platform.qemu.cpu]
         if platform.boot.kernel:
@@ -167,14 +178,13 @@ class EoSimEngine:
         return True  # always available — it's our own engine
 
     @staticmethod
-    def run(platform, timeout=60, log_file=''):
+    def run(platform, timeout=60, log_file=""):
         from eosim.engine.native import VirtualMachine
-        result = SimResult(engine='eosim', platform=platform.name)
+
+        result = SimResult(engine="eosim", platform=platform.name)
 
         vm = VirtualMachine(
-            name=platform.name,
-            arch=platform.arch,
-            ram_mb=platform.runtime.memory_mb
+            name=platform.name, arch=platform.arch, ram_mb=platform.runtime.memory_mb
         )
 
         if platform.boot.firmware:
@@ -185,17 +195,17 @@ class EoSimEngine:
         start = time.time()
         sim = vm.run(max_cycles=100000, timeout_s=float(timeout))
         result.duration_s = time.time() - start
-        result.stdout = sim.get('boot_log', '')
-        result.success = sim.get('success', False)
-        result.boot_detected = 'booted' in result.stdout.lower()
+        result.stdout = sim.get("boot_log", "")
+        result.success = sim.get("success", False)
+        result.boot_detected = "booted" in result.stdout.lower()
 
         if log_file:
-            os.makedirs(os.path.dirname(log_file) or '.', exist_ok=True)
-            with open(log_file, 'w') as f:
-                f.write('=== EoSim Native Log ===\n')
-                f.write(f'Platform: {platform.name}\nArch: {platform.arch}\n\n')
+            os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
+            with open(log_file, "w") as f:
+                f.write("=== EoSim Native Log ===\n")
+                f.write(f"Platform: {platform.name}\nArch: {platform.arch}\n\n")
                 f.write(result.stdout)
-                f.write('\n\n' + sim.get('cpu_state', ''))
+                f.write("\n\n" + sim.get("cpu_state", ""))
             result.log_file = log_file
             result.artifacts.append(log_file)
 
@@ -208,29 +218,31 @@ class XPlaneEngine:
     @staticmethod
     def available() -> bool:
         import socket
+
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.settimeout(1.0)
-            s.connect(('127.0.0.1', 49000))
+            s.connect(("127.0.0.1", 49000))
             s.close()
             return True
         except OSError:
             return False
 
     @staticmethod
-    def run(platform, timeout=60, log_file=''):
+    def run(platform, timeout=60, log_file=""):
         from eosim.integrations.xplane import XPlaneConnection
-        result = SimResult(engine='xplane', platform=platform.name)
+
+        result = SimResult(engine="xplane", platform=platform.name)
         conn = XPlaneConnection()
         if conn.connect(timeout=5.0):
             result.success = True
-            result.stdout = 'X-Plane connected on %s:%d' % (conn.host, conn.port)
+            result.stdout = "X-Plane connected on %s:%d" % (conn.host, conn.port)
             data = conn.receive_data(timeout=2.0)
             if data:
-                result.stdout += '\nReceived %d data groups' % len(data)
+                result.stdout += "\nReceived %d data groups" % len(data)
             conn.disconnect()
         else:
-            result.stdout = 'X-Plane not available (connection failed)'
+            result.stdout = "X-Plane not available (connection failed)"
             result.success = False
         return result
 
@@ -240,20 +252,20 @@ class GazeboEngine:
 
     @staticmethod
     def available() -> bool:
-        return (shutil.which('gz') is not None or
-                shutil.which('gzserver') is not None)
+        return shutil.which("gz") is not None or shutil.which("gzserver") is not None
 
     @staticmethod
-    def run(platform, timeout=60, log_file=''):
+    def run(platform, timeout=60, log_file=""):
         from eosim.integrations.gazebo import GazeboConnection
-        result = SimResult(engine='gazebo', platform=platform.name)
+
+        result = SimResult(engine="gazebo", platform=platform.name)
         conn = GazeboConnection()
         if conn.connect(timeout=5.0):
             result.success = True
-            result.stdout = 'Gazebo connected'
+            result.stdout = "Gazebo connected"
             conn.disconnect()
         else:
-            result.stdout = 'Gazebo not available'
+            result.stdout = "Gazebo not available"
             result.success = False
         return result
 
@@ -263,20 +275,21 @@ class OpenFOAMEngine:
 
     @staticmethod
     def available() -> bool:
-        for solver in ['simpleFoam', 'icoFoam']:
+        for solver in ["simpleFoam", "icoFoam"]:
             if shutil.which(solver) is not None:
                 return True
         return False
 
     @staticmethod
-    def run(platform, timeout=300, log_file='', case_dir='', solver='simpleFoam'):
+    def run(platform, timeout=300, log_file="", case_dir="", solver="simpleFoam"):
         from eosim.integrations.openfoam import OpenFOAMRunner
-        result = SimResult(engine='openfoam', platform=platform.name)
+
+        result = SimResult(engine="openfoam", platform=platform.name)
         runner = OpenFOAMRunner(case_dir=case_dir)
         runner.set_solver(solver)
         run_result = runner.run(timeout=timeout)
-        result.success = run_result['success']
-        result.stdout = run_result.get('log', '')
+        result.success = run_result["success"]
+        result.stdout = run_result.get("log", "")
         return result
 
 
@@ -286,26 +299,28 @@ class CARLAEngine:
     @staticmethod
     def available() -> bool:
         import socket
+
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(1.0)
-            s.connect(('127.0.0.1', 2000))
+            s.connect(("127.0.0.1", 2000))
             s.close()
             return True
         except OSError:
             return False
 
     @staticmethod
-    def run(platform, timeout=60, log_file=''):
+    def run(platform, timeout=60, log_file=""):
         from eosim.integrations.carla import CARLAConnection
-        result = SimResult(engine='carla', platform=platform.name)
+
+        result = SimResult(engine="carla", platform=platform.name)
         conn = CARLAConnection()
         if conn.connect(timeout=5.0):
             result.success = True
-            result.stdout = f'CARLA connected on {conn.host}:{conn.port}'
+            result.stdout = f"CARLA connected on {conn.host}:{conn.port}"
             conn.disconnect()
         else:
-            result.stdout = 'CARLA not available (connection failed)'
+            result.stdout = "CARLA not available (connection failed)"
             result.success = False
         return result
 
@@ -316,26 +331,28 @@ class AirSimEngine:
     @staticmethod
     def available() -> bool:
         import socket
+
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(1.0)
-            s.connect(('127.0.0.1', 41451))
+            s.connect(("127.0.0.1", 41451))
             s.close()
             return True
         except OSError:
             return False
 
     @staticmethod
-    def run(platform, timeout=60, log_file=''):
+    def run(platform, timeout=60, log_file=""):
         from eosim.integrations.airsim import AirSimConnection
-        result = SimResult(engine='airsim', platform=platform.name)
+
+        result = SimResult(engine="airsim", platform=platform.name)
         conn = AirSimConnection()
         if conn.connect(timeout=5.0):
             result.success = True
-            result.stdout = 'AirSim connected'
+            result.stdout = "AirSim connected"
             conn.disconnect()
         else:
-            result.stdout = 'AirSim not available'
+            result.stdout = "AirSim not available"
             result.success = False
         return result
 
@@ -347,21 +364,23 @@ class ROS2Engine:
     def available() -> bool:
         try:
             import rclpy  # noqa: F401
+
             return True
         except ImportError:
             return False
 
     @staticmethod
-    def run(platform, timeout=60, log_file=''):
+    def run(platform, timeout=60, log_file=""):
         from eosim.integrations.ros2 import ROS2Bridge
-        result = SimResult(engine='ros2', platform=platform.name)
+
+        result = SimResult(engine="ros2", platform=platform.name)
         bridge = ROS2Bridge()
         if bridge.connect(timeout=5.0):
             result.success = True
-            result.stdout = 'ROS 2 bridge connected'
+            result.stdout = "ROS 2 bridge connected"
             bridge.disconnect()
         else:
-            result.stdout = 'ROS 2 not available'
+            result.stdout = "ROS 2 not available"
             result.success = False
         return result
 
@@ -399,7 +418,7 @@ class QemuLiveEngine:
     """
 
     @staticmethod
-    def available(arch: str = 'arm') -> bool:
+    def available(arch: str = "arm") -> bool:
         return QemuEngine.available(arch)
 
     def __init__(self):
@@ -408,12 +427,10 @@ class QemuLiveEngine:
         self._gdb = None
         self._bridge = None
 
-    def run(self, platform: Platform, timeout: int = 60,
-            log_file: str = '') -> SimResult:
+    def run(self, platform: Platform, timeout: int = 60, log_file: str = "") -> SimResult:
         """Launch QEMU with QMP + GDB enabled."""
-        result = SimResult(engine='qemu-live', platform=platform.name)
-        binary = QemuEngine.ARCH_MAP.get(
-            platform.arch, 'qemu-system-' + platform.arch)
+        result = SimResult(engine="qemu-live", platform=platform.name)
+        binary = QemuEngine.ARCH_MAP.get(platform.arch, "qemu-system-" + platform.arch)
         qemu = shutil.which(binary)
         if not qemu:
             result.stderr = f"{binary} not installed"
@@ -425,62 +442,72 @@ class QemuLiveEngine:
 
         cmd = [
             qemu,
-            '-machine', platform.qemu.machine,
-            '-m', str(platform.runtime.memory_mb),
-            '-nographic', '-no-reboot',
-            '-gdb', f'tcp::{gdb_port}',
-            '-qmp', f'tcp:localhost:{qmp_port},server=on,wait=off',
+            "-machine",
+            platform.qemu.machine,
+            "-m",
+            str(platform.runtime.memory_mb),
+            "-nographic",
+            "-no-reboot",
+            "-gdb",
+            f"tcp::{gdb_port}",
+            "-qmp",
+            f"tcp:localhost:{qmp_port},server=on,wait=off",
         ]
         if platform.qemu.start_paused:
-            cmd.append('-S')
+            cmd.append("-S")
         if platform.qemu.cpu:
-            cmd += ['-cpu', platform.qemu.cpu]
+            cmd += ["-cpu", platform.qemu.cpu]
         if platform.boot.kernel:
             kernel = os.path.join(platform.source_dir, platform.boot.kernel)
             if os.path.exists(kernel):
-                cmd += ['-kernel', kernel]
+                cmd += ["-kernel", kernel]
         if platform.boot.initrd:
             initrd = os.path.join(platform.source_dir, platform.boot.initrd)
             if os.path.exists(initrd):
-                cmd += ['-initrd', initrd]
+                cmd += ["-initrd", initrd]
         if platform.boot.append:
-            cmd += ['-append', platform.boot.append]
+            cmd += ["-append", platform.boot.append]
         for arg in platform.qemu.extra_args:
             cmd.append(arg)
 
         import time as _time
+
         start = _time.time()
         try:
             self._process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             _time.sleep(1.0)
 
             if self._process.poll() is not None:
-                result.stderr = 'QEMU exited immediately'
+                result.stderr = "QEMU exited immediately"
                 return result
 
             try:
                 from eosim.engine.qemu.qmp_client import QMPClient
+
                 self._qmp = QMPClient()
                 self._qmp.connect_tcp(port=qmp_port)
             except Exception as e:
-                result.stderr += f'\nQMP connection failed: {e}'
+                result.stderr += f"\nQMP connection failed: {e}"
 
             try:
                 from eosim.engine.qemu.gdb_client import GDBRemoteClient
-                arch_map = {'arm64': 'aarch64', 'aarch64': 'aarch64'}
-                gdb_arch = arch_map.get(platform.arch, 'arm')
+
+                arch_map = {"arm64": "aarch64", "aarch64": "aarch64"}
+                gdb_arch = arch_map.get(platform.arch, "arm")
                 self._gdb = GDBRemoteClient(arch=gdb_arch)
                 self._gdb.connect(port=gdb_port)
             except Exception as e:
-                result.stderr += f'\nGDB connection failed: {e}'
+                result.stderr += f"\nGDB connection failed: {e}"
 
             if self._gdb:
                 from eosim.engine.qemu.state_bridge import TargetStateBridge
+
                 self._bridge = TargetStateBridge(gdb_client=self._gdb)
 
             result.success = True
-            result.stdout = f'QEMU live session started (GDB:{gdb_port} QMP:{qmp_port})'
+            result.stdout = f"QEMU live session started (GDB:{gdb_port} QMP:{qmp_port})"
         except Exception as e:
             result.stderr = str(e)
 

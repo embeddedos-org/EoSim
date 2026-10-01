@@ -6,7 +6,7 @@
 class ROS2Bridge:
     """Bridge to ROS 2 via rclpy (if available) or socket fallback."""
 
-    def __init__(self, node_name='eosim_bridge'):
+    def __init__(self, node_name="eosim_bridge"):
         self.node_name = node_name
         self._node = None
         self._connected = False
@@ -16,6 +16,7 @@ class ROS2Bridge:
     def connect(self, timeout=5.0):
         try:
             import rclpy
+
             rclpy.init()
             self._node = rclpy.create_node(self.node_name)
             self._connected = True
@@ -28,6 +29,7 @@ class ROS2Bridge:
             self._node.destroy_node()
         try:
             import rclpy
+
             rclpy.shutdown()
         except Exception:
             pass
@@ -35,7 +37,9 @@ class ROS2Bridge:
 
     def publish(self, topic, msg_type, data):
         if not self._connected:
-            raise RuntimeError("ROS2Bridge.publish: not connected; call connect() first or install rclpy")
+            raise RuntimeError(
+                "ROS2Bridge.publish: not connected; call connect() first or install rclpy"
+            )
         raise NotImplementedError(
             "ROS2Bridge.publish is not yet implemented — track issue at "
             "https://github.com/embeddedos-org/EoSim/issues (label: ros2-integration)"
@@ -43,7 +47,9 @@ class ROS2Bridge:
 
     def subscribe(self, topic, msg_type, callback):
         if not self._connected:
-            raise RuntimeError("ROS2Bridge.subscribe: not connected; call connect() first or install rclpy")
+            raise RuntimeError(
+                "ROS2Bridge.subscribe: not connected; call connect() first or install rclpy"
+            )
         raise NotImplementedError(
             "ROS2Bridge.subscribe is not yet implemented — track issue at "
             "https://github.com/embeddedos-org/EoSim/issues (label: ros2-integration)"
@@ -53,6 +59,7 @@ class ROS2Bridge:
         if self._node:
             try:
                 import rclpy
+
                 rclpy.spin_once(self._node, timeout_sec=timeout_sec)
             except Exception:
                 pass

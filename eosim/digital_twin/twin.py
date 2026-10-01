@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Digital twin engine for real-time hardware mirroring."""
+
 import time
 import json
 
@@ -18,7 +19,7 @@ class DigitalTwin:
 
     def sync(self):
         state = self.simulator.get_state()
-        state['timestamp'] = time.time()
+        state["timestamp"] = time.time()
         self.history.append(state)
         if len(self.history) > 10000:
             self.history = self.history[-5000:]
@@ -36,13 +37,13 @@ class DigitalTwin:
         return states
 
     def export_json(self, path):
-        with open(path, 'w') as f:
-            json.dump({'name': self.name, 'history': self.history[-1000:]}, f, indent=2)
+        with open(path, "w") as f:
+            json.dump({"name": self.name, "history": self.history[-1000:]}, f, indent=2)
 
     def status(self):
         return {
-            'name': self.name,
-            'connected': self.connected,
-            'history_length': len(self.history),
-            'last_sync': self._last_sync,
+            "name": self.name,
+            "connected": self.connected,
+            "history_length": len(self.history),
+            "last_sync": self._last_sync,
         }

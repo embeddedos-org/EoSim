@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Cluster definitions for multi-node simulations."""
+
 from dataclasses import dataclass, field
 
 import yaml
@@ -23,10 +24,12 @@ class Cluster:
             data = yaml.safe_load(f) or {}
         nodes = []
         for n in data.get("nodes", []):
-            nodes.append(ClusterNode(
-                name=n.get("name", ""),
-                platform=n.get("platform", ""),
-            ))
+            nodes.append(
+                ClusterNode(
+                    name=n.get("name", ""),
+                    platform=n.get("platform", ""),
+                )
+            )
         return cls(
             name=data.get("name", ""),
             nodes=nodes,

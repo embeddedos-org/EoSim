@@ -9,6 +9,7 @@ Run directly:
 Production deployment:
     gunicorn eosim.api.server:app -k uvicorn.workers.UvicornWorker -w 4
 """
+
 from __future__ import annotations
 
 import os
@@ -112,7 +113,7 @@ class EoSimAPIServer:
                     t0 = time.perf_counter()
                     resp = await call_next(request)
                     resp.headers["X-Request-ID"] = rid
-                    resp.headers["X-Response-Time"] = f"{(time.perf_counter()-t0)*1000:.1f}ms"
+                    resp.headers["X-Response-Time"] = f"{(time.perf_counter() - t0) * 1000:.1f}ms"
                     resp.headers["X-EoSim-Version"] = _ver
                     return resp
 
@@ -126,6 +127,7 @@ class EoSimAPIServer:
 
     def _register_routes(self) -> None:
         from eosim.api.routes import register_routes
+
         register_routes(self.app, self)
 
     def run(self) -> None:

@@ -37,8 +37,7 @@ class AircraftRenderer(BaseRenderer):
         px, py, pz = self._rot_z(px, py, pz, heading)
         return px, py, pz
 
-    def _draw_line(self, ax, pts, roll, pitch, heading, ox, oy, oz, color,
-                   lw=1.2):
+    def _draw_line(self, ax, pts, roll, pitch, heading, ox, oy, oz, color, lw=1.2):
         xs, ys, zs = [], [], []
         for p in pts:
             rx, ry, rz = self._rotate(p[0], p[1], p[2], roll, pitch, heading)
@@ -79,23 +78,19 @@ class AircraftRenderer(BaseRenderer):
 
         # fuselage (nose to tail)
         fuselage = [(1.0, 0, 0), (-1.0, 0, 0)]
-        self._draw_line(ax, fuselage, roll, pitch, hdg, ox, oy, oz,
-                        body_color, 2)
+        self._draw_line(ax, fuselage, roll, pitch, hdg, ox, oy, oz, body_color, 2)
 
         # wings
         wings = [(0.1, -1.2, 0), (0.1, 1.2, 0)]
-        self._draw_line(ax, wings, roll, pitch, hdg, ox, oy, oz,
-                        body_color, 2)
+        self._draw_line(ax, wings, roll, pitch, hdg, ox, oy, oz, body_color, 2)
 
         # horizontal tail
         htail = [(-0.9, -0.4, 0), (-0.9, 0.4, 0)]
-        self._draw_line(ax, htail, roll, pitch, hdg, ox, oy, oz,
-                        body_color, 1.5)
+        self._draw_line(ax, htail, roll, pitch, hdg, ox, oy, oz, body_color, 1.5)
 
         # vertical tail
         vtail = [(-0.9, 0, 0), (-0.9, 0, 0.4)]
-        self._draw_line(ax, vtail, roll, pitch, hdg, ox, oy, oz,
-                        body_color, 1.5)
+        self._draw_line(ax, vtail, roll, pitch, hdg, ox, oy, oz, body_color, 1.5)
 
         # flaps — extend wing trailing edges downward
         if flaps > 0:
@@ -103,11 +98,9 @@ class AircraftRenderer(BaseRenderer):
             for side in (-0.8, 0.8):
                 flap_pts = [
                     (-0.1, side, 0),
-                    (-0.1 - 0.2 * math.cos(flap_a), side,
-                     -0.2 * math.sin(flap_a)),
+                    (-0.1 - 0.2 * math.cos(flap_a), side, -0.2 * math.sin(flap_a)),
                 ]
-                self._draw_line(ax, flap_pts, roll, pitch, hdg, ox, oy, oz,
-                                "#ffaa00", 1.0)
+                self._draw_line(ax, flap_pts, roll, pitch, hdg, ox, oy, oz, "#ffaa00", 1.0)
 
         # landing gear
         if gear_dn:
@@ -117,8 +110,9 @@ class AircraftRenderer(BaseRenderer):
                 (-0.5, 0.3, 0, -0.5, 0.3, -0.3),
             ]
             for x1, y1, z1, x2, y2, z2 in gear_pts:
-                self._draw_line(ax, [(x1, y1, z1), (x2, y2, z2)],
-                                roll, pitch, hdg, ox, oy, oz, "#aaaaaa", 1.0)
+                self._draw_line(
+                    ax, [(x1, y1, z1), (x2, y2, z2)], roll, pitch, hdg, ox, oy, oz, "#aaaaaa", 1.0
+                )
 
         # flight path trail
         self._trail.append((ox, oy, oz))
@@ -137,8 +131,7 @@ class AircraftRenderer(BaseRenderer):
         ax.set_zlim(max(0, alt - 5000), alt + 5000)
 
         ax.set_title(
-            f"Aircraft  {phase}  {spd:.0f}kts  FL{alt / 100:.0f}  "
-            f"VS{vs:+.0f}",
+            f"Aircraft  {phase}  {spd:.0f}kts  FL{alt / 100:.0f}  VS{vs:+.0f}",
             fontsize=8,
         )
 

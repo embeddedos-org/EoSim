@@ -11,6 +11,7 @@ Nothing in this module infers a pass. A repo that could not be tested reports
 SKIP with the reason, never PASS -- an unrunnable suite and a green suite are
 different facts and the report keeps them apart.
 """
+
 import os
 import re
 import shutil
@@ -72,11 +73,15 @@ class EcosystemReport:
         lines.append("  EoSim Ecosystem Validation Report")
         lines.append("=" * 72)
         lines.append("")
-        lines.append("  Repos:  %d discovered | %d passed | %d failed | %d skipped" % (
-            self.repos_tested, self.repos_passed,
-            self.repos_failed, self.repos_skipped))
+        lines.append(
+            "  Repos:  %d discovered | %d passed | %d failed | %d skipped"
+            % (self.repos_tested, self.repos_passed, self.repos_failed, self.repos_skipped)
+        )
         counts = "  Tests:  %d run | %d passed | %d failed" % (
-            self.total_tests, self.total_passed, self.total_failed)
+            self.total_tests,
+            self.total_passed,
+            self.total_failed,
+        )
         if self.total_blocked:
             # Blocked tests never ran; folding them into "failed" would read
             # as broken code when the cause is an absent dependency.
@@ -95,17 +100,23 @@ class EcosystemReport:
                 detail = r.reason[:44]
             elif r.reason:
                 detail = r.reason[:44]
-            lines.append("  [%-5s] %-26s %-9s %-46s (%.1fs)" % (
-                r.status, r.repo, r.kind, detail, r.duration_s))
+            lines.append(
+                "  [%-5s] %-26s %-9s %-46s (%.1fs)"
+                % (r.status, r.repo, r.kind, detail, r.duration_s)
+            )
         if self.simulations:
             lines.append("")
             lines.append("  Simulations:")
             for s in self.simulations:
-                lines.append("    [%-5s] %-20s %d cycles  %.1fs" % (
-                    PASS if s.get("success") else FAIL,
-                    s.get("platform", "?"),
-                    s.get("cycles", 0),
-                    s.get("duration_s", 0)))
+                lines.append(
+                    "    [%-5s] %-20s %d cycles  %.1fs"
+                    % (
+                        PASS if s.get("success") else FAIL,
+                        s.get("platform", "?"),
+                        s.get("cycles", 0),
+                        s.get("duration_s", 0),
+                    )
+                )
         lines.append("")
         lines.append("=" * 72)
         if self.repos_failed:
@@ -215,8 +226,19 @@ def _has_python_tests(path: str) -> bool:
 # is the one that matters: a vendored package.json would otherwise be reported
 # as a build system belonging to the repo.
 _NOT_A_COMPONENT_DIR = {
-    ".git", "node_modules", "build", "dist", "venv", ".venv", "__pycache__",
-    ".tox", "target", "vendor", "third_party", ".mypy_cache", ".pytest_cache",
+    ".git",
+    "node_modules",
+    "build",
+    "dist",
+    "venv",
+    ".venv",
+    "__pycache__",
+    ".tox",
+    "target",
+    "vendor",
+    "third_party",
+    ".mypy_cache",
+    ".pytest_cache",
 }
 
 _NESTED_MAX_DEPTH = 4
@@ -244,8 +266,7 @@ def detect_components(path: str) -> list:
     base_depth = os.path.abspath(path).count(os.sep)
 
     for root, dirs, _files in os.walk(path):
-        dirs[:] = sorted(d for d in dirs
-                         if d not in _NOT_A_COMPONENT_DIR and not d.startswith("."))
+        dirs[:] = sorted(d for d in dirs if d not in _NOT_A_COMPONENT_DIR and not d.startswith("."))
         if os.path.abspath(root).count(os.sep) - base_depth >= _NESTED_MAX_DEPTH:
             dirs[:] = []
             continue
@@ -301,12 +322,19 @@ def test_c_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "cmake not installed", start)
 
     build_dir = _build_dir_for(path)
-    cfg = [cmake, "-S", path, "-B", build_dir,
-           "-DEOS_BUILD_TESTS=ON", "-DEBLDR_BUILD_TESTS=ON",
-           "-DEAI_BUILD_TESTS=ON", "-DENI_BUILD_TESTS=ON"]
+    cfg = [
+        cmake,
+        "-S",
+        path,
+        "-B",
+        build_dir,
+        "-DEOS_BUILD_TESTS=ON",
+        "-DEBLDR_BUILD_TESTS=ON",
+        "-DEAI_BUILD_TESTS=ON",
+        "-DENI_BUILD_TESTS=ON",
+    ]
     try:
-        r = subprocess.run(cfg, capture_output=True, text=True,
-                           timeout=_BUILD_TIMEOUT_S)
+        r = subprocess.run(cfg, capture_output=True, text=True, timeout=_BUILD_TIMEOUT_S)
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "configure: %s" % e
         result.duration_s = time.time() - start
@@ -327,10 +355,12 @@ def test_c_repo(name: str, path: str) -> RepoTestResult:
         return result
 
     try:
-        r = subprocess.run([cmake, "--build", build_dir, "-j",
-                            str(os.cpu_count() or 1)],
-                           capture_output=True, text=True,
-                           timeout=_BUILD_TIMEOUT_S)
+        r = subprocess.run(
+            [cmake, "--build", build_dir, "-j", str(os.cpu_count() or 1)],
+            capture_output=True,
+            text=True,
+            timeout=_BUILD_TIMEOUT_S,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "build: %s" % e
         result.duration_s = time.time() - start
@@ -347,10 +377,13 @@ def test_c_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "built OK; ctest not installed", start)
 
     try:
-        r = subprocess.run([ctest, "--output-on-failure", "-j",
-                            str(os.cpu_count() or 1)],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=build_dir)
+        r = subprocess.run(
+            [ctest, "--output-on-failure", "-j", str(os.cpu_count() or 1)],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=build_dir,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "ctest: %s" % e
         result.duration_s = time.time() - start
@@ -400,11 +433,17 @@ def test_python_repo(name: str, path: str) -> RepoTestResult:
         roots.insert(0, src)
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(
-        roots + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+        roots + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
+    )
     try:
-        r = subprocess.run([sys.executable, "-m", "pytest", "--tb=line"],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=path, env=env)
+        r = subprocess.run(
+            [sys.executable, "-m", "pytest", "--tb=line"],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=path,
+            env=env,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "pytest: %s" % e
         result.duration_s = time.time() - start
@@ -417,8 +456,11 @@ def test_python_repo(name: str, path: str) -> RepoTestResult:
     if counted is None:
         # Exit 5 is pytest's "no tests collected"; anything else with no
         # summary line is a collection error, which must not read as a pass.
-        reason = ("no tests collected" if r.returncode == 5
-                  else "pytest produced no summary (exit %d)" % r.returncode)
+        reason = (
+            "no tests collected"
+            if r.returncode == 5
+            else "pytest produced no summary (exit %d)" % r.returncode
+        )
         if r.returncode in (0, 5):
             return _skip(result, reason, start)
 
@@ -461,8 +503,10 @@ def test_python_repo(name: str, path: str) -> RepoTestResult:
 # Deliberately narrow: it must not swallow "Cannot find source file", which
 # means the repository is referencing code it does not contain.
 _UNMET_TOOLCHAIN_PATTERNS = (
-    re.compile(r"(?P<name>[A-Z][A-Z0-9_]*_(?:SDK|TOOLCHAIN|ROOT|DIR|PATH|HOME)"
-               r"[A-Z0-9_]*)\s+not set"),
+    re.compile(
+        r"(?P<name>[A-Z][A-Z0-9_]*_(?:SDK|TOOLCHAIN|ROOT|DIR|PATH|HOME)"
+        r"[A-Z0-9_]*)\s+not set"
+    ),
     re.compile(r"Could NOT find (?P<name>[A-Za-z0-9_+-]+)"),
     re.compile(r"(?P<name>[A-Za-z0-9_+-]+) is required but was not found"),
 )
@@ -494,8 +538,7 @@ def _missing_modules(out: str) -> list:
     failure.
     """
     seen = []
-    for quoted, bare in re.findall(
-            r"No module named (?:'([^']+)'|([A-Za-z_][\w.]*))", out):
+    for quoted, bare in re.findall(r"No module named (?:'([^']+)'|([A-Za-z_][\w.]*))", out):
         top = (quoted or bare).split(".")[0]
         if top not in seen:
             seen.append(top)
@@ -531,9 +574,11 @@ def _parse_pytest(out: str):
     """
     if not re.search(r"\d+ (passed|failed|error)", out):
         return None
+
     def n(word):
         m = re.search(r"(\d+) %s" % word, out)
         return int(m.group(1)) if m else 0
+
     return n("passed"), n("failed"), n("error")
 
 
@@ -546,9 +591,13 @@ def test_go_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "go not installed", start)
 
     try:
-        r = subprocess.run([go, "test", "-v", "-count=1", "./..."],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=path)
+        r = subprocess.run(
+            [go, "test", "-v", "-count=1", "./..."],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=path,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "go test: %s" % e
         result.duration_s = time.time() - start
@@ -577,9 +626,13 @@ def test_node_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "dependencies not installed (npm ci)", start)
 
     try:
-        r = subprocess.run([npm, "test", "--silent"],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=path)
+        r = subprocess.run(
+            [npm, "test", "--silent"],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=path,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "npm test: %s" % e
         result.duration_s = time.time() - start
@@ -608,8 +661,11 @@ def test_make_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "make not installed", start)
 
     makefile = next(
-        (os.path.join(path, n) for n in ("Makefile", "makefile", "GNUmakefile")
-         if os.path.isfile(os.path.join(path, n))),
+        (
+            os.path.join(path, n)
+            for n in ("Makefile", "makefile", "GNUmakefile")
+            if os.path.isfile(os.path.join(path, n))
+        ),
         None,
     )
     if makefile is None:
@@ -623,8 +679,9 @@ def test_make_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "Makefile declares no 'test' target", start)
 
     try:
-        r = subprocess.run([make, "-C", path, "test"], capture_output=True,
-                           text=True, timeout=_TEST_TIMEOUT_S)
+        r = subprocess.run(
+            [make, "-C", path, "test"], capture_output=True, text=True, timeout=_TEST_TIMEOUT_S
+        )
     except (subprocess.TimeoutExpired, OSError) as exc:
         result.status, result.reason = ERROR, "make test: %s" % exc
         result.duration_s = time.time() - start
@@ -671,8 +728,7 @@ def test_repo_all(name: str, path: str) -> list:
         runner = _RUNNERS.get(kind)
         if runner is None:
             r = RepoTestResult(repo=label, kind=kind)
-            results.append(
-                _skip(r, "no runner for a '%s' project" % kind, time.time()))
+            results.append(_skip(r, "no runner for a '%s' project" % kind, time.time()))
         else:
             results.append(runner(label, comp_path))
     return results
@@ -680,25 +736,38 @@ def test_repo_all(name: str, path: str) -> list:
 
 def run_simulations(platforms: list = None) -> list:
     if not platforms:
-        platforms = ["stm32f4", "raspi4", "arm64-linux",
-                     "riscv64-linux", "x86_64-linux"]
+        platforms = ["stm32f4", "raspi4", "arm64-linux", "riscv64-linux", "x86_64-linux"]
     results = []
     from eosim.engine.native import VirtualMachine
+
     for plat in platforms:
         try:
             vm = VirtualMachine(plat, "arm64", ram_mb=32)
             sim = vm.run(max_cycles=200, timeout_s=5)
-            results.append({"platform": plat, "success": sim["success"],
-                            "cycles": sim["cycles"],
-                            "duration_s": sim["duration_s"]})
+            results.append(
+                {
+                    "platform": plat,
+                    "success": sim["success"],
+                    "cycles": sim["cycles"],
+                    "duration_s": sim["duration_s"],
+                }
+            )
         except Exception as e:
-            results.append({"platform": plat, "success": False,
-                            "cycles": 0, "duration_s": 0.0, "error": str(e)})
+            results.append(
+                {
+                    "platform": plat,
+                    "success": False,
+                    "cycles": 0,
+                    "duration_s": 0.0,
+                    "error": str(e),
+                }
+            )
     return results
 
 
-def run_ecosystem_tests(workspace: str = None, simulate: bool = True,
-                        only: list = None) -> EcosystemReport:
+def run_ecosystem_tests(
+    workspace: str = None, simulate: bool = True, only: list = None
+) -> EcosystemReport:
     """Build and test every repo in the workspace."""
     report = EcosystemReport()
     start = time.time()
@@ -718,7 +787,7 @@ def run_ecosystem_tests(workspace: str = None, simulate: bool = True,
         elif PASS in statuses:
             report.repos_passed += 1
         else:
-            report.repos_skipped += 1   # SKIP and DEPS are both "not tested"
+            report.repos_skipped += 1  # SKIP and DEPS are both "not tested"
 
         for r in per_kind:
             report.total_tests += r.tests_run

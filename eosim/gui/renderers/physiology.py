@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """3D renderer for patient physiology (domain: physiology)."""
+
 import math
 
 from eosim.gui.renderers import BaseRenderer, register_renderer
@@ -29,8 +30,12 @@ class PhysiologyRenderer(BaseRenderer):
         for i in range(n):
             t = i / n * 2 * math.pi
             x = scale * 16 * math.sin(t) ** 3 * 0.05
-            z = scale * (13 * math.cos(t) - 5 * math.cos(2 * t) -
-                         2 * math.cos(3 * t) - math.cos(4 * t)) * 0.05 + 1.5
+            z = (
+                scale
+                * (13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+                * 0.05
+                + 1.5
+            )
             ax.scatter([x], [0], [z], color=color, s=8, alpha=0.7)
 
     def _draw_lungs(self, ax, rr, color):
@@ -59,18 +64,19 @@ class PhysiologyRenderer(BaseRenderer):
         self._draw_lungs(ax, rr, lung_color)
 
         vitals = [
-            f"HR: {hr:.0f} bpm", f"SpO2: {spo2:.0f}%",
-            f"BP: {bp_sys:.0f}/{bp_dia:.0f}", f"RR: {rr:.0f}",
+            f"HR: {hr:.0f} bpm",
+            f"SpO2: {spo2:.0f}%",
+            f"BP: {bp_sys:.0f}/{bp_dia:.0f}",
+            f"RR: {rr:.0f}",
             f"Temp: {temp:.1f}°C",
         ]
         for i, txt in enumerate(vitals):
-            ax.text(-1.8, -1.5, 2.5 - i * 0.3, txt,
-                    fontsize=7, color="#cccccc")
+            ax.text(-1.8, -1.5, 2.5 - i * 0.3, txt, fontsize=7, color="#cccccc")
 
         ax.set_title(
-            f"Patient  HR={hr:.0f}  SpO₂={spo2:.0f}%  "
-            f"BP={bp_sys:.0f}/{bp_dia:.0f}  T={temp:.1f}°C",
-            fontsize=8)
+            f"Patient  HR={hr:.0f}  SpO₂={spo2:.0f}%  BP={bp_sys:.0f}/{bp_dia:.0f}  T={temp:.1f}°C",
+            fontsize=8,
+        )
 
 
 register_renderer("physiology", PhysiologyRenderer)

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """X-Plane flight simulator integration — UDP dataref bridge."""
+
 import socket
 import struct
 from typing import Optional
@@ -12,7 +13,7 @@ class XPlaneConnection:
     X-Plane exposes data on UDP port 49000 by default.
     """
 
-    DEFAULT_HOST = '127.0.0.1'
+    DEFAULT_HOST = "127.0.0.1"
     DEFAULT_PORT = 49000
 
     def __init__(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT):
@@ -49,23 +50,29 @@ class XPlaneConnection:
         if not self.connected or not self._sock:
             return
         try:
-            msg = b'DREF\x00'
-            msg += struct.pack('<f', value)
-            msg += path.encode('ascii').ljust(500, b'\x00')
+            msg = b"DREF\x00"
+            msg += struct.pack("<f", value)
+            msg += path.encode("ascii").ljust(500, b"\x00")
             self._sock.send(msg)
             self._datarefs[path] = value
         except OSError:
             pass
 
-    def set_position(self, lat: float, lon: float, alt_m: float,
-                     pitch: float = 0, roll: float = 0, heading: float = 0):
+    def set_position(
+        self,
+        lat: float,
+        lon: float,
+        alt_m: float,
+        pitch: float = 0,
+        roll: float = 0,
+        heading: float = 0,
+    ):
         if not self.connected or not self._sock:
             return
         try:
-            msg = b'POSI\x00'
-            msg += struct.pack('<i', 0)  # aircraft index
-            msg += struct.pack('<dddffff', lat, lon, alt_m,
-                               pitch, roll, heading, 0)
+            msg = b"POSI\x00"
+            msg += struct.pack("<i", 0)  # aircraft index
+            msg += struct.pack("<dddffff", lat, lon, alt_m, pitch, roll, heading, 0)
             self._sock.send(msg)
         except OSError:
             pass
@@ -76,12 +83,12 @@ class XPlaneConnection:
         try:
             self._sock.settimeout(timeout)
             data, _ = self._sock.recvfrom(4096)
-            if data[:4] == b'DATA':
+            if data[:4] == b"DATA":
                 result = {}
                 offset = 5
                 while offset + 36 <= len(data):
-                    idx = struct.unpack_from('<i', data, offset)[0]
-                    values = struct.unpack_from('<8f', data, offset + 4)
+                    idx = struct.unpack_from("<i", data, offset)[0]
+                    values = struct.unpack_from("<8f", data, offset + 4)
                     result[idx] = values
                     offset += 36
                 return result
@@ -91,8 +98,8 @@ class XPlaneConnection:
 
     def get_status(self) -> dict:
         return {
-            'connected': self.connected,
-            'host': self.host,
-            'port': self.port,
-            'datarefs_cached': len(self._datarefs),
+            "connected": self.connected,
+            "host": self.host,
+            "port": self.port,
+            "datarefs_cached": len(self._datarefs),
         }

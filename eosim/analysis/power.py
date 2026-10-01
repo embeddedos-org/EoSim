@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Power consumption modeling and analysis."""
+
 from dataclasses import dataclass, field
 
 
@@ -24,19 +25,24 @@ class PowerAnalyzer:
     def add_profile(self, name, profile):
         self.profiles[name] = profile
 
-    def measure(self, profile_name, mode='active', duration_s=1.0):
+    def measure(self, profile_name, mode="active", duration_s=1.0):
         p = self.profiles.get(profile_name)
         if not p:
             return {}
-        if mode == 'active':
+        if mode == "active":
             current = p.current_active_ma
-        elif mode == 'sleep':
+        elif mode == "sleep":
             current = p.current_sleep_ma
         else:
             current = p.current_deep_sleep_ua / 1000
         power_mw = p.voltage_v * current
         energy_mwh = power_mw * duration_s / 3600
-        result = {'mode': mode, 'power_mw': power_mw, 'energy_mwh': energy_mwh, 'current_ma': current}
+        result = {
+            "mode": mode,
+            "power_mw": power_mw,
+            "energy_mwh": energy_mwh,
+            "current_ma": current,
+        }
         self.measurements.append(result)
         return result
 
@@ -44,7 +50,10 @@ class PowerAnalyzer:
         p = self.profiles.get(profile_name)
         if not p:
             return 0
-        avg_current = p.current_active_ma * duty_cycle_pct / 100 + p.current_sleep_ma * (100 - duty_cycle_pct) / 100
+        avg_current = (
+            p.current_active_ma * duty_cycle_pct / 100
+            + p.current_sleep_ma * (100 - duty_cycle_pct) / 100
+        )
         if avg_current <= 0:
-            return float('inf')
+            return float("inf")
         return capacity_mah / avg_current

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Domain-specific bus protocol peripherals for EoSim simulation."""
+
 import logging
 from collections import deque
 
@@ -17,11 +18,11 @@ class BusBase:
         self.enabled = False
 
     def simulate_tick(self):
-        self._tick_count = getattr(self, '_tick_count', 0) + 1
+        self._tick_count = getattr(self, "_tick_count", 0) + 1
 
     def io_handler(self, op: str, addr: int, val: int) -> int:
         offset = addr - self.base
-        if 'read' in op:
+        if "read" in op:
             return self.read_reg(offset)
         else:
             self.write_reg(offset, val)
@@ -37,8 +38,7 @@ class BusBase:
 class CANBusController(BusBase):
     """CAN 2.0A/B bus controller for automotive."""
 
-    def __init__(self, name: str = 'can0', base_addr: int = 0x40300000,
-                 bitrate: int = 500000):
+    def __init__(self, name: str = "can0", base_addr: int = 0x40300000, bitrate: int = 500000):
         super().__init__(name, base_addr)
         self.bitrate = bitrate
         self.tx_queue: deque = deque(maxlen=64)
@@ -53,7 +53,7 @@ class CANBusController(BusBase):
         self.loopback = False
 
     def send_message(self, msg_id: int, data: bytes, extended: bool = False):
-        msg = {'id': msg_id, 'data': data, 'extended': extended, 'dlc': len(data)}
+        msg = {"id": msg_id, "data": data, "extended": extended, "dlc": len(data)}
         self.tx_queue.append(msg)
         self.tx_count += 1
         self.last_tx_id = msg_id
@@ -64,13 +64,13 @@ class CANBusController(BusBase):
     def receive_message(self) -> Optional[dict]:
         if self.rx_queue:
             msg = self.rx_queue.popleft()
-            self.last_rx_id = msg['id']
+            self.last_rx_id = msg["id"]
             return msg
         return None
 
     def inject_message(self, msg_id: int, data: bytes):
         if not self.filters or msg_id in self.filters:
-            msg = {'id': msg_id, 'data': data, 'extended': False, 'dlc': len(data)}
+            msg = {"id": msg_id, "data": data, "extended": False, "dlc": len(data)}
             self.rx_queue.append(msg)
             self.rx_count += 1
 
@@ -95,13 +95,13 @@ class CANBusController(BusBase):
         elif offset == 0x04:
             self.bitrate = val
         elif offset == 0x10:
-            self.send_message(val, b'\x00' * 8)
+            self.send_message(val, b"\x00" * 8)
 
 
 class LINBusController(BusBase):
     """LIN bus controller for automotive body electronics."""
 
-    def __init__(self, name: str = 'lin0', base_addr: int = 0x40300100):
+    def __init__(self, name: str = "lin0", base_addr: int = 0x40300100):
         super().__init__(name, base_addr)
         self.schedule_table: list[dict] = []
         self.frame_buffer: dict[int, bytes] = {}
@@ -129,8 +129,7 @@ class LINBusController(BusBase):
 class ModbusController(BusBase):
     """Modbus RTU/TCP controller for industrial automation."""
 
-    def __init__(self, name: str = 'modbus0', base_addr: int = 0x40300200,
-                 mode: str = 'rtu'):
+    def __init__(self, name: str = "modbus0", base_addr: int = 0x40300200, mode: str = "rtu"):
         super().__init__(name, base_addr)
         self.mode = mode
         self.slave_addr = 1
@@ -141,7 +140,7 @@ class ModbusController(BusBase):
         self.transaction_count = 0
 
     def read_holding(self, addr: int, count: int = 1) -> list[int]:
-        return self.registers[addr:addr + count]
+        return self.registers[addr : addr + count]
 
     def write_holding(self, addr: int, values: list[int]):
         for i, v in enumerate(values):
@@ -172,7 +171,7 @@ class ModbusController(BusBase):
 class EthernetMAC(BusBase):
     """Ethernet MAC controller."""
 
-    def __init__(self, name: str = 'eth0', base_addr: int = 0x40300300):
+    def __init__(self, name: str = "eth0", base_addr: int = 0x40300300):
         super().__init__(name, base_addr)
         self.mac_addr = [0x02, 0x00, 0x00, 0x00, 0x00, 0x01]
         self.link_up = True
@@ -181,7 +180,7 @@ class EthernetMAC(BusBase):
         self.rx_packets = 0
         self.tx_bytes = 0
         self.rx_bytes = 0
-        self.ip_addr = '192.168.1.100'
+        self.ip_addr = "192.168.1.100"
         self.tx_buffer: deque = deque(maxlen=64)
         self.rx_buffer: deque = deque(maxlen=64)
 
@@ -214,17 +213,16 @@ class EthernetMAC(BusBase):
 class ARINC429(BusBase):
     """ARINC 429 avionics data bus."""
 
-    def __init__(self, name: str = 'arinc0', base_addr: int = 0x40300400):
+    def __init__(self, name: str = "arinc0", base_addr: int = 0x40300400):
         super().__init__(name, base_addr)
         self.tx_labels: deque = deque(maxlen=256)
         self.rx_labels: deque = deque(maxlen=256)
-        self.speed = 'high'
+        self.speed = "high"
         self.tx_count = 0
         self.rx_count = 0
 
     def send_word(self, label: int, sdi: int, data: int, ssm: int):
-        word = ((label & 0xFF) | ((sdi & 0x3) << 8) |
-                ((data & 0x7FFFF) << 10) | ((ssm & 0x3) << 29))
+        word = (label & 0xFF) | ((sdi & 0x3) << 8) | ((data & 0x7FFFF) << 10) | ((ssm & 0x3) << 29)
         self.tx_labels.append(word)
         self.tx_count += 1
 
@@ -257,17 +255,17 @@ class ARINC429(BusBase):
 class MIL1553Bus(BusBase):
     """MIL-STD-1553 military data bus."""
 
-    def __init__(self, name: str = 'mil1553_0', base_addr: int = 0x40300500):
+    def __init__(self, name: str = "mil1553_0", base_addr: int = 0x40300500):
         super().__init__(name, base_addr)
         self.rt_address = 1
         self.messages: deque = deque(maxlen=64)
-        self.mode = 'rt'
+        self.mode = "rt"
         self.tx_count = 0
         self.rx_count = 0
         self.bus_a_active = True
 
     def send_command(self, rt_addr: int, subaddr: int, data: list):
-        msg = {'rt': rt_addr, 'sa': subaddr, 'data': data, 'word_count': len(data)}
+        msg = {"rt": rt_addr, "sa": subaddr, "data": data, "word_count": len(data)}
         self.messages.append(msg)
         self.tx_count += 1
 

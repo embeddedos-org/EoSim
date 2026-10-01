@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """EoSim CLI - primary entry point."""
+
 import json
 import os
 import shutil
@@ -13,6 +14,7 @@ import yaml
 from eosim import __version__
 
 EOSIM_ROOT = Path(__file__).parent.parent.parent
+
 
 def _resolve_platforms_dir() -> Path:
     """Locate the platform registry.
@@ -62,6 +64,7 @@ def _find_platform(name):
 def _load_registry():
     """Load the full platform registry."""
     from eosim.core.registry import PlatformRegistry
+
     return PlatformRegistry(str(PLATFORMS_DIR))
 
 
@@ -78,16 +81,28 @@ def cli():
 @click.option("--class", "platform_class", default="", help="Filter by platform class")
 @click.option("--engine", default="", help="Filter by engine")
 @click.option("--domain", default="", help="Filter by domain")
-@click.option("--group-by", "group_by_field", default="",
-              help="Group results by field (arch, vendor, class, engine, domain)")
-@click.option("--format", "fmt", default="table",
-              type=click.Choice(["table", "json", "csv"]), help="Output format")
+@click.option(
+    "--group-by",
+    "group_by_field",
+    default="",
+    help="Group results by field (arch, vendor, class, engine, domain)",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="table",
+    type=click.Choice(["table", "json", "csv"]),
+    help="Output format",
+)
 def list_platforms(arch, vendor, platform_class, engine, domain, group_by_field, fmt):
     """List available simulation platforms."""
     reg = _load_registry()
     platforms = reg.filter(
-        arch=arch, vendor=vendor, platform_class=platform_class,
-        engine=engine, domain=domain,
+        arch=arch,
+        vendor=vendor,
+        platform_class=platform_class,
+        engine=engine,
+        domain=domain,
     )
 
     if group_by_field:
@@ -98,20 +113,32 @@ def list_platforms(arch, vendor, platform_class, engine, domain, group_by_field,
             key = getattr(p, actual_field, "") or "(unset)"
             groups.setdefault(key, []).append(p)
         for group_name in sorted(groups.keys()):
-            click.echo("\n[%s: %s] (%d platforms)" % (
-                group_by_field, group_name, len(groups[group_name])))
+            click.echo(
+                "\n[%s: %s] (%d platforms)" % (group_by_field, group_name, len(groups[group_name]))
+            )
             _print_platforms(groups[group_name])
         return
 
     if fmt == "json":
-        data = [{"name": p.name, "arch": p.arch, "engine": p.engine,
-                 "vendor": p.vendor, "class": p.platform_class,
-                 "soc": p.soc, "domain": p.domain} for p in platforms]
+        data = [
+            {
+                "name": p.name,
+                "arch": p.arch,
+                "engine": p.engine,
+                "vendor": p.vendor,
+                "class": p.platform_class,
+                "soc": p.soc,
+                "domain": p.domain,
+            }
+            for p in platforms
+        ]
         click.echo(json.dumps(data, indent=2))
     elif fmt == "csv":
         click.echo("name,arch,engine,vendor,class,soc,domain")
         for p in platforms:
-            click.echo(f"{p.name},{p.arch},{p.engine},{p.vendor},{p.platform_class},{p.soc},{p.domain}")
+            click.echo(
+                f"{p.name},{p.arch},{p.engine},{p.vendor},{p.platform_class},{p.soc},{p.domain}"
+            )
     else:
         click.echo("Available platforms (%d):\n" % len(platforms))
         _print_platforms(platforms)
@@ -119,14 +146,23 @@ def list_platforms(arch, vendor, platform_class, engine, domain, group_by_field,
 
 def _print_platforms(platforms):
     """Print platform list in table format."""
-    click.echo("  %-25s %-10s %-10s %-12s %-10s %s" % (
-        "NAME", "ARCH", "ENGINE", "VENDOR", "CLASS", "DESCRIPTION"))
+    click.echo(
+        "  %-25s %-10s %-10s %-12s %-10s %s"
+        % ("NAME", "ARCH", "ENGINE", "VENDOR", "CLASS", "DESCRIPTION")
+    )
     click.echo("  " + "-" * 90)
     for p in sorted(platforms, key=lambda x: x.name):
-        click.echo("  %-25s %-10s %-10s %-12s %-10s %s" % (
-            p.name, p.arch, p.engine,
-            p.vendor or "-", p.platform_class or "-",
-            p.display_name or ""))
+        click.echo(
+            "  %-25s %-10s %-10s %-12s %-10s %s"
+            % (
+                p.name,
+                p.arch,
+                p.engine,
+                p.vendor or "-",
+                p.platform_class or "-",
+                p.display_name or "",
+            )
+        )
 
 
 @cli.command()
@@ -140,8 +176,10 @@ def search(query):
         return
     click.echo("Search results for '%s' (%d matches):\n" % (query, len(results)))
     for p in results:
-        click.echo("  %-25s %-10s %-10s %-12s %s" % (
-            p.name, p.arch, p.engine, p.vendor or "-", p.soc or "-"))
+        click.echo(
+            "  %-25s %-10s %-10s %-12s %s"
+            % (p.name, p.arch, p.engine, p.vendor or "-", p.soc or "-")
+        )
 
 
 @cli.command()
@@ -171,12 +209,18 @@ def info(platform):
 
 @cli.command()
 @click.argument("platform")
-@click.option("--headless/--interactive", default=True, help="Run headless (default) or interactive")
+@click.option(
+    "--headless/--interactive", default=True, help="Run headless (default) or interactive"
+)
 @click.option("--timeout", default=60, help="Timeout in seconds")
 @click.option("--log-dir", default="out/logs", help="Log output directory")
-@click.option("--firmware", type=click.Path(exists=True, dir_okay=False), default=None,
-              help="Firmware image to load and execute (e.g. an EoS build). Without "
-                   "it the native engine has nothing to run.")
+@click.option(
+    "--firmware",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Firmware image to load and execute (e.g. an EoS build). Without "
+    "it the native engine has nothing to run.",
+)
 def run(platform, headless, timeout, log_dir, firmware):
     """Run a simulation for the specified platform."""
     cfg_path, p = _find_platform(platform)
@@ -265,6 +309,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None):
 def _run_eosim(p, platform, headless, timeout, log_file, firmware=None):
     """Run using the EoSim native engine."""
     from eosim.engine.native import VirtualMachine
+
     arch = p.get("arch", "arm")
     memory = p.get("runtime", {}).get("memory_mb", 128)
     click.echo("EoSim native engine: %s (%s, %dMB)" % (platform, arch, memory))
@@ -434,6 +479,7 @@ def artifact(platform, output):
 def doctor():
     """Check EoSim environment health."""
     from eosim.core.host import HostEnvironment
+
     env = HostEnvironment.detect()
 
     click.echo("EoSim Doctor\n")
@@ -476,6 +522,7 @@ def doctor():
 
 # --- Domain subcommands ---
 
+
 @cli.group()
 def domain():
     """Simulation domain categories and profiles."""
@@ -486,6 +533,7 @@ def domain():
 def domain_list():
     """List all simulation domain categories."""
     from eosim.core.domains import DOMAIN_CATALOG
+
     click.echo("Simulation Domains (%d):\n" % len(DOMAIN_CATALOG))
     for name, profile in sorted(DOMAIN_CATALOG.items()):
         click.echo("  %-15s %s" % (name, profile.display_name))
@@ -498,6 +546,7 @@ def domain_list():
 def domain_info(name):
     """Show detailed domain profile."""
     from eosim.core.domains import get_domain
+
     d = get_domain(name)
     if not d:
         click.echo(f"Unknown domain: {name}", err=True)
@@ -515,6 +564,7 @@ def domain_info(name):
 
 # --- Modeling subcommands ---
 
+
 @cli.group()
 def modeling():
     """Simulation modeling methods and parameters."""
@@ -525,6 +575,7 @@ def modeling():
 def modeling_list():
     """List all modeling methods."""
     from eosim.core.modeling import MODELING_CATALOG
+
     click.echo("Modeling Methods (%d):\n" % len(MODELING_CATALOG))
     for name, method in sorted(MODELING_CATALOG.items()):
         engines = ", ".join(method.engine_support)
@@ -536,6 +587,7 @@ def modeling_list():
 def modeling_info(name):
     """Show detailed modeling method info."""
     from eosim.core.modeling import get_modeling
+
     m = get_modeling(name)
     if not m:
         click.echo(f"Unknown modeling method: {name}", err=True)
@@ -552,6 +604,7 @@ def modeling_info(name):
 
 # --- EoS integration subcommands ---
 
+
 @cli.group()
 def eos():
     """EoS integration — build, test, and validate EoS through EoSim."""
@@ -562,6 +615,7 @@ def eos():
 def eos_find():
     """Find EoS source code on this system."""
     from eosim.integrations.eos_runner import find_eos_source
+
     src = find_eos_source()
     if src:
         click.echo("EoS source found: " + src)
@@ -574,6 +628,7 @@ def eos_find():
 def eos_build(source):
     """Build EoS from source."""
     from eosim.integrations.eos_runner import build_eos, find_eos_source
+
     src = source or find_eos_source()
     if not src:
         click.echo("EoS source not found", err=True)
@@ -594,6 +649,7 @@ def eos_build(source):
 def eos_test(source, verbose):
     """Build and run all EoS unit tests."""
     from eosim.integrations.eos_runner import find_eos_source, run_eos_tests
+
     src = source or find_eos_source()
     if not src:
         click.echo("EoS source not found", err=True)
@@ -616,6 +672,7 @@ def eos_test(source, verbose):
 def eos_test_suite(source):
     """Run eApps Python tests."""
     from eosim.integrations.eos_runner import run_eosuite_tests
+
     candidates = [
         source,
         os.path.join(os.getcwd(), "..", "eApps"),
@@ -639,14 +696,21 @@ def eos_test_suite(source):
 @cli.command("ecosystem")
 @click.option("--workspace", default=None, help="EoS workspace root")
 @click.option("--simulate/--no-simulate", default=True, help="Run simulations")
-@click.option("--only", multiple=True,
-              help="Test only these repos (repeatable, e.g. --only eos --only ebuild)")
-@click.option("--list", "list_only", is_flag=True,
-              help="List the repos that would be tested, and how, then exit")
+@click.option(
+    "--only",
+    multiple=True,
+    help="Test only these repos (repeatable, e.g. --only eos --only ebuild)",
+)
+@click.option(
+    "--list",
+    "list_only",
+    is_flag=True,
+    help="List the repos that would be tested, and how, then exit",
+)
 def ecosystem(workspace, simulate, only, list_only):
     """Test ALL EoS repos — build, test, simulate, validate."""
-    from eosim.integrations.ecosystem import (
-        detect_kind, find_repos, run_ecosystem_tests)
+    from eosim.integrations.ecosystem import detect_kind, find_repos, run_ecosystem_tests
+
     click.echo("EoSim Ecosystem Validation")
     click.echo("")
     repos = find_repos(workspace)
@@ -669,8 +733,7 @@ def ecosystem(workspace, simulate, only, list_only):
     if list_only:
         return
 
-    report = run_ecosystem_tests(workspace, simulate=simulate,
-                                 only=list(only) or None)
+    report = run_ecosystem_tests(workspace, simulate=simulate, only=list(only) or None)
     click.echo(report.summary())
     if report.repos_failed > 0:
         sys.exit(1)
@@ -697,6 +760,7 @@ def gui():
 
 # --- HIL subcommands ---
 
+
 @cli.group()
 def hil():
     """Hardware-in-the-loop — connect to real development boards."""
@@ -722,7 +786,7 @@ def hil_detect():
         ports = SerialBridge.list_ports()
         if ports:
             for p in ports:
-                click.echo("  %-15s %s" % (p['device'], p['description']))
+                click.echo("  %-15s %s" % (p["device"], p["description"]))
         else:
             click.echo("  (none found)")
 
@@ -730,7 +794,7 @@ def hil_detect():
         if boards:
             click.echo("\nDetected Dev Boards:")
             for b in boards:
-                click.echo("  %-15s %s" % (b['device'], b['board']))
+                click.echo("  %-15s %s" % (b["device"], b["board"]))
     else:
         click.echo("  pyserial not installed — run: pip install pyserial")
 
@@ -749,8 +813,10 @@ def hil_connect(adapter, target, serial_port, baudrate, gdb_port):
     session = HILSession()
     try:
         session.start(
-            adapter=adapter, target=target,
-            serial_port=serial_port, baudrate=baudrate,
+            adapter=adapter,
+            target=target,
+            serial_port=serial_port,
+            baudrate=baudrate,
             gdb_port=gdb_port,
         )
         click.echo("Connected! GDB on port %d" % gdb_port)
@@ -765,6 +831,7 @@ def hil_connect(adapter, target, serial_port, baudrate, gdb_port):
         click.echo("\nPress Ctrl+C to disconnect...")
         try:
             import time
+
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -813,6 +880,7 @@ def hil_monitor(adapter, target, gdb_port):
         session.start(adapter=adapter, target=target, gdb_port=gdb_port)
         session.halt()
         import time
+
         while True:
             regs = session.read_registers()
             if regs:
@@ -829,6 +897,7 @@ def hil_monitor(adapter, target, gdb_port):
 
 # --- Bridge subcommands (external tool integrations) ---
 
+
 @cli.group()
 def bridge():
     """External tool bridges — X-Plane, Gazebo, OpenFOAM."""
@@ -839,15 +908,30 @@ def bridge():
 def bridge_status():
     """Show status of all external tool bridges."""
     from eosim.engine.backend import (
-        AirSimEngine, CARLAEngine, GazeboEngine, OpenFOAMEngine,
-        ROS2Engine, XPlaneEngine,
+        AirSimEngine,
+        CARLAEngine,
+        GazeboEngine,
+        OpenFOAMEngine,
+        ROS2Engine,
+        XPlaneEngine,
     )
+
     click.echo("EoSim Bridge Status\n")
-    click.echo("  %-15s %s" % ("X-Plane", "available" if XPlaneEngine.available() else "not connected"))
-    click.echo("  %-15s %s" % ("Gazebo", "available" if GazeboEngine.available() else "not installed"))
-    click.echo("  %-15s %s" % ("OpenFOAM", "available" if OpenFOAMEngine.available() else "not installed"))
-    click.echo("  %-15s %s" % ("CARLA", "available" if CARLAEngine.available() else "not connected"))
-    click.echo("  %-15s %s" % ("AirSim", "available" if AirSimEngine.available() else "not connected"))
+    click.echo(
+        "  %-15s %s" % ("X-Plane", "available" if XPlaneEngine.available() else "not connected")
+    )
+    click.echo(
+        "  %-15s %s" % ("Gazebo", "available" if GazeboEngine.available() else "not installed")
+    )
+    click.echo(
+        "  %-15s %s" % ("OpenFOAM", "available" if OpenFOAMEngine.available() else "not installed")
+    )
+    click.echo(
+        "  %-15s %s" % ("CARLA", "available" if CARLAEngine.available() else "not connected")
+    )
+    click.echo(
+        "  %-15s %s" % ("AirSim", "available" if AirSimEngine.available() else "not connected")
+    )
     click.echo("  %-15s %s" % ("ROS 2", "available" if ROS2Engine.available() else "not installed"))
 
 
@@ -863,6 +947,7 @@ def bridge_xplane():
 def xplane_connect(host, port):
     """Connect to X-Plane simulator."""
     from eosim.integrations.xplane import XPlaneConnection
+
     click.echo("Connecting to X-Plane at %s:%d..." % (host, port))
     conn = XPlaneConnection(host=host, port=port)
     if conn.connect():
@@ -888,6 +973,7 @@ def bridge_gazebo():
 def gazebo_connect(host, port):
     """Connect to Gazebo simulator."""
     from eosim.integrations.gazebo import GazeboConnection
+
     click.echo("Connecting to Gazebo at %s:%d..." % (host, port))
     conn = GazeboConnection(host=host, port=port)
     if conn.connect():
@@ -913,17 +999,18 @@ def bridge_openfoam():
 def openfoam_run(case_dir, solver):
     """Run an OpenFOAM simulation."""
     from eosim.integrations.openfoam import OpenFOAMRunner
+
     click.echo(f"Running OpenFOAM solver '{solver}' on case: {case_dir}")
     runner = OpenFOAMRunner(case_dir=case_dir)
     runner.set_solver(solver)
     result = runner.run()
-    if result['success']:
+    if result["success"]:
         click.echo("Solver completed successfully")
-        if result.get('converged'):
+        if result.get("converged"):
             click.echo("Solution converged")
     else:
         click.echo("Solver failed")
-        click.echo(result.get('log', '')[-500:])
+        click.echo(result.get("log", "")[-500:])
         sys.exit(1)
 
 
@@ -933,6 +1020,7 @@ if __name__ == "__main__":
 
 # --- API Server command ---
 
+
 @cli.command("api")
 @click.option("--host", default="0.0.0.0", help="API server host")
 @click.option("--port", default=8080, help="API server port")
@@ -941,11 +1029,13 @@ def api_server(host, port):
     click.echo(f"EoSim API Server starting on {host}:{port}")
     click.echo("Swagger UI: http://%s:%d/docs" % (host if host != "0.0.0.0" else "localhost", port))
     from eosim.api.server import EoSimAPIServer
+
     server = EoSimAPIServer(host=host, port=port)
     server.run()
 
 
 # --- Simulators command ---
+
 
 @cli.group("simulator")
 def simulator_group():
@@ -957,6 +1047,7 @@ def simulator_group():
 def simulator_list():
     """List all available simulator types."""
     from eosim.engine.native.simulators import SimulatorFactory
+
     sims = SimulatorFactory.list_simulators()
     click.echo("Available Simulators (%d):\n" % len(sims))
     for s in sims:
@@ -967,12 +1058,12 @@ def simulator_list():
 def simulator_products():
     """List all product templates."""
     from eosim.gui.product_templates import PRODUCT_CATALOG
+
     click.echo("Product Templates (%d):\n" % len(PRODUCT_CATALOG))
     click.echo("  %-25s %-25s %-15s %s" % ("NAME", "DISPLAY", "DOMAIN", "SIMULATOR"))
     click.echo("  " + "-" * 90)
     for name, t in sorted(PRODUCT_CATALOG.items()):
-        click.echo("  %-25s %-25s %-15s %s" % (
-            name, t.display_name, t.domain, t.simulator_class))
+        click.echo("  %-25s %-25s %-15s %s" % (name, t.display_name, t.domain, t.simulator_class))
 
 
 @simulator_group.command("run")
@@ -982,6 +1073,7 @@ def simulator_products():
 def simulator_run(product_type, ticks, scenario):
     """Run a product simulator interactively."""
     from eosim.engine.native.simulators import SimulatorFactory, SIMULATOR_MAP
+
     if product_type not in SIMULATOR_MAP:
         click.echo(f"Unknown product type: {product_type}", err=True)
         click.echo("Available: " + ", ".join(sorted(SIMULATOR_MAP.keys())[:20]) + " ...")
@@ -989,6 +1081,7 @@ def simulator_run(product_type, ticks, scenario):
 
     class VM:
         peripherals = {}
+
         def add_peripheral(self, name, dev):
             self.peripherals[name] = dev
 
@@ -1005,9 +1098,9 @@ def simulator_run(product_type, ticks, scenario):
     for i in range(ticks):
         sim.tick()
         if (i + 1) % (ticks // 5 or 1) == 0:
-            click.echo(f"  Tick {i+1}: {sim.get_status_text()}")
+            click.echo(f"  Tick {i + 1}: {sim.get_status_text()}")
 
     click.echo(f"\nFinal state:")
     for k, v in sim.get_state().items():
-        if k != 'scenario':
+        if k != "scenario":
             click.echo(f"  {k}: {v}")

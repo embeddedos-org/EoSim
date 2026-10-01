@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Platform registry for querying and filtering platforms."""
+
 from collections import defaultdict
 from typing import Optional
 
@@ -27,9 +28,14 @@ class PlatformRegistry:
     def get(self, name: str) -> Optional[Platform]:
         return self._platforms.get(name)
 
-    def filter(self, arch: str = None, vendor: str = None,
-               platform_class: str = None, engine: str = None,
-               domain: str = None) -> list[Platform]:
+    def filter(
+        self,
+        arch: str = None,
+        vendor: str = None,
+        platform_class: str = None,
+        engine: str = None,
+        domain: str = None,
+    ) -> list[Platform]:
         results = list(self._platforms.values())
         if arch:
             results = [p for p in results if p.arch.lower() == arch.lower()]
@@ -54,10 +60,18 @@ class PlatformRegistry:
         q = query.lower()
         results = []
         for p in self._platforms.values():
-            searchable = " ".join([
-                p.name, p.arch, p.engine, p.vendor,
-                p.platform_class, p.soc, p.domain, p.display_name,
-            ]).lower()
+            searchable = " ".join(
+                [
+                    p.name,
+                    p.arch,
+                    p.engine,
+                    p.vendor,
+                    p.platform_class,
+                    p.soc,
+                    p.domain,
+                    p.display_name,
+                ]
+            ).lower()
             if q in searchable:
                 results.append(p)
         return results

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Verilator VCD/FST trace reader for RTL co-simulation."""
+
 import os
 
 
@@ -9,7 +10,7 @@ class VerilatorBridge:
 
     def __init__(self):
         self.signals = {}
-        self.time_unit = 'ns'
+        self.time_unit = "ns"
         self.loaded = False
 
     def load_vcd(self, path):
@@ -17,12 +18,12 @@ class VerilatorBridge:
             return False
         self.signals = {}
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 for line in f:
-                    if line.startswith('$var'):
+                    if line.startswith("$var"):
                         parts = line.split()
                         if len(parts) >= 5:
-                            self.signals[parts[4]] = {'type': parts[1], 'width': int(parts[2])}
+                            self.signals[parts[4]] = {"type": parts[1], "width": int(parts[2])}
             self.loaded = True
         except Exception:
             self.loaded = False

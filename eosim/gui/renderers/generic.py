@@ -36,14 +36,14 @@ from eosim.gui.renderers import BaseRenderer, register_renderer
 class GenericRenderer(BaseRenderer):
     """3D bar chart showing all numeric state values."""
 
-    DOMAIN = 'generic'
-    DISPLAY_NAME = 'Generic'
+    DOMAIN = "generic"
+    DISPLAY_NAME = "Generic"
 
     def setup(self, ax):
-        ax.set_title('Simulator State', fontsize=9)
-        ax.set_xlabel('Key', fontsize=7)
-        ax.set_ylabel('')
-        ax.set_zlabel('Value', fontsize=7)
+        ax.set_title("Simulator State", fontsize=9)
+        ax.set_xlabel("Key", fontsize=7)
+        ax.set_ylabel("")
+        ax.set_zlabel("Value", fontsize=7)
 
     def update(self, ax, state: dict):
         ax.cla()
@@ -58,11 +58,11 @@ class GenericRenderer(BaseRenderer):
         keys = list(numeric.keys())[:16]
         vals = [numeric[k] for k in keys]
         xs = list(range(len(keys)))
-        colors = ['#4ec9b0' if v >= 0 else '#ff6b6b' for v in vals]
-        ax.bar(xs, vals, zs=0, zdir='y', alpha=0.8, color=colors, width=0.6)
+        colors = ["#4ec9b0" if v >= 0 else "#ff6b6b" for v in vals]
+        ax.bar(xs, vals, zs=0, zdir="y", alpha=0.8, color=colors, width=0.6)
         ax.set_xticks(xs)
-        ax.set_xticklabels(keys, rotation=45, ha='right', fontsize=6)
-        ax.tick_params(axis='z', labelsize=7)
+        ax.set_xticklabels(keys, rotation=45, ha="right", fontsize=6)
+        ax.tick_params(axis="z", labelsize=7)
 
 
-register_renderer('generic', GenericRenderer)
+register_renderer("generic", GenericRenderer)
