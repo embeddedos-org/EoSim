@@ -14,7 +14,7 @@ class SimulationWebSocket:
 
     def register(self, app):
         try:
-            from fastapi import WebSocket, WebSocketDisconnect
+            from fastapi import WebSocket
 
             @app.websocket("/ws/simulations/{name}")
             async def websocket_endpoint(websocket: WebSocket, name: str):

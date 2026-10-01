@@ -4,7 +4,8 @@ import os
 import time
 from typing import Optional
 
-from eosim.engine.native.cpu import CPUSimulator, CPUState
+from eosim.engine.native.cpu import CPUSimulator
+from eosim.engine.native.cpu import CPUState as CPUState  # re-export
 from eosim.engine.native.memory import MemoryBus, MemoryRegion
 from eosim.engine.native.peripherals import (
     GPIODevice,

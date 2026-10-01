@@ -9,6 +9,11 @@ from __future__ import annotations
 
 import time
 
+try:  # fastapi is optional ([api] extra); routes degrade to plain dicts without it.
+    from fastapi import HTTPException
+except ImportError:  # pragma: no cover - exercised only without the extra
+    HTTPException = None
+
 
 def register_routes(app, server) -> None:
     """Register all production API routes on the FastAPI app."""
@@ -94,11 +99,6 @@ def register_routes(app, server) -> None:
         summary="Get simulation state",
     )
     def get_simulation_state(name: str):
-        try:
-            from fastapi import HTTPException
-        except ImportError:
-            HTTPException = None
-
         sim = server.get_simulation(name)
         if sim is None:
             if HTTPException:
@@ -115,11 +115,6 @@ def register_routes(app, server) -> None:
         summary="Advance simulation by one tick",
     )
     def tick_simulation(name: str):
-        try:
-            from fastapi import HTTPException
-        except ImportError:
-            HTTPException = None
-
         sim = server.get_simulation(name)
         if sim is None:
             if HTTPException:
@@ -137,11 +132,6 @@ def register_routes(app, server) -> None:
         summary="Reset simulation to initial state",
     )
     def reset_simulation(name: str):
-        try:
-            from fastapi import HTTPException
-        except ImportError:
-            HTTPException = None
-
         sim = server.get_simulation(name)
         if sim is None:
             if HTTPException:

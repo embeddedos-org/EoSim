@@ -2,7 +2,7 @@
 # Copyright (c) 2026 EoS Project
 import struct
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 
 @dataclass

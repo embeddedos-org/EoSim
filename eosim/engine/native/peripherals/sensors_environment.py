@@ -5,9 +5,9 @@
 import logging
 import random
 
-logger = logging.getLogger(__name__)
-
 from eosim.engine.native.peripherals.sensors import SensorBase
+
+logger = logging.getLogger(__name__)
 
 
 class HumiditySensor(SensorBase):

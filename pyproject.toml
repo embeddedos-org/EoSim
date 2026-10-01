@@ -111,7 +111,12 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP"]
-ignore = ["E501"]
+# UP031: printf-style formatting is valid Python and is how the CLI builds its
+# fixed-width tables ("%-25s"). Rewriting 110 call sites to f-strings would
+# risk output changes for no defect fixed, so the rule stays off.
+ignore = ["E501", "UP031"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["N802", "N803"]
+# Renderers use physics notation (T transform, L arm length, R radius).
+"eosim/gui/renderers/*" = ["N806"]

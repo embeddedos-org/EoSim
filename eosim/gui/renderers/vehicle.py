@@ -26,9 +26,9 @@ class VehicleRenderer(BaseRenderer):
         c, s = math.cos(a), math.sin(a)
         return px * c - py * s, px * s + py * c
 
-    def _box(self, ax, cx, cy, cz, l, w, h, heading, color):
+    def _box(self, ax, cx, cy, cz, length, w, h, heading, color):
         """Draw a rectangular prism centred at (cx, cy, cz)."""
-        hl, hw, hh = l / 2, w / 2, h / 2
+        hl, hw, hh = length / 2, w / 2, h / 2
         corners = [
             (-hl, -hw),
             (hl, -hw),

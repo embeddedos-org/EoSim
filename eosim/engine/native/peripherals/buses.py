@@ -4,9 +4,9 @@
 
 import logging
 from collections import deque
+from typing import Optional
 
 logger = logging.getLogger(__name__)
-from typing import Optional
 
 
 class BusBase:

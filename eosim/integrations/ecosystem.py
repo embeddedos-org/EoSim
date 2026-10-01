@@ -180,7 +180,10 @@ def detect_kinds(path: str) -> list:
     leave the other untested, which is how a broken CMake build stayed
     invisible while the Python suite was green.
     """
-    has = lambda *n: any(os.path.exists(os.path.join(path, x)) for x in n)
+
+    def has(*names):
+        return any(os.path.exists(os.path.join(path, x)) for x in names)
+
     kinds = []
     if has("CMakeLists.txt"):
         kinds.append("cmake")
