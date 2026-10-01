@@ -137,7 +137,7 @@ class QemuEngine:
                 cmd += ["-initrd", initrd]
         if platform.boot.append:
             cmd += ["-append", platform.boot.append]
-        for arg in platform.qemu.extra_args:
+        for arg in platform.qemu.extra_args or []:
             cmd.append(arg)
 
         start = time.time()
@@ -467,7 +467,7 @@ class QemuLiveEngine:
                 cmd += ["-initrd", initrd]
         if platform.boot.append:
             cmd += ["-append", platform.boot.append]
-        for arg in platform.qemu.extra_args:
+        for arg in platform.qemu.extra_args or []:
             cmd.append(arg)
 
         import time as _time
