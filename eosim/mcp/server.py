@@ -71,8 +71,9 @@ def _handle_tools_call(msg_id: Any, params: dict[str, Any]) -> dict[str, Any]:
 def handle_message(msg: dict[str, Any]) -> dict[str, Any] | None:
     """Handle one JSON-RPC message; returns the reply, or None for notifications."""
     if not isinstance(msg, dict) or msg.get("jsonrpc") != "2.0":
-        return _error(msg.get("id") if isinstance(msg, dict) else None, -32600,
-                      "invalid JSON-RPC 2.0 message")
+        return _error(
+            msg.get("id") if isinstance(msg, dict) else None, -32600, "invalid JSON-RPC 2.0 message"
+        )
     method = msg.get("method")
     msg_id = msg.get("id")
     params = msg.get("params") or {}

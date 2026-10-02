@@ -58,8 +58,13 @@ LIST_PLATFORMS_SCHEMA: dict[str, Any] = {
         "vendor": {"type": "string", "description": "Filter by vendor"},
         "engine": {"type": "string", "description": "Filter by engine (renode, qemu, eosim)"},
         "domain": {"type": "string", "description": "Filter by domain (e.g. 'automotive')"},
-        "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 100,
-                  "description": "Max platforms to return"},
+        "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Max platforms to return",
+        },
     },
     "additionalProperties": False,
 }
@@ -78,8 +83,9 @@ def _platform_summary(p) -> dict[str, Any]:
     }
 
 
-def list_platforms(arch: str = "", vendor: str = "", engine: str = "",
-                   domain: str = "", limit: int = 100) -> dict[str, Any]:
+def list_platforms(
+    arch: str = "", vendor: str = "", engine: str = "", domain: str = "", limit: int = 100
+) -> dict[str, Any]:
     """List available simulation platforms, with optional filters."""
     reg = _load_registry()
     platforms = reg.filter(
@@ -104,22 +110,34 @@ SIM_LAUNCH_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "platform": {"type": "string", "description": "Platform name (see list_platforms)"},
-        "headless": {"type": "boolean", "default": True,
-                     "description": "Run headless (no GUI)"},
-        "timeout": {"type": "integer", "minimum": 1, "maximum": 3600, "default": 60,
-                    "description": "Timeout in seconds"},
+        "headless": {"type": "boolean", "default": True, "description": "Run headless (no GUI)"},
+        "timeout": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600,
+            "default": 60,
+            "description": "Timeout in seconds",
+        },
         "firmware": {"type": "string", "description": "Path to firmware image to load (optional)"},
-        "dry_run": {"type": "boolean", "default": True,
-                    "description": "If true (default), validate and return the launch plan "
-                                   "without starting any process"},
+        "dry_run": {
+            "type": "boolean",
+            "default": True,
+            "description": "If true (default), validate and return the launch plan "
+            "without starting any process",
+        },
     },
     "required": ["platform"],
     "additionalProperties": False,
 }
 
 
-def sim_launch(platform: str, headless: bool = True, timeout: int = 60,
-               firmware: str | None = None, dry_run: bool = True) -> dict[str, Any]:
+def sim_launch(
+    platform: str,
+    headless: bool = True,
+    timeout: int = 60,
+    firmware: str | None = None,
+    dry_run: bool = True,
+) -> dict[str, Any]:
     """Launch a simulation for a platform.
 
     With ``dry_run=true`` (default) this validates the platform and returns
@@ -161,7 +179,9 @@ def sim_launch(platform: str, headless: bool = True, timeout: int = 60,
             + (["--interactive"] if not headless else [])
             + ["--timeout", str(timeout), "--log-dir", log_dir]
             + (["--firmware", firmware] if firmware else []),
-            stdout=lf, stderr=subprocess.STDOUT, start_new_session=True,
+            stdout=lf,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
         )
     plan["session_id"] = session_id
     plan["pid"] = proc.pid
@@ -177,14 +197,14 @@ def sim_launch(platform: str, headless: bool = True, timeout: int = 60,
 TOOLS: dict[str, dict[str, Any]] = {
     "list_platforms": {
         "description": "List available EoSim simulation platforms, with optional "
-                       "filters (arch, vendor, engine, domain).",
+        "filters (arch, vendor, engine, domain).",
         "inputSchema": LIST_PLATFORMS_SCHEMA,
         "handler": list_platforms,
     },
     "sim_launch": {
         "description": "Launch a simulation for a platform. Dry-run by default "
-                       "(validates and returns the launch plan); set dry_run=false "
-                       "to actually start the simulator detached.",
+        "(validates and returns the launch plan); set dry_run=false "
+        "to actually start the simulator detached.",
         "inputSchema": SIM_LAUNCH_SCHEMA,
         "handler": sim_launch,
     },
