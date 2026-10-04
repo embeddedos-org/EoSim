@@ -340,7 +340,7 @@ def console_tail(
     except OSError as exc:
         return {"ok": False, "error": f"cannot read {log_file}: {exc}"}
     all_lines = text.splitlines()
-    tail = all_lines[-max(1, min(lines, 1000)):]
+    tail = all_lines[-max(1, min(lines, 1000)) :]
     return {
         "ok": True,
         "session_id": session_id,
