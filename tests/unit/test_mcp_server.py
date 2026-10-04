@@ -64,7 +64,7 @@ def registry_dir(tmp_path):
 def test_tools_list_has_exactly_the_shipped_surface():
     tools = list_tools()
     names = sorted(t["name"] for t in tools)
-    assert names == ["list_platforms", "sim_launch"]
+    assert names == ["console_tail", "list_platforms", "sim_flash", "sim_launch"]
     for t in tools:
         assert t["description"]
         assert t["inputSchema"]["type"] == "object"
@@ -189,3 +189,76 @@ def test_stdio_parse_error_is_32700():
 def test_handle_message_rejects_non_jsonrpc():
     reply = handle_message({"id": 1, "method": "tools/list"})
     assert reply["error"]["code"] == -32600
+
+
+# --- sim_flash ---------------------------------------------------------------
+
+
+def test_sim_flash_dry_run_returns_plan(registry_dir, tmp_path):
+    fw = tmp_path / "firmware.bin"
+    fw.write_bytes(b"\x00\x01\x02\x03")
+    res = call_tool("sim_flash", {"platform": "demo-arm", "firmware": str(fw)})
+    assert res["ok"] is True
+    assert res["dry_run"] is True
+    assert res["size"] == 4
+    assert len(res["sha256"]) == 64
+    assert res["staged_path"].endswith("firmware.bin")
+    # nothing written
+    assert not (tmp_path / "out").exists()
+
+
+def test_sim_flash_unknown_platform_errors(tmp_path):
+    fw = tmp_path / "firmware.bin"
+    fw.write_bytes(b"\x00")
+    res = call_tool("sim_flash", {"platform": "nope", "firmware": str(fw)})
+    assert res["ok"] is False
+    assert "unknown platform" in res["error"]
+
+
+def test_sim_flash_missing_firmware_errors(registry_dir):
+    res = call_tool(
+        "sim_flash", {"platform": "demo-arm", "firmware": "/nonexistent/fw.bin"}
+    )
+    assert res["ok"] is False
+    assert "firmware not found" in res["error"]
+
+
+def test_sim_flash_requires_firmware_arg():
+    res = call_tool("sim_flash", {"platform": "demo-arm"})
+    assert res["ok"] is False  # missing required arg -> handler TypeError
+
+
+# --- console_tail ------------------------------------------------------------
+
+
+def test_console_tail_reads_session_log(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    lines = ["line%d" % i for i in range(10)]
+    (log_dir / "demo-arm-abc123.log").write_text(
+        "\n".join(lines), encoding="utf-8"
+    )
+    res = call_tool(
+        "console_tail",
+        {"session_id": "abc123", "lines": 3, "log_dir": str(log_dir)},
+    )
+    assert res["ok"] is True
+    assert res["total_lines"] == 10
+    assert res["truncated"] is True
+    assert res["lines"] == ["line7", "line8", "line9"]
+
+
+def test_console_tail_unknown_session_errors(tmp_path):
+    res = call_tool(
+        "console_tail", {"session_id": "zzz", "log_dir": str(tmp_path)}
+    )
+    assert res["ok"] is False
+    assert "no log found" in res["error"]
+
+
+def test_console_tail_rejects_bad_session_id(tmp_path):
+    res = call_tool(
+        "console_tail", {"session_id": "../../etc", "log_dir": str(tmp_path)}
+    )
+    assert res["ok"] is False
+    assert "invalid session_id" in res["error"]

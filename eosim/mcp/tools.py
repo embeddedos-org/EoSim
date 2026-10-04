@@ -8,7 +8,11 @@ the domain logic so tools are unit-testable without stdio.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import time
@@ -191,6 +195,164 @@ def sim_launch(
 
 
 # ---------------------------------------------------------------------------
+# Tool: sim_flash
+# ---------------------------------------------------------------------------
+
+SIM_FLASH_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "platform": {"type": "string", "description": "Platform name (see list_platforms)"},
+        "firmware": {"type": "string", "description": "Path to firmware image to stage"},
+        "dry_run": {
+            "type": "boolean",
+            "default": True,
+            "description": "If true (default), validate and return the flash plan "
+            "without writing anything",
+        },
+    },
+    "required": ["platform", "firmware"],
+    "additionalProperties": False,
+}
+
+
+def _sha256_file(path: str, chunk_size: int = 65536) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def sim_flash(
+    platform: str,
+    firmware: str,
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Stage a firmware image into a platform's simulated flash.
+
+    With ``dry_run=true`` (default) this validates the platform and the
+    firmware file and returns the exact flash plan without writing anything
+    -- safe for agents to probe. With ``dry_run=false`` the image is copied
+    to ``out/firmware/<platform>/`` with a ``.meta.json`` sidecar (sha256,
+    size, staged_at); pass the returned ``staged_path`` as ``firmware`` to
+    ``sim_launch`` to boot it.
+    """
+    reg = _load_registry()
+    p = reg.get(platform)
+    if p is None:
+        return {"ok": False, "error": f"unknown platform: {platform!r}"}
+    if not os.path.isfile(firmware):
+        return {"ok": False, "error": f"firmware not found: {firmware!r}"}
+
+    size = os.path.getsize(firmware)
+    digest = _sha256_file(firmware)
+    staged_dir = os.path.join("out", "firmware", platform)
+    staged_path = os.path.join(staged_dir, os.path.basename(firmware))
+    plan: dict[str, Any] = {
+        "ok": True,
+        "dry_run": dry_run,
+        "platform": _platform_summary(p),
+        "firmware": firmware,
+        "size": size,
+        "sha256": digest,
+        "staged_path": staged_path,
+    }
+
+    if dry_run:
+        return plan
+
+    os.makedirs(staged_dir, exist_ok=True)
+    shutil.copy2(firmware, staged_path)
+    meta_path = staged_path + ".meta.json"
+    with open(meta_path, "w", encoding="utf-8") as mf:
+        json.dump(
+            {
+                "platform": platform,
+                "source": os.path.abspath(firmware),
+                "size": size,
+                "sha256": digest,
+                "staged_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            },
+            mf,
+            indent=2,
+        )
+    plan["staged_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    plan["meta_path"] = meta_path
+    return plan
+
+
+# ---------------------------------------------------------------------------
+# Tool: console_tail
+# ---------------------------------------------------------------------------
+
+CONSOLE_TAIL_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "session_id": {
+            "type": "string",
+            "description": "Session id returned by sim_launch (dry_run=false)",
+        },
+        "lines": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 50,
+            "description": "Number of trailing log lines to return",
+        },
+        "log_dir": {
+            "type": "string",
+            "default": os.path.join("out", "logs"),
+            "description": "Directory holding session logs",
+        },
+    },
+    "required": ["session_id"],
+    "additionalProperties": False,
+}
+
+_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def console_tail(
+    session_id: str,
+    lines: int = 50,
+    log_dir: str = os.path.join("out", "logs"),
+) -> dict[str, Any]:
+    """Return the tail of a simulation session's console log.
+
+    ``sim_launch`` with ``dry_run=false`` writes the simulator's stdout to
+    ``<log_dir>/<platform>-<session_id>.log``; this tool reads back the last
+    ``lines`` lines so an agent can check boot output, faults, or test
+    results without shell access.
+    """
+    if not _SESSION_ID_RE.match(session_id or ""):
+        return {"ok": False, "error": f"invalid session_id: {session_id!r}"}
+    log_path = Path(log_dir)
+    matches = sorted(log_path.glob(f"*-{session_id}.log")) if log_path.is_dir() else []
+    if not matches:
+        return {
+            "ok": False,
+            "error": f"no log found for session {session_id!r} in {log_dir!r}; "
+            "launch with sim_launch(dry_run=false) first",
+        }
+    log_file = matches[0]
+    try:
+        text = log_file.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return {"ok": False, "error": f"cannot read {log_file}: {exc}"}
+    all_lines = text.splitlines()
+    tail = all_lines[-max(1, min(lines, 1000)):]
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "log_file": str(log_file),
+        "size": log_file.stat().st_size,
+        "total_lines": len(all_lines),
+        "truncated": len(all_lines) > len(tail),
+        "lines": tail,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Tool registry
 # ---------------------------------------------------------------------------
 
@@ -207,6 +369,20 @@ TOOLS: dict[str, dict[str, Any]] = {
         "to actually start the simulator detached.",
         "inputSchema": SIM_LAUNCH_SCHEMA,
         "handler": sim_launch,
+    },
+    "sim_flash": {
+        "description": "Stage a firmware image into a platform's simulated "
+        "flash. Dry-run by default; set dry_run=false to copy the image to "
+        "out/firmware/<platform>/ with a .meta.json sidecar.",
+        "inputSchema": SIM_FLASH_SCHEMA,
+        "handler": sim_flash,
+    },
+    "console_tail": {
+        "description": "Return the tail of a simulation session's console log "
+        "(from sim_launch with dry_run=false), so boot output and faults can "
+        "be inspected without shell access.",
+        "inputSchema": CONSOLE_TAIL_SCHEMA,
+        "handler": console_tail,
     },
 }
 
