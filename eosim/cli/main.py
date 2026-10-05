@@ -222,7 +222,13 @@ def info(platform):
     help="Firmware image to load and execute (e.g. an EoS build). Without "
     "it the native engine has nothing to run.",
 )
-def run(platform, headless, timeout, log_dir, firmware):
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Print the qemu command without executing it (explicit opt-in).",
+)
+def run(platform, headless, timeout, log_dir, firmware, dry_run):
     """Run a simulation for the specified platform."""
     cfg_path, p = _find_platform(platform)
     if not p:
@@ -239,7 +245,8 @@ def run(platform, headless, timeout, log_dir, firmware):
     if engine == "renode":
         _run_renode(p, platform, headless, timeout, log_file, firmware)
     elif engine == "qemu":
-        _run_qemu(p, platform, headless, timeout, log_file, firmware)
+        _run_qemu(p, platform, headless, timeout, log_file, firmware,
+                  dry_run=dry_run)
     elif engine == "eosim":
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
     else:
@@ -278,8 +285,16 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
 
 
-def _run_qemu(p, platform, headless, timeout, log_file, firmware=None):
-    """Run using the QEMU engine."""
+def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False):
+    """Run using the QEMU engine.
+
+    Honest execution contract (EoSim#38): the engine never reports PASSED
+    without executing qemu.
+    - qemu not installed -> exit 2, "QEMU NOT INSTALLED" (nothing executed).
+    - qemu installed -> the constructed command is actually executed with the
+      timeout; output streams to the log file; qemu's exit code propagates.
+    - dry_run=True -> print-only behavior, exit 0 (explicit opt-in only).
+    """
     arch = p.get("arch", "x86_64")
     qemu_map = {
         "arm64": "qemu-system-aarch64",
@@ -289,22 +304,52 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None):
         "x86_64": "qemu-system-x86_64",
         "mipsel": "qemu-system-mipsel",
     }
-    qemu = shutil.which(qemu_map.get(arch, "qemu-system-" + arch))
-    if not qemu:
-        click.echo(f"QEMU not found for {arch} — simulation skipped")
-        click.echo(f"Install: sudo apt install qemu-system-{arch}")
-        with open(log_file, "w", encoding="utf-8") as f:
-            f.write(f"QEMU not available for {arch}\nPASSED (dry run)\n")
-        click.echo("PASSED (dry run)")
-        return
+    qemu_bin = qemu_map.get(arch, "qemu-system-" + arch)
+    qemu = shutil.which(qemu_bin)
     machine = p.get("qemu", {}).get("machine", "virt")
     cpu = p.get("qemu", {}).get("cpu", "")
     memory = p.get("runtime", {}).get("memory_mb", 512)
-    cmd = [qemu, "-machine", machine, "-m", str(memory), "-nographic", "-no-reboot"]
+    cmd = [qemu or qemu_bin, "-machine", machine, "-m", str(memory),
+           "-nographic", "-no-reboot"]
     if cpu:
         cmd += ["-cpu", cpu]
+    if firmware:
+        cmd += ["-kernel", firmware]
     click.echo("Running: " + " ".join(cmd))
-    click.echo("PASSED (QEMU fallback)")
+
+    if dry_run:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write("DRY RUN — qemu was not executed (explicit --dry-run).\n")
+            f.write(" ".join(cmd) + "\n")
+        click.echo("DRY RUN — qemu was not executed.")
+        return
+
+    if not qemu:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(f"QEMU NOT INSTALLED for {arch} — nothing was executed.\n")
+        click.echo(f"QEMU NOT INSTALLED for {arch} — nothing was executed.", err=True)
+        click.echo(f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.",
+                   err=True)
+        sys.exit(2)
+
+    try:
+        result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True)
+    except subprocess.TimeoutExpired:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(f"TIMEOUT after {timeout}s: {' '.join(cmd)}\n")
+        click.echo(f"TIMEOUT after {timeout}s — qemu did not exit.", err=True)
+        sys.exit(1)
+    with open(log_file, "w", encoding="utf-8") as f:
+        f.write("=== QEMU Log ===\n")
+        f.write("Command: " + " ".join(cmd) + "\n\n")
+        f.write(result.stdout or "")
+        f.write(result.stderr or "")
+    click.echo("Log: " + log_file)
+    if result.returncode == 0:
+        click.echo("PASSED")
+    else:
+        click.echo("FAILED (qemu exit %d)" % result.returncode, err=True)
+        sys.exit(1)
 
 
 def _run_eosim(p, platform, headless, timeout, log_file, firmware=None):
