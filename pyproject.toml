@@ -3,8 +3,10 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "eosim"
-version = "3.0.1"
+# PyPI distribution name, matching embeddedos-ebuild. The import package and
+# the `eosim` command keep their names.
+name = "embeddedos-eosim"
+version = "3.0.2"
 description = "Multi-architecture embedded simulation platform for EoS — native engine plus Renode/QEMU backends"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -36,7 +38,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4.0"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff==0.16.9"]
 viz = ["matplotlib>=3.5"]
 elf = ["pyelftools>=0.29"]
 hil = ["pyserial>=3.5"]
@@ -50,7 +52,7 @@ all = [
     "uvicorn>=0.23",
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "ruff>=0.4.0",
+    "ruff==0.16.9",
 ]
 
 [project.urls]
@@ -111,7 +113,13 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP"]
-ignore = ["E501"]
+# UP031: printf-style formatting is valid Python and is how the CLI builds its
+# fixed-width tables ("%-25s"). Rewriting 110 call sites to f-strings would
+# risk output changes for no defect fixed, so the rule stays off.
+ignore = ["E501", "UP031"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["N802", "N803"]
+# Renderers use physics notation (T transform, L arm length, R radius).
+"eosim/gui/renderers/*" = ["N806"]
+

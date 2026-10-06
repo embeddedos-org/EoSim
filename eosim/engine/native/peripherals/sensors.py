@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Domain-specific sensor peripherals for EoSim simulation."""
-import math
+
 import logging
+import math
 import random
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class SensorBase:
 
     def io_handler(self, op: str, addr: int, val: int) -> int:
         offset = addr - self.base
-        if 'read' in op:
+        if "read" in op:
             return self.read_reg(offset)
         else:
             self.write_reg(offset, val)
@@ -39,8 +40,13 @@ class SensorBase:
 class TemperatureSensor(SensorBase):
     """Temperature/humidity sensor (e.g., BME280, SHT31)."""
 
-    def __init__(self, name: str = 'temp0', base_addr: int = 0x40100000,
-                 min_c: float = -40, max_c: float = 125):
+    def __init__(
+        self,
+        name: str = "temp0",
+        base_addr: int = 0x40100000,
+        min_c: float = -40,
+        max_c: float = 125,
+    ):
         super().__init__(name, base_addr)
         self.temperature = 22.0
         self.humidity = 45.0
@@ -77,8 +83,7 @@ class TemperatureSensor(SensorBase):
 class PressureSensor(SensorBase):
     """Barometric/hydraulic pressure sensor."""
 
-    def __init__(self, name: str = 'baro0', base_addr: int = 0x40100100,
-                 range_kpa: float = 110.0):
+    def __init__(self, name: str = "baro0", base_addr: int = 0x40100100, range_kpa: float = 110.0):
         super().__init__(name, base_addr)
         self.pressure_kpa = 101.325
         self.altitude_m = 0.0
@@ -108,7 +113,7 @@ class PressureSensor(SensorBase):
 class IMUSensor(SensorBase):
     """Inertial Measurement Unit — accelerometer + gyroscope + magnetometer."""
 
-    def __init__(self, name: str = 'imu0', base_addr: int = 0x40100200, axes: int = 9):
+    def __init__(self, name: str = "imu0", base_addr: int = 0x40100200, axes: int = 9):
         super().__init__(name, base_addr)
         self.axes = axes
         self.accel = [0.0, 0.0, 9.81]
@@ -145,7 +150,7 @@ class IMUSensor(SensorBase):
 class GPSModule(SensorBase):
     """GPS/GNSS receiver module."""
 
-    def __init__(self, name: str = 'gps0', base_addr: int = 0x40100300):
+    def __init__(self, name: str = "gps0", base_addr: int = 0x40100300):
         super().__init__(name, base_addr)
         self.latitude = 37.3861
         self.longitude = -122.0839
@@ -160,8 +165,11 @@ class GPSModule(SensorBase):
         super().simulate_tick()
         if self.speed_mps > 0:
             dlat = self.speed_mps * math.cos(math.radians(self.heading_deg)) / 111320
-            dlon = self.speed_mps * math.sin(math.radians(self.heading_deg)) / (
-                111320 * math.cos(math.radians(self.latitude)))
+            dlon = (
+                self.speed_mps
+                * math.sin(math.radians(self.heading_deg))
+                / (111320 * math.cos(math.radians(self.latitude)))
+            )
             self.latitude += dlat * 0.01
             self.longitude += dlon * 0.01
         self.latitude += random.gauss(0, 0.000001)
@@ -193,13 +201,12 @@ class GPSModule(SensorBase):
 class ProximitySensor(SensorBase):
     """Proximity/distance sensor (ultrasonic, IR, or LiDAR)."""
 
-    def __init__(self, name: str = 'prox0', base_addr: int = 0x40100400,
-                 max_range_cm: int = 400):
+    def __init__(self, name: str = "prox0", base_addr: int = 0x40100400, max_range_cm: int = 400):
         super().__init__(name, base_addr)
         self.distance_cm = max_range_cm
         self.max_range_cm = max_range_cm
         self.detected = False
-        self.sensor_type = 'ultrasonic'
+        self.sensor_type = "ultrasonic"
 
     def simulate_tick(self):
         super().simulate_tick()
@@ -222,7 +229,7 @@ class ProximitySensor(SensorBase):
 class LightSensor(SensorBase):
     """Ambient light sensor (lux + IR)."""
 
-    def __init__(self, name: str = 'light0', base_addr: int = 0x40100500):
+    def __init__(self, name: str = "light0", base_addr: int = 0x40100500):
         super().__init__(name, base_addr)
         self.lux = 500.0
         self.ir_level = 100.0
@@ -246,8 +253,13 @@ class LightSensor(SensorBase):
 class ADCChannel(SensorBase):
     """Multi-channel analog-to-digital converter."""
 
-    def __init__(self, name: str = 'adc0', base_addr: int = 0x40100600,
-                 channels: int = 8, resolution: int = 12):
+    def __init__(
+        self,
+        name: str = "adc0",
+        base_addr: int = 0x40100600,
+        channels: int = 8,
+        resolution: int = 12,
+    ):
         super().__init__(name, base_addr)
         self.channels = channels
         self.resolution = resolution
@@ -273,7 +285,7 @@ class ADCChannel(SensorBase):
 class CurrentSensor(SensorBase):
     """Current/voltage/power measurement sensor (e.g., INA219)."""
 
-    def __init__(self, name: str = 'ina0', base_addr: int = 0x40100700):
+    def __init__(self, name: str = "ina0", base_addr: int = 0x40100700):
         super().__init__(name, base_addr)
         self.current_ma = 0.0
         self.voltage_mv = 3300.0
@@ -304,7 +316,7 @@ class CurrentSensor(SensorBase):
 class ECGSensor(SensorBase):
     """Electrocardiogram sensor for medical devices."""
 
-    def __init__(self, name: str = 'ecg0', base_addr: int = 0x40100800):
+    def __init__(self, name: str = "ecg0", base_addr: int = 0x40100800):
         super().__init__(name, base_addr)
         self.heart_rate_bpm = 72
         self.waveform = [0.0] * 256
@@ -355,7 +367,7 @@ class ECGSensor(SensorBase):
 class PulseOximeter(SensorBase):
     """SpO2 / pulse oximeter sensor."""
 
-    def __init__(self, name: str = 'spo2_0', base_addr: int = 0x40100900):
+    def __init__(self, name: str = "spo2_0", base_addr: int = 0x40100900):
         super().__init__(name, base_addr)
         self.spo2_percent = 98.0
         self.pulse_rate = 72

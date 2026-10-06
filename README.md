@@ -144,6 +144,25 @@ eosim gui stm32f4                 # open GUI dashboard
 | `eosim search <query>` | Fuzzy search platforms |
 | `eosim gui [platform]` | Open GUI dashboard |
 
+## MCP Server
+
+EoSim exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP, spec rev 2026-07-28)
+server so AI coding agents can drive simulations directly — list platforms, launch a sim, and verify
+against ground truth instead of hallucinating. JSON-RPC 2.0 over stdio, no extra dependencies.
+
+```bash
+# Start the server (e.g. from an MCP client config)
+python -m eosim.mcp
+```
+
+| Tool | Description |
+|---|---|
+| `list_platforms` | List simulation platforms; filters: `arch`, `vendor`, `engine`, `domain`, `limit` |
+| `sim_launch` | Launch a simulation; `platform` (required), `headless`, `timeout`, `firmware`. Dry-run by default — set `dry_run: false` to actually start the simulator detached |
+
+Roadmap: `sim_build`, `sim_flash`, `console_tail`, `gpio_poke`, `i2c_poke`, `spi_poke`
+(see issue #37).
+
 ## Architecture
 
 ```

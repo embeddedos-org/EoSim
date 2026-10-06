@@ -8,14 +8,11 @@ from eosim.tests.runner import CheckResult
 
 
 def load_scenario(path: str) -> dict:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
-def run_scenario(
-        scenario: dict,
-        sim_stdout: str,
-        duration: float) -> list[CheckResult]:
+def run_scenario(scenario: dict, sim_stdout: str, duration: float) -> list[CheckResult]:
     results = []
     for step in scenario.get("steps", []):
         stype = step.get("type", "")
@@ -26,7 +23,9 @@ def run_scenario(
                 CheckResult(
                     name=f"wait_for: {pattern}",
                     passed=passed,
-                    message="found" if passed else "not found"))
+                    message="found" if passed else "not found",
+                )
+            )
         elif stype == "assert_no":
             pattern = step.get("pattern", "")
             passed = pattern not in sim_stdout
@@ -34,16 +33,15 @@ def run_scenario(
                 CheckResult(
                     name=f"assert_no: {pattern}",
                     passed=passed,
-                    message="absent" if passed else "found (unexpected)"))
+                    message="absent" if passed else "found (unexpected)",
+                )
+            )
         elif stype == "timing":
             max_s = step.get("max_seconds", 60)
             passed = duration <= max_s
             results.append(
-                CheckResult(
-                    name="timing <= %ds" %
-                    max_s,
-                    passed=passed,
-                    message=f"{duration:.1f}s"))
+                CheckResult(name="timing <= %ds" % max_s, passed=passed, message=f"{duration:.1f}s")
+            )
         elif stype == "count_matches":
             pattern = step.get("pattern", "")
             expected = step.get("min_count", 1)
@@ -51,10 +49,9 @@ def run_scenario(
             passed = count >= expected
             results.append(
                 CheckResult(
-                    name="count(%s) >= %d" %
-                    (pattern,
-                     expected),
+                    name="count(%s) >= %d" % (pattern, expected),
                     passed=passed,
-                    message="got %d" %
-                    count))
+                    message="got %d" % count,
+                )
+            )
     return results

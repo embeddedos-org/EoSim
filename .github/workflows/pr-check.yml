@@ -31,20 +31,18 @@ jobs:
       - name: Unit tests
         run: python -m pytest tests/unit/ -x -q --tb=short
       - name: Platform validation
+        # Same check as ci.yml: descriptors live under eosim/platforms, and a
+        # tree with none of them is a failure, not "0 platforms, 0 errors".
         run: |
-          python -c "
-          import os, yaml
-          from eosim.core.schema import validate_platform
-          count = err = 0
-          for d in os.listdir('platforms'):
-              f = os.path.join('platforms', d, 'platform.yml')
-              if not os.path.isfile(f): continue
-              count += 1
-              with open(f) as fh: data = yaml.safe_load(fh)
-              if validate_platform(data): err += 1
-          print(f'{count} platforms, {err} errors')
-          assert err == 0
-          "
+          python -m pytest \
+            tests/integration/test_platform_pipeline.py::TestPlatformValidation \
+            --no-cov
+          count=$(find eosim/platforms -mindepth 2 -maxdepth 2 -name platform.yml -type f | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No platform.yml files found under eosim/platforms"
+            exit 1
+          fi
+          echo "Platform count: $count"
 
   # ─── Coverage Gate ─────────────────────────────────────────────────
   coverage-gate:

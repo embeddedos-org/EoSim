@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install ruff
-        run: pip install ruff
+        run: pip install "ruff==0.16.9"  # keep in step with pyproject.toml [dev]
       - name: Ruff check
         run: ruff check eosim/ --output-format=github
       - name: Ruff format check
@@ -42,7 +42,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v5

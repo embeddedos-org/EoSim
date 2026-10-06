@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Aerodynamics domain sensors — wind tunnel, airflow, pitot tube, force balance."""
+
 import math
 import random
 
@@ -8,7 +9,7 @@ from eosim.engine.native.peripherals.sensors import SensorBase
 
 
 class WindTunnelSensor(SensorBase):
-    def __init__(self, name='wind_tunnel0', base_addr=0x40110000):
+    def __init__(self, name="wind_tunnel0", base_addr=0x40110000):
         super().__init__(name, base_addr)
         self.airspeed_mps = 0.0
         self.mach_number = 0.0
@@ -24,21 +25,24 @@ class WindTunnelSensor(SensorBase):
             speed_of_sound = 20.05 * math.sqrt(self.temperature_k)
             self.mach_number = self.airspeed_mps / speed_of_sound if speed_of_sound > 0 else 0
             rho = 1.225 * (self.temperature_k / 288.15)
-            self.dynamic_pressure_pa = 0.5 * rho * self.airspeed_mps ** 2
+            self.dynamic_pressure_pa = 0.5 * rho * self.airspeed_mps**2
 
     def set_airspeed(self, mps):
         self.airspeed_mps = max(0, mps)
         self.tunnel_active = True
 
     def read_reg(self, offset):
-        if offset == 0x00: return int(self.airspeed_mps * 1000) & 0xFFFFFFFF
-        if offset == 0x04: return int(self.mach_number * 10000) & 0xFFFFFFFF
-        if offset == 0x08: return int(self.dynamic_pressure_pa * 100) & 0xFFFFFFFF
+        if offset == 0x00:
+            return int(self.airspeed_mps * 1000) & 0xFFFFFFFF
+        if offset == 0x04:
+            return int(self.mach_number * 10000) & 0xFFFFFFFF
+        if offset == 0x08:
+            return int(self.dynamic_pressure_pa * 100) & 0xFFFFFFFF
         return 0
 
 
 class AirflowSensor(SensorBase):
-    def __init__(self, name='airflow0', base_addr=0x40110100):
+    def __init__(self, name="airflow0", base_addr=0x40110100):
         super().__init__(name, base_addr)
         self.velocity = [0.0, 0.0, 0.0]
         self.turbulence_intensity = 0.0
@@ -57,13 +61,15 @@ class AirflowSensor(SensorBase):
 
     def read_reg(self, offset):
         idx = offset // 4
-        if idx < 3: return int(self.velocity[idx] * 1000) & 0xFFFFFFFF
-        if idx == 3: return int(self.turbulence_intensity * 10000) & 0xFFFFFFFF
+        if idx < 3:
+            return int(self.velocity[idx] * 1000) & 0xFFFFFFFF
+        if idx == 3:
+            return int(self.turbulence_intensity * 10000) & 0xFFFFFFFF
         return 0
 
 
 class PitotTube(SensorBase):
-    def __init__(self, name='pitot0', base_addr=0x40110200):
+    def __init__(self, name="pitot0", base_addr=0x40110200):
         super().__init__(name, base_addr)
         self.total_pressure_pa = 101325.0
         self.static_pressure_pa = 101325.0
@@ -81,14 +87,17 @@ class PitotTube(SensorBase):
         self.static_pressure_pa = static_pa
 
     def read_reg(self, offset):
-        if offset == 0x00: return int(self.total_pressure_pa * 100) & 0xFFFFFFFF
-        if offset == 0x04: return int(self.static_pressure_pa * 100) & 0xFFFFFFFF
-        if offset == 0x08: return int(self.indicated_airspeed_mps * 1000) & 0xFFFFFFFF
+        if offset == 0x00:
+            return int(self.total_pressure_pa * 100) & 0xFFFFFFFF
+        if offset == 0x04:
+            return int(self.static_pressure_pa * 100) & 0xFFFFFFFF
+        if offset == 0x08:
+            return int(self.indicated_airspeed_mps * 1000) & 0xFFFFFFFF
         return 0
 
 
 class ForceBalance(SensorBase):
-    def __init__(self, name='balance0', base_addr=0x40110300):
+    def __init__(self, name="balance0", base_addr=0x40110300):
         super().__init__(name, base_addr)
         self.lift_n = 0.0
         self.drag_n = 0.0
@@ -105,7 +114,10 @@ class ForceBalance(SensorBase):
         self.side_force_n = side
 
     def read_reg(self, offset):
-        if offset == 0x00: return int(self.lift_n * 1000) & 0xFFFFFFFF
-        if offset == 0x04: return int(self.drag_n * 1000) & 0xFFFFFFFF
-        if offset == 0x08: return int(self.side_force_n * 1000) & 0xFFFFFFFF
+        if offset == 0x00:
+            return int(self.lift_n * 1000) & 0xFFFFFFFF
+        if offset == 0x04:
+            return int(self.drag_n * 1000) & 0xFFFFFFFF
+        if offset == 0x08:
+            return int(self.side_force_n * 1000) & 0xFFFFFFFF
         return 0

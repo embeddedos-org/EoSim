@@ -28,5 +28,5 @@ class ThermalModel:
             temp += delta
             t += dt_s
             if t > 3600:
-                return float('inf')
+                return float("inf")
         return t

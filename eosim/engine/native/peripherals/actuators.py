@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Domain-specific actuator peripherals for EoSim simulation."""
+
 import logging
 import random
 
@@ -16,11 +17,11 @@ class ActuatorBase:
         self.enabled = False
 
     def simulate_tick(self):
-        self._tick_count = getattr(self, '_tick_count', 0) + 1
+        self._tick_count = getattr(self, "_tick_count", 0) + 1
 
     def io_handler(self, op: str, addr: int, val: int) -> int:
         offset = addr - self.base
-        if 'read' in op:
+        if "read" in op:
             return self.read_reg(offset)
         else:
             self.write_reg(offset, val)
@@ -36,8 +37,7 @@ class ActuatorBase:
 class MotorController(ActuatorBase):
     """DC/stepper/BLDC motor controller."""
 
-    def __init__(self, name: str = 'motor0', base_addr: int = 0x40200000,
-                 motor_type: str = 'dc'):
+    def __init__(self, name: str = "motor0", base_addr: int = 0x40200000, motor_type: str = "dc"):
         super().__init__(name, base_addr)
         self.motor_type = motor_type
         self.speed_rpm = 0
@@ -83,8 +83,7 @@ class MotorController(ActuatorBase):
 class ServoController(ActuatorBase):
     """Multi-channel servo controller (PWM-based)."""
 
-    def __init__(self, name: str = 'servo0', base_addr: int = 0x40200100,
-                 channels: int = 8):
+    def __init__(self, name: str = "servo0", base_addr: int = 0x40200100, channels: int = 8):
         super().__init__(name, base_addr)
         self.channels = channels
         self.positions = [90.0] * channels
@@ -123,8 +122,7 @@ class ServoController(ActuatorBase):
 class ESCController(ActuatorBase):
     """Electronic Speed Controller for brushless motors (drone/multirotor)."""
 
-    def __init__(self, name: str = 'esc0', base_addr: int = 0x40200200,
-                 channels: int = 4):
+    def __init__(self, name: str = "esc0", base_addr: int = 0x40200200, channels: int = 4):
         super().__init__(name, base_addr)
         self.channels = channels
         self.throttle = [0.0] * channels
@@ -167,12 +165,11 @@ class ESCController(ActuatorBase):
 class ValveController(ActuatorBase):
     """Valve controller (on/off or proportional)."""
 
-    def __init__(self, name: str = 'valve0', base_addr: int = 0x40200300,
-                 channels: int = 4):
+    def __init__(self, name: str = "valve0", base_addr: int = 0x40200300, channels: int = 4):
         super().__init__(name, base_addr)
         self.channels = channels
         self.positions = [0.0] * channels
-        self.types = ['on_off'] * channels
+        self.types = ["on_off"] * channels
 
     def read_reg(self, offset: int) -> int:
         ch = offset // 4
@@ -183,7 +180,7 @@ class ValveController(ActuatorBase):
     def write_reg(self, offset: int, val: int):
         ch = offset // 4
         if 0 <= ch < self.channels:
-            if self.types[ch] == 'on_off':
+            if self.types[ch] == "on_off":
                 self.positions[ch] = 100.0 if val else 0.0
             else:
                 self.positions[ch] = max(0, min(100, val / 100.0))
@@ -192,7 +189,7 @@ class ValveController(ActuatorBase):
 class PumpController(ActuatorBase):
     """Pump controller (infusion, hydraulic, etc.)."""
 
-    def __init__(self, name: str = 'pump0', base_addr: int = 0x40200400):
+    def __init__(self, name: str = "pump0", base_addr: int = 0x40200400):
         super().__init__(name, base_addr)
         self.flow_rate_ml_min = 0.0
         self.target_flow = 0.0
@@ -231,8 +228,7 @@ class PumpController(ActuatorBase):
 class RelayBank(ActuatorBase):
     """Multi-channel relay controller."""
 
-    def __init__(self, name: str = 'relay0', base_addr: int = 0x40200500,
-                 channels: int = 8):
+    def __init__(self, name: str = "relay0", base_addr: int = 0x40200500, channels: int = 8):
         super().__init__(name, base_addr)
         self.channels = channels
         self.states = [False] * channels
@@ -243,7 +239,7 @@ class RelayBank(ActuatorBase):
             val = 0
             for i in range(self.channels):
                 if self.states[i]:
-                    val |= (1 << i)
+                    val |= 1 << i
             return val
         return 0
 
@@ -259,8 +255,9 @@ class RelayBank(ActuatorBase):
 class DisplayDriver(ActuatorBase):
     """OLED/LCD display driver with framebuffer."""
 
-    def __init__(self, name: str = 'disp0', base_addr: int = 0x40200600,
-                 width: int = 128, height: int = 64):
+    def __init__(
+        self, name: str = "disp0", base_addr: int = 0x40200600, width: int = 128, height: int = 64
+    ):
         super().__init__(name, base_addr)
         self.width = width
         self.height = height
@@ -294,7 +291,7 @@ class DisplayDriver(ActuatorBase):
 class HapticDriver(ActuatorBase):
     """Haptic feedback motor driver."""
 
-    def __init__(self, name: str = 'haptic0', base_addr: int = 0x40200700):
+    def __init__(self, name: str = "haptic0", base_addr: int = 0x40200700):
         super().__init__(name, base_addr)
         self.intensity = 0
         self.pattern = 0
@@ -327,7 +324,7 @@ class HapticDriver(ActuatorBase):
 class SteeringActuator(ActuatorBase):
     """Electric Power Steering actuator."""
 
-    def __init__(self, name: str = 'steer0', base_addr: int = 0x40200800):
+    def __init__(self, name: str = "steer0", base_addr: int = 0x40200800):
         super().__init__(name, base_addr)
         self.angle_deg = 0.0
         self.target_angle = 0.0
@@ -360,11 +357,11 @@ class SteeringActuator(ActuatorBase):
 class ThrottleActuator(ActuatorBase):
     """Throttle/accelerator actuator."""
 
-    def __init__(self, name: str = 'throttle0', base_addr: int = 0x40200900):
+    def __init__(self, name: str = "throttle0", base_addr: int = 0x40200900):
         super().__init__(name, base_addr)
         self.position_pct = 0.0
         self.target_pct = 0.0
-        self.mode = 'manual'
+        self.mode = "manual"
 
     def simulate_tick(self):
         diff = self.target_pct - self.position_pct
@@ -379,13 +376,13 @@ class ThrottleActuator(ActuatorBase):
         if offset == 0x00:
             self.target_pct = max(0, min(100, val / 100.0))
         elif offset == 0x04:
-            self.mode = 'cruise' if val else 'manual'
+            self.mode = "cruise" if val else "manual"
 
 
 class BrakeActuator(ActuatorBase):
     """Brake actuator with ABS support."""
 
-    def __init__(self, name: str = 'brake0', base_addr: int = 0x40200A00):
+    def __init__(self, name: str = "brake0", base_addr: int = 0x40200A00):
         super().__init__(name, base_addr)
         self.pressure_pct = 0.0
         self.target_pct = 0.0

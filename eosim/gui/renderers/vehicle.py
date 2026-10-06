@@ -11,9 +11,9 @@ class VehicleRenderer(BaseRenderer):
     DOMAIN = "automotive"
     DISPLAY_NAME = "Vehicle"
 
-    _CAR_L = 2.0   # length
-    _CAR_W = 1.0   # width
-    _CAR_H = 0.6   # height
+    _CAR_L = 2.0  # length
+    _CAR_W = 1.0  # width
+    _CAR_H = 0.6  # height
 
     def __init__(self):
         self._trail: list = []
@@ -26,11 +26,14 @@ class VehicleRenderer(BaseRenderer):
         c, s = math.cos(a), math.sin(a)
         return px * c - py * s, px * s + py * c
 
-    def _box(self, ax, cx, cy, cz, l, w, h, heading, color):
+    def _box(self, ax, cx, cy, cz, length, w, h, heading, color):
         """Draw a rectangular prism centred at (cx, cy, cz)."""
-        hl, hw, hh = l / 2, w / 2, h / 2
+        hl, hw, hh = length / 2, w / 2, h / 2
         corners = [
-            (-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw),
+            (-hl, -hw),
+            (hl, -hw),
+            (hl, hw),
+            (-hl, hw),
         ]
         rot = [(self._rot_z(x, y, heading)) for x, y in corners]
         bot = [(cx + x, cy + y, cz - hh) for x, y in rot]
@@ -45,8 +48,7 @@ class VehicleRenderer(BaseRenderer):
 
         # verticals
         for b, t in zip(bot, top):
-            ax.plot([b[0], t[0]], [b[1], t[1]], [b[2], t[2]],
-                    color=color, linewidth=1.0)
+            ax.plot([b[0], t[0]], [b[1], t[1]], [b[2], t[2]], color=color, linewidth=1.0)
 
     def _speed_color(self, speed_kmh):
         if speed_kmh < 40:
@@ -84,27 +86,54 @@ class VehicleRenderer(BaseRenderer):
         cz = self._CAR_H / 2
 
         # car body
-        self._box(ax, self._pos_x, self._pos_y, cz,
-                  self._CAR_L, self._CAR_W, self._CAR_H,
-                  self._heading, color)
+        self._box(
+            ax,
+            self._pos_x,
+            self._pos_y,
+            cz,
+            self._CAR_L,
+            self._CAR_W,
+            self._CAR_H,
+            self._heading,
+            color,
+        )
 
         # front wheel indicators (rotated by steering)
         wl = 0.3
         ww = 0.1
-        front_offsets = [(self._CAR_L * 0.35, self._CAR_W * 0.55),
-                         (self._CAR_L * 0.35, -self._CAR_W * 0.55)]
+        front_offsets = [
+            (self._CAR_L * 0.35, self._CAR_W * 0.55),
+            (self._CAR_L * 0.35, -self._CAR_W * 0.55),
+        ]
         for ox, oy in front_offsets:
             wx, wy = self._rot_z(ox, oy, self._heading)
-            self._box(ax, self._pos_x + wx, self._pos_y + wy, 0.15,
-                      wl, ww, 0.15, self._heading + steer_rad, "#cccccc")
+            self._box(
+                ax,
+                self._pos_x + wx,
+                self._pos_y + wy,
+                0.15,
+                wl,
+                ww,
+                0.15,
+                self._heading + steer_rad,
+                "#cccccc",
+            )
 
         # speed vector arrow
         if speed > 0.5:
             dx = math.cos(self._heading) * v_ms * 0.3
             dy = math.sin(self._heading) * v_ms * 0.3
-            ax.quiver(self._pos_x, self._pos_y, cz,
-                      dx, dy, 0,
-                      color=color, arrow_length_ratio=0.25, linewidth=1.5)
+            ax.quiver(
+                self._pos_x,
+                self._pos_y,
+                cz,
+                dx,
+                dy,
+                0,
+                color=color,
+                arrow_length_ratio=0.25,
+                linewidth=1.5,
+            )
 
         # trail
         self._trail.append((self._pos_x, self._pos_y, 0.0))
@@ -121,8 +150,7 @@ class VehicleRenderer(BaseRenderer):
         ax.set_ylim(self._pos_y - 15, self._pos_y + 15)
 
         ax.set_title(
-            f"Vehicle  {speed:.0f} km/h  gear={gear}  SoC={soc:.0f}%  "
-            f"odo={odo:.1f}km",
+            f"Vehicle  {speed:.0f} km/h  gear={gear}  SoC={soc:.0f}%  odo={odo:.1f}km",
             fontsize=8,
         )
 
