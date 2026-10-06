@@ -40,10 +40,10 @@ class RobotRenderer(BaseRenderer):
         ct, st = math.cos(theta), math.sin(theta)
         ca, sa = math.cos(alpha), math.sin(alpha)
         return [
-            [ct, -st * ca,  st * sa, a_len * ct],
-            [st,  ct * ca, -ct * sa, a_len * st],
-            [0,   sa,       ca,      d],
-            [0,   0,        0,       1],
+            [ct, -st * ca, st * sa, a_len * ct],
+            [st, ct * ca, -ct * sa, a_len * st],
+            [0, sa, ca, d],
+            [0, 0, 0, 1],
         ]
 
     def _forward_kinematics(self, angles):
@@ -83,22 +83,23 @@ class RobotRenderer(BaseRenderer):
         for i in range(len(joints) - 1):
             x0, y0, z0 = joints[i]
             x1, y1, z1 = joints[i + 1]
-            ax.plot([x0, x1], [y0, y1], [z0, z1],
-                    color=link_color, linewidth=3, solid_capstyle="round")
+            ax.plot(
+                [x0, x1], [y0, y1], [z0, z1], color=link_color, linewidth=3, solid_capstyle="round"
+            )
 
         # draw joint markers
         jx = [j[0] for j in joints]
         jy = [j[1] for j in joints]
         jz = [j[2] for j in joints]
-        ax.scatter(jx, jy, jz, color="#ffcc00", s=25, depthshade=False,
-                   zorder=5)
+        ax.scatter(jx, jy, jz, color="#ffcc00", s=25, depthshade=False, zorder=5)
 
         # end-effector marker
         ex, ey, ez = joints[-1]
         marker = "*" if gripper_open else "o"
         ee_color = "#00ff88" if gripper_open else "#ff4444"
-        ax.scatter([ex], [ey], [ez], color=ee_color, s=80, marker=marker,
-                   depthshade=False, zorder=6)
+        ax.scatter(
+            [ex], [ey], [ez], color=ee_color, s=80, marker=marker, depthshade=False, zorder=6
+        )
 
         # end-effector trail
         self._ee_trail.append((ex, ey, ez))
@@ -109,15 +110,12 @@ class RobotRenderer(BaseRenderer):
             for idx in range(0, n, max(1, n // 40)):
                 px, py, pz = self._ee_trail[idx]
                 alpha = 0.15 + 0.85 * (idx / n)
-                ax.scatter([px], [py], [pz], color="#00ff88", s=6,
-                           alpha=alpha, depthshade=False)
+                ax.scatter([px], [py], [pz], color="#00ff88", s=6, alpha=alpha, depthshade=False)
 
         # base plate
-        ax.scatter([0], [0], [0], color="#666666", s=100, marker="s",
-                   depthshade=False, zorder=1)
+        ax.scatter([0], [0], [0], color="#666666", s=100, marker="s", depthshade=False, zorder=1)
 
-        ax.set_title(f"Robot  {op_mode}  grip={'OPEN' if gripper_open else 'CLOSED'}",
-                     fontsize=8)
+        ax.set_title(f"Robot  {op_mode}  grip={'OPEN' if gripper_open else 'CLOSED'}", fontsize=8)
 
 
 register_renderer("robotics", RobotRenderer)

@@ -2,6 +2,15 @@
 """Tests for EoSim GUI components — expanded for multi-product simulator."""
 import pytest
 
+# Minimal ARM image: MOV r0,#1 then UDF (halt). Needed because
+# VirtualMachine.run() now refuses to report a boot when no firmware is
+# loaded - see tests/unit/test_native_engine_execution.py.
+def _tiny_arm_image() -> bytes:
+    import struct
+    return b"".join(struct.pack("<I", w) for w in (0xE3A00001, 0xE7FFDEFE))
+
+
+
 
 class TestProductTemplates:
     """Verify all 31 product templates exist and have valid fields."""
@@ -590,11 +599,24 @@ class TestSimulatorApp:
         assert "nvic" in vm.peripherals
 
     def test_vm_run_stop_lifecycle(self):
+        """Runs to the cycle limit and stops cleanly.
+
+        This used to run with no firmware at all, so `cycles == 100` counted
+        steps over zeroed memory and `success` was the hardcoded True. It now
+        loads a real NOP sled with no halt instruction: the engine stops it at
+        the budget, which is a completed run but NOT a success - the program
+        never chose to finish.
+        """
+        import struct
+
         from eosim.engine.native import VirtualMachine
+        nop_sled = struct.pack("<I", 0x00000000) * 32
         vm = VirtualMachine(name="lifecycle-test", arch="arm", ram_mb=16)
+        vm.load_binary(nop_sled, addr=0x08000000)
         result = vm.run(max_cycles=100, timeout_s=5.0)
-        assert result["success"]
         assert result["cycles"] == 100
+        assert result["reason"] == "cycle-limit"
+        assert result["success"] is False
         assert not vm.running
         assert "boot_log" in result
 
@@ -609,6 +631,7 @@ class TestSimulatorApp:
     def test_vm_uart_output(self):
         from eosim.engine.native import VirtualMachine
         vm = VirtualMachine(name="uart-test", arch="arm", ram_mb=16)
+        vm.load_binary(_tiny_arm_image(), addr=0x08000000)
         vm.run(max_cycles=50, timeout_s=5.0)
         uart_out = vm.get_uart_output()
         assert "EoSim Virtual Machine" in uart_out

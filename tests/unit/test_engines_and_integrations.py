@@ -104,7 +104,12 @@ class TestQemuEngineRun:
 
 
 class TestEoSimEngineRun:
-    def test_run(self):
+    def test_run_without_firmware_is_not_success(self):
+        """platform.boot.firmware is empty, so nothing is executed.
+
+        This asserted success is True, which is how the engine came to report a
+        successful run for a platform with no image.
+        """
         from eosim.engine.backend import EoSimEngine, SimResult
         platform = MagicMock()
         platform.name = 'test'
@@ -115,6 +120,24 @@ class TestEoSimEngineRun:
         result = EoSimEngine.run(platform, timeout=5)
         assert isinstance(result, SimResult)
         assert result.engine == 'eosim'
+        assert result.success is False
+
+    def test_run_with_firmware_succeeds(self, tmp_path):
+        """The same path with a real image, proving boot.firmware is wired."""
+        import struct
+
+        from eosim.engine.backend import EoSimEngine, SimResult
+        img = tmp_path / 'fw.bin'
+        img.write_bytes(b''.join(struct.pack('<I', w)
+                                 for w in (0xE3A00001, 0xE7FFDEFE)))
+        platform = MagicMock()
+        platform.name = 'test'
+        platform.arch = 'arm'
+        platform.runtime.memory_mb = 64
+        platform.boot.firmware = 'fw.bin'
+        platform.source_dir = str(tmp_path)
+        result = EoSimEngine.run(platform, timeout=5)
+        assert isinstance(result, SimResult)
         assert result.success is True
 
 

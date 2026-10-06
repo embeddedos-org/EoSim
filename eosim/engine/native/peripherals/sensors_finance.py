@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Finance domain sensors — market feed, order book."""
+
 import random
 
 from eosim.engine.native.peripherals.sensors import SensorBase
@@ -9,7 +10,7 @@ from eosim.engine.native.peripherals.sensors import SensorBase
 class MarketFeed(SensorBase):
     """Real-time market data feed — price, volume, bid/ask."""
 
-    def __init__(self, name: str = 'market0', base_addr: int = 0x40130000):
+    def __init__(self, name: str = "market0", base_addr: int = 0x40130000):
         super().__init__(name, base_addr)
         self.price = 100.0
         self.bid = 99.95
@@ -23,7 +24,7 @@ class MarketFeed(SensorBase):
         super().simulate_tick()
         self.tick_count_feed += 1
         ret = self._drift + self.volatility * random.gauss(0, 1) * 0.01
-        self.price *= (1 + ret)
+        self.price *= 1 + ret
         self.price = max(0.01, self.price)
         spread = self.price * 0.001
         self.bid = self.price - spread / 2
@@ -51,7 +52,7 @@ class MarketFeed(SensorBase):
 class OrderBook(SensorBase):
     """Order book depth sensor — top-of-book levels."""
 
-    def __init__(self, name: str = 'orderbook0', base_addr: int = 0x40130100):
+    def __init__(self, name: str = "orderbook0", base_addr: int = 0x40130100):
         super().__init__(name, base_addr)
         self.bid_levels = [(99.95, 100), (99.90, 200), (99.85, 150)]
         self.ask_levels = [(100.05, 120), (100.10, 180), (100.15, 90)]

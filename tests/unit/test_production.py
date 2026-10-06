@@ -19,27 +19,27 @@ class TestExtensionFiles:
         assert (self.ext_dir / "manifest.json").exists()
 
     def test_manifest_is_valid_json(self):
-        with open(self.ext_dir / "manifest.json") as f:
+        with open(self.ext_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert data["manifest_version"] == 3
 
     def test_manifest_version_3(self):
-        with open(self.ext_dir / "manifest.json") as f:
+        with open(self.ext_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert data["manifest_version"] == 3
 
     def test_manifest_has_name(self):
-        with open(self.ext_dir / "manifest.json") as f:
+        with open(self.ext_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert "EoSim" in data["name"]
 
     def test_manifest_has_version(self):
-        with open(self.ext_dir / "manifest.json") as f:
+        with open(self.ext_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert data["version"] == "3.0.1"
 
     def test_manifest_has_production_host_permissions(self):
-        with open(self.ext_dir / "manifest.json") as f:
+        with open(self.ext_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         host_perms = data.get("host_permissions", [])
         assert any("api.eosim.io" in p for p in host_perms)
@@ -60,17 +60,17 @@ class TestExtensionFiles:
         assert (self.ext_dir / "options.html").exists()
 
     def test_popup_js_uses_production_api(self):
-        content = (self.ext_dir / "popup.js").read_text()
+        content = (self.ext_dir / "popup.js").read_text(encoding="utf-8")
         assert "api.eosim.io" in content
         assert "localhost" not in content
 
     def test_background_js_uses_production_api(self):
-        content = (self.ext_dir / "background.js").read_text()
+        content = (self.ext_dir / "background.js").read_text(encoding="utf-8")
         assert "api.eosim.io" in content
         assert "localhost" not in content
 
     def test_manifest_has_keyboard_shortcut(self):
-        with open(self.ext_dir / "manifest.json") as f:
+        with open(self.ext_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert "commands" in data
         assert "open-eosim" in data["commands"]
@@ -86,12 +86,12 @@ class TestMobileApp:
         assert (self.mobile_dir / "manifest.json").exists()
 
     def test_manifest_is_valid_json(self):
-        with open(self.mobile_dir / "manifest.json") as f:
+        with open(self.mobile_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert data is not None
 
     def test_manifest_has_10_languages(self):
-        with open(self.mobile_dir / "manifest.json") as f:
+        with open(self.mobile_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert data.get("lang") == "en"
         assert data.get("dir") == "auto"
@@ -100,16 +100,16 @@ class TestMobileApp:
         assert (self.mobile_dir / "app.html").exists()
 
     def test_app_html_uses_production_api(self):
-        content = (self.mobile_dir / "app.html").read_text()
+        content = (self.mobile_dir / "app.html").read_text(encoding="utf-8")
         assert "api.eosim.io" in content
         assert "localhost" not in content
 
     def test_app_html_has_gps(self):
-        content = (self.mobile_dir / "app.html").read_text()
+        content = (self.mobile_dir / "app.html").read_text(encoding="utf-8")
         assert "geolocation" in content.lower() or "gps" in content.lower()
 
     def test_app_html_has_all_20_modules(self):
-        content = (self.mobile_dir / "app.html").read_text()
+        content = (self.mobile_dir / "app.html").read_text(encoding="utf-8")
         modules = ["network", "robotics", "aerospace", "automotive", "security",
                    "ai", "iot", "embedded", "fpga", "physics", "virt", "mobile",
                    "cloud", "gamedev", "data", "energy", "manufacturing", "xr",
@@ -118,13 +118,13 @@ class TestMobileApp:
             assert mod in content.lower(), f"Module '{mod}' not found in mobile app"
 
     def test_app_html_has_language_support(self):
-        content = (self.mobile_dir / "app.html").read_text()
+        content = (self.mobile_dir / "app.html").read_text(encoding="utf-8")
         for lang in ["en", "es", "zh", "hi", "fr", "ar", "pt", "de", "ja", "ko"]:
             assert f"lang-{lang}" in content or f"'{lang}'" in content, \
                 f"Language {lang} not found in mobile app"
 
     def test_manifest_standalone_display(self):
-        with open(self.mobile_dir / "manifest.json") as f:
+        with open(self.mobile_dir / "manifest.json", encoding="utf-8") as f:
             data = json.load(f)
         assert data["display"] == "standalone"
 
@@ -145,7 +145,7 @@ class TestAndroidConfig:
         assert (self.android_dir / "app" / "src" / "main" / "AndroidManifest.xml").exists()
 
     def test_build_gradle_uses_production_api(self):
-        content = (self.android_dir / "app" / "build.gradle.kts").read_text()
+        content = (self.android_dir / "app" / "build.gradle.kts").read_text(encoding="utf-8")
         assert "api.eosim.io" in content
         # localhost only appears in a comment ("never use localhost"), not as an actual URL value
         lines_with_localhost = [
@@ -155,11 +155,11 @@ class TestAndroidConfig:
         assert len(lines_with_localhost) == 0, f"localhost in non-comment Gradle code: {lines_with_localhost}"
 
     def test_manifest_has_internet_permission(self):
-        content = (self.android_dir / "app" / "src" / "main" / "AndroidManifest.xml").read_text()
+        content = (self.android_dir / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
         assert "INTERNET" in content
 
     def test_manifest_has_location_permission(self):
-        content = (self.android_dir / "app" / "src" / "main" / "AndroidManifest.xml").read_text()
+        content = (self.android_dir / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
         assert "ACCESS_FINE_LOCATION" in content
 
     def test_network_security_config_exists(self):
@@ -168,7 +168,7 @@ class TestAndroidConfig:
 
     def test_network_security_blocks_cleartext(self):
         path = self.android_dir / "app" / "src" / "main" / "res" / "xml" / "network_security_config.xml"
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         assert "cleartextTrafficPermitted" in content
         assert "false" in content
 
@@ -178,7 +178,7 @@ class TestAndroidConfig:
 
     def test_locales_config_has_10_languages(self):
         path = self.android_dir / "app" / "src" / "main" / "res" / "xml" / "locales_config.xml"
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         for lang in ["en", "es", "zh", "hi", "fr", "ar", "pt", "de", "ja", "ko"]:
             assert lang in content, f"Language {lang} missing from Android locales"
 
@@ -199,16 +199,16 @@ class TestiOSConfig:
         assert (self.ios_dir / "EoSim" / "Sources" / "API" / "EoSimAPIClient.swift").exists()
 
     def test_info_plist_has_location_usage(self):
-        content = (self.ios_dir / "EoSim" / "Info.plist").read_text()
+        content = (self.ios_dir / "EoSim" / "Info.plist").read_text(encoding="utf-8")
         assert "NSLocationWhenInUseUsageDescription" in content
 
     def test_info_plist_has_10_localizations(self):
-        content = (self.ios_dir / "EoSim" / "Info.plist").read_text()
+        content = (self.ios_dir / "EoSim" / "Info.plist").read_text(encoding="utf-8")
         for lang in ["en", "es", "zh-Hans", "hi", "fr", "ar", "pt", "de", "ja", "ko"]:
             assert lang in content, f"Language {lang} missing from iOS Info.plist"
 
     def test_api_client_uses_production_url(self):
-        content = (self.ios_dir / "EoSim" / "Sources" / "API" / "EoSimAPIClient.swift").read_text()
+        content = (self.ios_dir / "EoSim" / "Sources" / "API" / "EoSimAPIClient.swift").read_text(encoding="utf-8")
         assert "api.eosim.io" in content
         # localhost only appears in a comment ("never localhost"), not as an actual URL
         lines_with_localhost = [
@@ -218,11 +218,11 @@ class TestiOSConfig:
         assert len(lines_with_localhost) == 0, f"localhost in non-comment Swift code: {lines_with_localhost}"
 
     def test_api_client_has_gps_region_selection(self):
-        content = (self.ios_dir / "EoSim" / "Sources" / "API" / "EoSimAPIClient.swift").read_text()
+        content = (self.ios_dir / "EoSim" / "Sources" / "API" / "EoSimAPIClient.swift").read_text(encoding="utf-8")
         assert "selectRegion" in content or "CLLocation" in content
 
     def test_info_plist_blocks_http(self):
-        content = (self.ios_dir / "EoSim" / "Info.plist").read_text()
+        content = (self.ios_dir / "EoSim" / "Info.plist").read_text(encoding="utf-8")
         assert "NSAllowsArbitraryLoads" in content
 
 

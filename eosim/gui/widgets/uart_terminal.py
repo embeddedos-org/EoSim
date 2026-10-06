@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """UART terminal widget for EoSim simulation UI."""
+
 import tkinter as tk
 from tkinter import ttk
 
@@ -15,28 +16,26 @@ class UARTTerminal(ttk.Frame):
     def _build(self):
         header = ttk.Frame(self)
         header.pack(fill=tk.X)
-        ttk.Label(header, text="UART Terminal", font=("", 9, "bold")).pack(
-            side=tk.LEFT, padx=4
-        )
-        ttk.Button(header, text="Clear", width=5, command=self.clear).pack(
-            side=tk.RIGHT, padx=2
-        )
-        ttk.Button(header, text="Copy", width=5, command=self._copy).pack(
-            side=tk.RIGHT, padx=2
-        )
+        ttk.Label(header, text="UART Terminal", font=("", 9, "bold")).pack(side=tk.LEFT, padx=4)
+        ttk.Button(header, text="Clear", width=5, command=self.clear).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(header, text="Copy", width=5, command=self._copy).pack(side=tk.RIGHT, padx=2)
 
         text_frame = ttk.Frame(self)
         text_frame.pack(fill=tk.BOTH, expand=True)
 
         self.text = tk.Text(
-            text_frame, wrap=tk.WORD, font=("Consolas", 10),
-            bg="#1e1e1e", fg="#d4d4d4", insertbackground="#d4d4d4",
-            selectbackground="#264f78", state=tk.DISABLED,
-            height=12, width=60,
+            text_frame,
+            wrap=tk.WORD,
+            font=("Consolas", 10),
+            bg="#1e1e1e",
+            fg="#d4d4d4",
+            insertbackground="#d4d4d4",
+            selectbackground="#264f78",
+            state=tk.DISABLED,
+            height=12,
+            width=60,
         )
-        scrollbar = ttk.Scrollbar(
-            text_frame, orient=tk.VERTICAL, command=self.text.yview
-        )
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=self.text.yview)
         self.text.configure(yscrollcommand=scrollbar.set)
         self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -46,13 +45,17 @@ class UARTTerminal(ttk.Frame):
         ttk.Label(input_frame, text=">").pack(side=tk.LEFT, padx=(4, 2))
         self.input_var = tk.StringVar()
         self.input_entry = ttk.Entry(
-            input_frame, textvariable=self.input_var,
+            input_frame,
+            textvariable=self.input_var,
             font=("Consolas", 10),
         )
         self.input_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
         self.input_entry.bind("<Return>", self._on_send)
         ttk.Button(
-            input_frame, text="Send", width=5, command=self._on_send,
+            input_frame,
+            text="Send",
+            width=5,
+            command=self._on_send,
         ).pack(side=tk.RIGHT, padx=2)
 
         self._on_inject = None

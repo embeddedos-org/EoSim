@@ -4,9 +4,15 @@
 
 All routes return proper HTTP status codes and structured JSON responses.
 """
+
 from __future__ import annotations
 
 import time
+
+try:  # fastapi is optional ([api] extra); routes degrade to plain dicts without it.
+    from fastapi import HTTPException
+except ImportError:  # pragma: no cover - exercised only without the extra
+    HTTPException = None
 
 
 def register_routes(app, server) -> None:
@@ -21,6 +27,7 @@ def register_routes(app, server) -> None:
         Returns 200 OK when the service is healthy.
         """
         from eosim import __version__
+
         return {
             "status": "ok",
             "version": __version__,
@@ -32,7 +39,8 @@ def register_routes(app, server) -> None:
 
     @app.get("/api/v1/version", tags=["Health"], summary="Version info")
     def version():
-        from eosim import __version__, __url__, __api_url__, __docs_url__
+        from eosim import __api_url__, __docs_url__, __url__, __version__
+
         return {
             "version": __version__,
             "url": __url__,
@@ -45,6 +53,7 @@ def register_routes(app, server) -> None:
     @app.get("/api/v1/platforms", tags=["Platforms"], summary="List all simulation platforms")
     def list_platforms():
         from eosim.core.registry import PlatformRegistry
+
         reg = PlatformRegistry()
         reg.discover()
         platforms = [p.name for p in reg.all()]
@@ -55,6 +64,7 @@ def register_routes(app, server) -> None:
     @app.get("/api/v1/domains", tags=["Domains"], summary="List simulation domains")
     def list_domains():
         from eosim.core.domains import list_domains as _list
+
         domains = _list()
         return {"domains": domains, "count": len(domains)}
 
@@ -63,6 +73,7 @@ def register_routes(app, server) -> None:
     @app.get("/api/v1/simulators", tags=["Simulators"], summary="List available simulators")
     def list_simulators():
         from eosim.engine.native.simulators import SimulatorFactory
+
         sims = SimulatorFactory.list_simulators()
         return {"simulators": sims, "count": len(sims)}
 
@@ -71,6 +82,7 @@ def register_routes(app, server) -> None:
     @app.get("/api/v1/templates", tags=["Templates"], summary="List simulation templates")
     def list_templates():
         from eosim.gui.product_templates import list_templates as _list
+
         templates = _list()
         return {"templates": templates, "count": len(templates)}
 
@@ -87,11 +99,6 @@ def register_routes(app, server) -> None:
         summary="Get simulation state",
     )
     def get_simulation_state(name: str):
-        try:
-            from fastapi import HTTPException
-        except ImportError:
-            HTTPException = None
-
         sim = server.get_simulation(name)
         if sim is None:
             if HTTPException:
@@ -108,11 +115,6 @@ def register_routes(app, server) -> None:
         summary="Advance simulation by one tick",
     )
     def tick_simulation(name: str):
-        try:
-            from fastapi import HTTPException
-        except ImportError:
-            HTTPException = None
-
         sim = server.get_simulation(name)
         if sim is None:
             if HTTPException:
@@ -130,11 +132,6 @@ def register_routes(app, server) -> None:
         summary="Reset simulation to initial state",
     )
     def reset_simulation(name: str):
-        try:
-            from fastapi import HTTPException
-        except ImportError:
-            HTTPException = None
-
         sim = server.get_simulation(name)
         if sim is None:
             if HTTPException:
@@ -151,6 +148,7 @@ def register_routes(app, server) -> None:
     @app.get("/api/v1/metrics", tags=["Metrics"], summary="Platform metrics")
     def get_metrics():
         from eosim.core.registry import PlatformRegistry
+
         reg = PlatformRegistry()
         reg.discover()
         return {

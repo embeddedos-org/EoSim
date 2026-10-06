@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """CARLA autonomous driving simulator TCP bridge."""
+
 import socket
-import json
 
 
 class CARLAConnection:
     """Bridge to CARLA simulator via TCP client API."""
 
-    def __init__(self, host='127.0.0.1', port=2000):
+    def __init__(self, host="127.0.0.1", port=2000):
         self.host = host
         self.port = port
         self._connected = False
@@ -37,16 +37,16 @@ class CARLAConnection:
     def get_world_state(self):
         if not self._connected:
             return {}
-        return {'connected': True, 'host': self.host, 'port': self.port}
+        return {"connected": True, "host": self.host, "port": self.port}
 
-    def set_weather(self, preset='ClearNoon'):
+    def set_weather(self, preset="ClearNoon"):
         if not self._connected:
             raise RuntimeError("CARLAConnection.set_weather: not connected")
         raise NotImplementedError(
             "CARLAConnection.set_weather is not yet implemented \u2014 contributions welcome"
         )
 
-    def spawn_vehicle(self, blueprint='vehicle.tesla.model3'):
+    def spawn_vehicle(self, blueprint="vehicle.tesla.model3"):
         if not self._connected:
             raise RuntimeError("CARLAConnection.spawn_vehicle: not connected")
         raise NotImplementedError(

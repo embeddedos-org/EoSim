@@ -5,13 +5,13 @@
 Protocol: https://www.qemu.org/docs/master/interop/qmp-spec.html
 Supports TCP and Unix socket connections.
 """
+
 import json
 import logging
 import socket
 import threading
 import time
 from typing import Any, Callable, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -35,20 +35,21 @@ class QMPClient:
         self._event_thread: Optional[threading.Thread] = None
         self._event_handlers: dict[str, list[Callable]] = {}
         self._lock = threading.Lock()
-        self._recv_buffer = b''
+        self._recv_buffer = b""
 
-    def connect_tcp(self, host: str = 'localhost', port: int = 4444, timeout: float = 5.0):
+    def connect_tcp(self, host: str = "localhost", port: int = 4444, timeout: float = 5.0):
         """Connect to QMP via TCP.
 
         WARNING: QMP does not support authentication. Ensure the QMP port is
         bound to localhost or protected by firewall rules. Never expose QMP
         on a public network interface.
         """
-        if host not in ('localhost', '127.0.0.1', '::1'):
+        if host not in ("localhost", "127.0.0.1", "::1"):
             logger.warning(
                 "QMP connection to non-localhost host %s:%d — QMP has NO "
                 "authentication. Ensure the network is trusted and firewalled.",
-                host, port,
+                host,
+                port,
             )
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.settimeout(timeout)
@@ -65,30 +66,30 @@ class QMPClient:
     def _negotiate(self):
         """Read QMP greeting and send qmp_capabilities."""
         greeting = self._recv_json()
-        if 'QMP' not in greeting:
+        if "QMP" not in greeting:
             raise QMPError(f"Invalid QMP greeting: {greeting}")
-        resp = self.execute('qmp_capabilities')
-        if 'error' in resp:
+        resp = self.execute("qmp_capabilities")
+        if "error" in resp:
             raise QMPError(f"Capability negotiation failed: {resp}")
         self._connected = True
 
     def execute(self, command: str, arguments: dict[str, Any] = None) -> dict:
         """Execute a QMP command and return the response."""
-        msg = {'execute': command}
+        msg = {"execute": command}
         if arguments:
-            msg['arguments'] = arguments
+            msg["arguments"] = arguments
         with self._lock:
             self._send_json(msg)
             return self._recv_response()
 
     def _send_json(self, obj):
-        data = json.dumps(obj).encode('utf-8') + b'\r\n'
+        data = json.dumps(obj).encode("utf-8") + b"\r\n"
         self._sock.sendall(data)
 
     def _recv_json(self) -> dict:
         while True:
-            if b'\n' in self._recv_buffer:
-                line, self._recv_buffer = self._recv_buffer.split(b'\n', 1)
+            if b"\n" in self._recv_buffer:
+                line, self._recv_buffer = self._recv_buffer.split(b"\n", 1)
                 line = line.strip()
                 if line:
                     return json.loads(line)
@@ -100,7 +101,7 @@ class QMPClient:
     def _recv_response(self) -> dict:
         while True:
             msg = self._recv_json()
-            if 'event' in msg:
+            if "event" in msg:
                 self._dispatch_event(msg)
                 continue
             return msg
@@ -109,62 +110,61 @@ class QMPClient:
 
     def stop(self) -> dict:
         """Pause the VM."""
-        return self.execute('stop')
+        return self.execute("stop")
 
     def cont(self) -> dict:
         """Resume the VM."""
-        return self.execute('cont')
+        return self.execute("cont")
 
     def system_reset(self) -> dict:
         """Reset the VM."""
-        return self.execute('system_reset')
+        return self.execute("system_reset")
 
     def system_powerdown(self) -> dict:
         """Graceful powerdown."""
-        return self.execute('system_powerdown')
+        return self.execute("system_powerdown")
 
     def quit(self) -> dict:
         """Terminate QEMU."""
-        return self.execute('quit')
+        return self.execute("quit")
 
     # --- Query commands ---
 
     def query_status(self) -> dict:
         """Get VM run state."""
-        resp = self.execute('query-status')
-        return resp.get('return', {})
+        resp = self.execute("query-status")
+        return resp.get("return", {})
 
     def query_cpus(self) -> list:
         """Get CPU info."""
-        resp = self.execute('query-cpus-fast')
-        return resp.get('return', [])
+        resp = self.execute("query-cpus-fast")
+        return resp.get("return", [])
 
     def query_block(self) -> list:
         """Get block device info."""
-        resp = self.execute('query-block')
-        return resp.get('return', [])
+        resp = self.execute("query-block")
+        return resp.get("return", [])
 
     def query_chardev(self) -> list:
         """Get character device info."""
-        resp = self.execute('query-chardev')
-        return resp.get('return', [])
+        resp = self.execute("query-chardev")
+        return resp.get("return", [])
 
     # --- HMP passthrough for memory/register access ---
 
     def hmp_command(self, command: str) -> str:
         """Execute an HMP (Human Monitor Protocol) command."""
-        resp = self.execute('human-monitor-command',
-                           {'command-line': command})
-        return resp.get('return', '')
+        resp = self.execute("human-monitor-command", {"command-line": command})
+        return resp.get("return", "")
 
-    def read_memory(self, addr: int, size: int = 64, fmt: str = 'x') -> str:
+    def read_memory(self, addr: int, size: int = 64, fmt: str = "x") -> str:
         """Read physical memory using HMP xp command."""
         count = size // 4
-        return self.hmp_command(f'xp /{count}{fmt} 0x{addr:x}')
+        return self.hmp_command(f"xp /{count}{fmt} 0x{addr:x}")
 
     def read_registers(self) -> str:
         """Read CPU registers using HMP info registers."""
-        return self.hmp_command('info registers')
+        return self.hmp_command("info registers")
 
     # --- Event handling ---
 
@@ -173,7 +173,7 @@ class QMPClient:
         self._event_handlers.setdefault(event_name, []).append(handler)
 
     def _dispatch_event(self, event: dict):
-        name = event.get('event', '')
+        name = event.get("event", "")
         handlers = self._event_handlers.get(name, [])
         for h in handlers:
             try:
@@ -186,14 +186,15 @@ class QMPClient:
         if self._event_thread and self._event_thread.is_alive():
             return
         self._event_thread = threading.Thread(
-            target=self._event_loop, daemon=True, name='qmp-events')
+            target=self._event_loop, daemon=True, name="qmp-events"
+        )
         self._event_thread.start()
 
     def _event_loop(self):
         while self._connected:
             try:
                 msg = self._recv_json()
-                if 'event' in msg:
+                if "event" in msg:
                     self._dispatch_event(msg)
             except (socket.timeout, OSError):
                 time.sleep(0.1)

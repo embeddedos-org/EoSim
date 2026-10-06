@@ -90,8 +90,7 @@ class DroneRenderer(BaseRenderer):
                 y1 = ty + radius * math.sin(a)
                 x2 = tx + radius * math.cos(a2)
                 y2 = ty + radius * math.sin(a2)
-                ax.plot([x1, x2], [y1, y2], [tz, tz], color=color,
-                        linewidth=0.8)
+                ax.plot([x1, x2], [y1, y2], [tz, tz], color=color, linewidth=0.8)
 
         # centre dot
         ax.scatter([cx], [cy], [cz], color=color, s=30, depthshade=False)

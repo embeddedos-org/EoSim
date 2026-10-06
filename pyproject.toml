@@ -3,9 +3,11 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "eosim"
-version = "3.0.1"
-description = "World's most powerful universal simulation platform — supersedes 250+ tools across 20 domains"
+# PyPI distribution name, matching embeddedos-ebuild. The import package and
+# the `eosim` command keep their names.
+name = "embeddedos-eosim"
+version = "3.0.2"
+description = "Multi-architecture embedded simulation platform for EoS — native engine plus Renode/QEMU backends"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -16,7 +18,7 @@ maintainers = [
     {name = "EoS Project", email = "team@embeddedos.org"},
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
@@ -36,7 +38,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4.0"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff==0.16.9"]
 viz = ["matplotlib>=3.5"]
 elf = ["pyelftools>=0.29"]
 hil = ["pyserial>=3.5"]
@@ -50,7 +52,7 @@ all = [
     "uvicorn>=0.23",
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "ruff>=0.4.0",
+    "ruff==0.16.9",
 ]
 
 [project.urls]
@@ -65,6 +67,12 @@ eosim = "eosim.cli.main:cli"
 
 [tool.setuptools.packages.find]
 include = ["eosim*"]
+
+# The platform registry is data, not modules, so packages.find alone does not
+# ship it. Without this the wheel installs but `eosim run` cannot find any
+# platform - see _resolve_platforms_dir() in eosim/cli/main.py.
+[tool.setuptools.package-data]
+"eosim.platforms" = ["**/*.yml", "**/*.yaml", "**/*.resc", "**/*.repl"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -105,7 +113,13 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP"]
-ignore = ["E501"]
+# UP031: printf-style formatting is valid Python and is how the CLI builds its
+# fixed-width tables ("%-25s"). Rewriting 110 call sites to f-strings would
+# risk output changes for no defect fixed, so the rule stays off.
+ignore = ["E501", "UP031"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["N802", "N803"]
+# Renderers use physics notation (T transform, L arm length, R radius).
+"eosim/gui/renderers/*" = ["N806"]
+

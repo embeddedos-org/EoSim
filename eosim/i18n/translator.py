@@ -3,16 +3,16 @@
 """Core translator for EoSim i18n support."""
 
 from __future__ import annotations
-import os
+
 import json
+import os
 from pathlib import Path
-from typing import Optional
 
 _LOCALES_DIR = Path(__file__).parent / "locales"
 _SUPPORTED = ["en", "es", "zh", "hi", "fr", "ar", "pt", "de", "ja", "ko"]
 _DEFAULT_LANG = "en"
 
-_instance: Optional["Translator"] = None
+_instance: Translator | None = None
 
 
 class Translator:

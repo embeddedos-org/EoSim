@@ -8,6 +8,7 @@ only applied when EOSIM_ENV=development is explicitly set.
 """
 
 from __future__ import annotations
+
 import os
 
 # ─── Environment Detection ────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ CORS_ORIGINS = [
     "chrome-extension://",
     "moz-extension://",
 ]
+
 
 def get_config() -> dict:
     """Return the complete production configuration as a dictionary."""

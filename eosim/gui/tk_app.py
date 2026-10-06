@@ -5,6 +5,7 @@
 Provides the full visual interface: toolbar, build sidebar, peripheral
 panels with domain-specific rendering, status bar, and scenario selector.
 """
+
 import time
 import tkinter as tk
 from tkinter import ttk
@@ -32,15 +33,19 @@ class TkBuildPanel(ttk.LabelFrame):
 
     def _build(self):
         ttk.Label(self, text="Product:", font=("", 9, "bold")).pack(
-            anchor=tk.W, pady=(0, 2),
+            anchor=tk.W,
+            pady=(0, 2),
         )
         products = self._build_panel.list_products()
-        self._product_names = [p['name'] for p in products]
+        self._product_names = [p["name"] for p in products]
         self._product_display = [f"{p['icon']} {p['display_name']}" for p in products]
         self.product_var = tk.StringVar()
         self.product_combo = ttk.Combobox(
-            self, textvariable=self.product_var,
-            values=self._product_display, state="readonly", width=24,
+            self,
+            textvariable=self.product_var,
+            values=self._product_display,
+            state="readonly",
+            width=24,
         )
         self.product_combo.pack(fill=tk.X, pady=(0, 4))
         self.product_combo.bind("<<ComboboxSelected>>", self._on_product_select)
@@ -50,12 +55,17 @@ class TkBuildPanel(ttk.LabelFrame):
         self.arch_label = ttk.Label(info_frame, text="Arch: —", font=("Consolas", 9))
         self.arch_label.pack(anchor=tk.W)
         ttk.Label(info_frame, text="RAM (MB):", font=("", 8)).pack(
-            anchor=tk.W, pady=(4, 0),
+            anchor=tk.W,
+            pady=(4, 0),
         )
         self.ram_var = tk.IntVar(value=128)
         self.ram_spin = ttk.Spinbox(
-            info_frame, from_=8, to=4096, textvariable=self.ram_var,
-            width=8, font=("Consolas", 9),
+            info_frame,
+            from_=8,
+            to=4096,
+            textvariable=self.ram_var,
+            width=8,
+            font=("Consolas", 9),
         )
         self.ram_spin.pack(anchor=tk.W)
 
@@ -63,12 +73,15 @@ class TkBuildPanel(ttk.LabelFrame):
         sep.pack(fill=tk.X, pady=4)
 
         ttk.Label(self, text="Peripherals:", font=("", 9, "bold")).pack(
-            anchor=tk.W, pady=(0, 2),
+            anchor=tk.W,
+            pady=(0, 2),
         )
 
         self._periph_canvas = tk.Canvas(self, highlightthickness=0, height=200)
         periph_scrollbar = ttk.Scrollbar(
-            self, orient=tk.VERTICAL, command=self._periph_canvas.yview,
+            self,
+            orient=tk.VERTICAL,
+            command=self._periph_canvas.yview,
         )
         self._periph_inner = ttk.Frame(self._periph_canvas)
         self._periph_inner.bind(
@@ -78,7 +91,9 @@ class TkBuildPanel(ttk.LabelFrame):
             ),
         )
         self._periph_canvas.create_window(
-            (0, 0), window=self._periph_inner, anchor="nw",
+            (0, 0),
+            window=self._periph_inner,
+            anchor="nw",
         )
         self._periph_canvas.configure(yscrollcommand=periph_scrollbar.set)
         self._periph_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -87,12 +102,16 @@ class TkBuildPanel(ttk.LabelFrame):
         self._periph_vars = {}
         for category, periphs in PERIPHERAL_CATEGORIES.items():
             ttk.Label(
-                self._periph_inner, text=category, font=("", 8, "bold"),
+                self._periph_inner,
+                text=category,
+                font=("", 8, "bold"),
             ).pack(anchor=tk.W, pady=(4, 0))
             for p in periphs:
                 var = tk.BooleanVar(value=False)
                 ttk.Checkbutton(
-                    self._periph_inner, text=p, variable=var,
+                    self._periph_inner,
+                    text=p,
+                    variable=var,
                     command=lambda name=p: self._on_periph_toggle(name),
                 ).pack(anchor=tk.W, padx=(12, 0))
                 self._periph_vars[p] = var
@@ -105,8 +124,8 @@ class TkBuildPanel(ttk.LabelFrame):
         self._build_panel.select_product(product_name)
         config = self._build_panel.get_build_config()
         self.arch_label.configure(text=f"Arch: {config['arch']}")
-        self.ram_var.set(config.get('ram_mb', 128))
-        selected = set(config.get('peripherals', []))
+        self.ram_var.set(config.get("ram_mb", 128))
+        selected = set(config.get("peripherals", []))
         for name, var in self._periph_vars.items():
             var.set(name in selected)
 
@@ -115,13 +134,13 @@ class TkBuildPanel(ttk.LabelFrame):
 
     def get_build_config(self) -> dict:
         config = self._build_panel.get_build_config()
-        config['ram_mb'] = self.ram_var.get()
+        config["ram_mb"] = self.ram_var.get()
         return config
 
     def get_selected_product_name(self) -> str:
         idx = self.product_combo.current()
         if idx < 0:
-            return ''
+            return ""
         return self._product_names[idx]
 
 
@@ -131,7 +150,7 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def __init__(self, parent):
         super().__init__(parent, text="Peripherals / Domain View", padding=4)
         self._periph_panel = PeripheralPanel()
-        self._domain = ''
+        self._domain = ""
         self._domain_widgets = {}
         self._generic_text = None
         self._ecg_canvas = None
@@ -144,7 +163,7 @@ class TkPeripheralPanel(ttk.LabelFrame):
         self._domain_frame.pack(fill=tk.BOTH, expand=True)
         self._create_generic_panel()
 
-    def configure_for_product(self, vm, domain=''):
+    def configure_for_product(self, vm, domain=""):
         self._domain = domain
         self._periph_panel.configure_for_product(vm, domain)
         self._clear_domain_widgets()
@@ -165,48 +184,46 @@ class TkPeripheralPanel(ttk.LabelFrame):
             child.destroy()
 
     def _create_domain_widgets(self, domain):
-        if domain == 'automotive':
+        if domain == "automotive":
             self._create_automotive_panel()
-        elif domain == 'robotics' and self._has_esc():
+        elif domain == "robotics" and self._has_esc():
             self._create_drone_panel()
-        elif domain == 'robotics':
+        elif domain == "robotics":
             self._create_robot_panel()
-        elif domain == 'medical':
+        elif domain == "medical":
             self._create_medical_panel()
-        elif domain == 'aerospace' and self._has_arinc():
+        elif domain == "aerospace" and self._has_arinc():
             self._create_aircraft_panel()
-        elif domain == 'industrial':
+        elif domain == "industrial":
             self._create_industrial_panel()
-        elif domain in ('aerodynamics', 'physiology', 'finance', 'weather', 'gaming'):
+        elif domain in ("aerodynamics", "physiology", "finance", "weather", "gaming"):
             self._create_generic_panel()
-        elif domain == 'aerodynamics':
+        elif domain == "aerodynamics":
             self._create_aerodynamics_panel()
-        elif domain == 'physiology':
+        elif domain == "physiology":
             self._create_physiology_panel()
-        elif domain == 'finance':
+        elif domain == "finance":
             self._create_finance_panel()
-        elif domain == 'weather':
+        elif domain == "weather":
             self._create_weather_panel()
-        elif domain == 'gaming':
+        elif domain == "gaming":
             self._create_gaming_panel()
         else:
             self._create_generic_panel()
 
     def _has_esc(self):
-        return any(
-            p.device_type == 'ESCController'
-            for p in self._periph_panel.sub_panels.values()
-        )
+        return any(p.device_type == "ESCController" for p in self._periph_panel.sub_panels.values())
 
     def _has_arinc(self):
-        return any(
-            p.device_type == 'ARINC429'
-            for p in self._periph_panel.sub_panels.values()
-        )
+        return any(p.device_type == "ARINC429" for p in self._periph_panel.sub_panels.values())
 
     def _make_kv(self, parent, key, row, col=0):
         ttk.Label(parent, text=f"{key}:", font=("", 8)).grid(
-            row=row, column=col * 2, sticky=tk.W, padx=(0, 4), pady=1,
+            row=row,
+            column=col * 2,
+            sticky=tk.W,
+            padx=(0, 4),
+            pady=1,
         )
         lbl = ttk.Label(parent, text="—", font=("Consolas", 9), width=14, anchor=tk.W)
         lbl.grid(row=row, column=col * 2 + 1, sticky=tk.W, pady=1)
@@ -216,8 +233,9 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def _create_automotive_panel(self):
         f = ttk.Frame(self._domain_frame)
         f.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        ttk.Label(f, text="\U0001F697 Automotive", font=("", 10, "bold")).grid(
-            row=0, column=0, columnspan=4, sticky=tk.W, pady=(0, 4))
+        ttk.Label(f, text="\U0001f697 Automotive", font=("", 10, "bold")).grid(
+            row=0, column=0, columnspan=4, sticky=tk.W, pady=(0, 4)
+        )
         self._make_kv(f, "Speed (km/h)", 1, 0)
         self._make_kv(f, "RPM", 1, 1)
         self._make_kv(f, "Steering (\u00b0)", 2, 0)
@@ -232,15 +250,16 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def _create_drone_panel(self):
         f = ttk.Frame(self._domain_frame)
         f.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        ttk.Label(f, text="\U0001F681 Drone / UAV", font=("", 10, "bold")).pack(
-            anchor=tk.W, pady=(0, 4))
+        ttk.Label(f, text="\U0001f681 Drone / UAV", font=("", 10, "bold")).pack(
+            anchor=tk.W, pady=(0, 4)
+        )
         mf = ttk.LabelFrame(f, text="Motor RPM", padding=2)
         mf.pack(fill=tk.X, pady=2)
         self._motor_bars = []
         for i in range(4):
             row = ttk.Frame(mf)
             row.pack(fill=tk.X, pady=1)
-            ttk.Label(row, text=f"M{i+1}", width=3).pack(side=tk.LEFT)
+            ttk.Label(row, text=f"M{i + 1}", width=3).pack(side=tk.LEFT)
             bar = ttk.Progressbar(row, maximum=10000, length=120)
             bar.pack(side=tk.LEFT, padx=4)
             lbl = ttk.Label(row, text="0", font=("Consolas", 8), width=6)
@@ -258,8 +277,9 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def _create_medical_panel(self):
         f = ttk.Frame(self._domain_frame)
         f.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        ttk.Label(f, text="\U0001FA7A Medical Monitor", font=("", 10, "bold")).pack(
-            anchor=tk.W, pady=(0, 4))
+        ttk.Label(f, text="\U0001fa7a Medical Monitor", font=("", 10, "bold")).pack(
+            anchor=tk.W, pady=(0, 4)
+        )
         kv = ttk.Frame(f)
         kv.pack(fill=tk.X, pady=2)
         self._make_kv(kv, "Heart Rate", 0, 0)
@@ -272,10 +292,16 @@ class TkPeripheralPanel(ttk.LabelFrame):
         af.pack(fill=tk.X, pady=2)
         ttk.Label(af, text="Alarm:", font=("", 8)).pack(side=tk.LEFT)
         self._alarm_label = tk.Label(
-            af, text="NONE", font=("Consolas", 10, "bold"),
-            bg="#2d2d2d", fg="#4ec9b0", padx=8, pady=2)
+            af,
+            text="NONE",
+            font=("Consolas", 10, "bold"),
+            bg="#2d2d2d",
+            fg="#4ec9b0",
+            padx=8,
+            pady=2,
+        )
         self._alarm_label.pack(side=tk.LEFT, padx=4)
-        self._domain_widgets['_alarm_label'] = self._alarm_label
+        self._domain_widgets["_alarm_label"] = self._alarm_label
         ef = ttk.LabelFrame(f, text="ECG Waveform", padding=2)
         ef.pack(fill=tk.BOTH, expand=True, pady=4)
         self._ecg_canvas = tk.Canvas(ef, bg="#1e1e1e", height=60, highlightthickness=0)
@@ -284,15 +310,16 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def _create_robot_panel(self):
         f = ttk.Frame(self._domain_frame)
         f.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        ttk.Label(f, text="\U0001F916 Robot Controller", font=("", 10, "bold")).pack(
-            anchor=tk.W, pady=(0, 4))
+        ttk.Label(f, text="\U0001f916 Robot Controller", font=("", 10, "bold")).pack(
+            anchor=tk.W, pady=(0, 4)
+        )
         jf = ttk.LabelFrame(f, text="Joint Angles", padding=2)
         jf.pack(fill=tk.X, pady=2)
         self._joint_bars = []
         for i in range(6):
             row = ttk.Frame(jf)
             row.pack(fill=tk.X, pady=1)
-            ttk.Label(row, text=f"J{i+1}", width=3).pack(side=tk.LEFT)
+            ttk.Label(row, text=f"J{i + 1}", width=3).pack(side=tk.LEFT)
             bar = ttk.Progressbar(row, maximum=360, length=120)
             bar.pack(side=tk.LEFT, padx=4)
             lbl = ttk.Label(row, text="0\u00b0", font=("Consolas", 8), width=6)
@@ -307,8 +334,7 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def _create_aircraft_panel(self):
         f = ttk.Frame(self._domain_frame)
         f.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        ttk.Label(f, text="\u2708 Aircraft", font=("", 10, "bold")).pack(
-            anchor=tk.W, pady=(0, 4))
+        ttk.Label(f, text="\u2708 Aircraft", font=("", 10, "bold")).pack(anchor=tk.W, pady=(0, 4))
         kv = ttk.Frame(f)
         kv.pack(fill=tk.X, pady=2)
         self._make_kv(kv, "Altitude (ft)", 0, 0)
@@ -322,8 +348,9 @@ class TkPeripheralPanel(ttk.LabelFrame):
     def _create_industrial_panel(self):
         f = ttk.Frame(self._domain_frame)
         f.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        ttk.Label(f, text="\U0001F3ED Industrial PLC", font=("", 10, "bold")).pack(
-            anchor=tk.W, pady=(0, 4))
+        ttk.Label(f, text="\U0001f3ed Industrial PLC", font=("", 10, "bold")).pack(
+            anchor=tk.W, pady=(0, 4)
+        )
         kv = ttk.Frame(f)
         kv.pack(fill=tk.X, pady=2)
         self._make_kv(kv, "Conveyor Speed", 0, 0)
@@ -333,29 +360,43 @@ class TkPeripheralPanel(ttk.LabelFrame):
         rf = ttk.LabelFrame(f, text="Modbus Registers [0-15]", padding=2)
         rf.pack(fill=tk.X, pady=2)
         self._reg_text = tk.Text(
-            rf, wrap=tk.NONE, font=("Consolas", 8),
-            bg="#1e1e1e", fg="#d4d4d4", state=tk.DISABLED, height=3, width=50)
+            rf,
+            wrap=tk.NONE,
+            font=("Consolas", 8),
+            bg="#1e1e1e",
+            fg="#d4d4d4",
+            state=tk.DISABLED,
+            height=3,
+            width=50,
+        )
         self._reg_text.pack(fill=tk.X)
-        self._domain_widgets['_reg_text'] = self._reg_text
+        self._domain_widgets["_reg_text"] = self._reg_text
 
     def _create_generic_panel(self):
         self._generic_text = tk.Text(
-            self._domain_frame, wrap=tk.WORD, font=("Consolas", 9),
-            bg="#1e1e1e", fg="#d4d4d4", state=tk.DISABLED, height=10, width=50)
+            self._domain_frame,
+            wrap=tk.WORD,
+            font=("Consolas", 9),
+            bg="#1e1e1e",
+            fg="#d4d4d4",
+            state=tk.DISABLED,
+            height=10,
+            width=50,
+        )
         self._generic_text.pack(fill=tk.BOTH, expand=True)
 
     def update_from_state(self, state: dict, vm=None):
-        if self._domain == 'automotive':
+        if self._domain == "automotive":
             self._update_automotive(state, vm)
-        elif self._domain == 'robotics' and self._motor_bars:
+        elif self._domain == "robotics" and self._motor_bars:
             self._update_drone(state)
-        elif self._domain == 'robotics':
+        elif self._domain == "robotics":
             self._update_robot(state)
-        elif self._domain == 'medical':
+        elif self._domain == "medical":
             self._update_medical(state)
-        elif self._domain == 'aerospace' and 'altitude_ft' in state:
+        elif self._domain == "aerospace" and "altitude_ft" in state:
             self._update_aircraft(state)
-        elif self._domain == 'industrial':
+        elif self._domain == "industrial":
             self._update_industrial(state, vm)
         else:
             self._update_generic(state)
@@ -368,14 +409,14 @@ class TkPeripheralPanel(ttk.LabelFrame):
             lbl.configure(text=str(value))
 
     def _update_automotive(self, state, vm=None):
-        self._set_kv("Speed (km/h)", state.get('speed_kmh', 0))
-        self._set_kv("RPM", state.get('rpm', 0))
-        self._set_kv("Steering (\u00b0)", state.get('steering_deg', 0))
-        self._set_kv("Throttle (%)", state.get('throttle_pct', 0))
-        self._set_kv("Brake (%)", state.get('brake_pct', 0))
-        self._set_kv("SoC (%)", state.get('soc_pct', 0))
+        self._set_kv("Speed (km/h)", state.get("speed_kmh", 0))
+        self._set_kv("RPM", state.get("rpm", 0))
+        self._set_kv("Steering (\u00b0)", state.get("steering_deg", 0))
+        self._set_kv("Throttle (%)", state.get("throttle_pct", 0))
+        self._set_kv("Brake (%)", state.get("brake_pct", 0))
+        self._set_kv("SoC (%)", state.get("soc_pct", 0))
         if vm:
-            can = vm.peripherals.get('can0')
+            can = vm.peripherals.get("can0")
             if can:
                 self._set_kv("CAN TX", can.tx_count)
                 self._set_kv("CAN RX", can.rx_count)
@@ -383,28 +424,28 @@ class TkPeripheralPanel(ttk.LabelFrame):
                 self._set_kv("Bus Off", "YES" if can.bus_off else "No")
 
     def _update_drone(self, state):
-        rpms = state.get('motor_rpm', [0, 0, 0, 0])
+        rpms = state.get("motor_rpm", [0, 0, 0, 0])
         for i, (bar, lbl) in enumerate(self._motor_bars):
             rpm = rpms[i] if i < len(rpms) else 0
-            bar['value'] = max(0, rpm)
+            bar["value"] = max(0, rpm)
             lbl.configure(text=str(int(rpm)))
-        self._set_kv("Flight Mode", state.get('flight_mode', 'DISARMED'))
+        self._set_kv("Flight Mode", state.get("flight_mode", "DISARMED"))
         self._set_kv("Altitude (m)", f"{state.get('altitude_m', 0):.1f}")
-        self._set_kv("Roll (\u00b0)", state.get('roll_deg', 0))
-        self._set_kv("Pitch (\u00b0)", state.get('pitch_deg', 0))
-        self._set_kv("Yaw (\u00b0)", state.get('yaw_deg', 0))
-        self._set_kv("SoC (%)", state.get('soc_pct', 0))
+        self._set_kv("Roll (\u00b0)", state.get("roll_deg", 0))
+        self._set_kv("Pitch (\u00b0)", state.get("pitch_deg", 0))
+        self._set_kv("Yaw (\u00b0)", state.get("yaw_deg", 0))
+        self._set_kv("SoC (%)", state.get("soc_pct", 0))
 
     def _update_medical(self, state):
-        self._set_kv("Heart Rate", state.get('heart_rate', 0))
-        self._set_kv("SpO2 (%)", state.get('spo2', 0))
+        self._set_kv("Heart Rate", state.get("heart_rate", 0))
+        self._set_kv("SpO2 (%)", state.get("spo2", 0))
         self._set_kv("Temperature", f"{state.get('temperature', 0):.1f}\u00b0C")
-        self._set_kv("Resp Rate", state.get('resp_rate', 0))
+        self._set_kv("Resp Rate", state.get("resp_rate", 0))
         self._set_kv("BP Sys/Dia", f"{state.get('bp_sys', 0)}/{state.get('bp_dia', 0)}")
         self._set_kv("Pump Flow", f"{state.get('pump_flow', 0):.1f} mL/min")
-        alarm = state.get('alarm', 'NONE')
-        priority = state.get('alarm_priority', 0)
-        al = self._domain_widgets.get('_alarm_label')
+        alarm = state.get("alarm", "NONE")
+        priority = state.get("alarm_priority", 0)
+        al = self._domain_widgets.get("_alarm_label")
         if al:
             al.configure(text=alarm)
             if priority >= 3:
@@ -416,7 +457,7 @@ class TkPeripheralPanel(ttk.LabelFrame):
             else:
                 al.configure(bg="#2d2d2d", fg="#4ec9b0")
         if self._ecg_canvas:
-            self._draw_ecg(state.get('ecg_waveform', []))
+            self._draw_ecg(state.get("ecg_waveform", []))
 
     def _draw_ecg(self, waveform):
         self._ecg_canvas.delete("all")
@@ -437,45 +478,45 @@ class TkPeripheralPanel(ttk.LabelFrame):
             self._ecg_canvas.create_line(pts, fill="#4ec9b0", width=1.5, smooth=True)
 
     def _update_robot(self, state):
-        angles = state.get('joint_angles', [0] * 6)
+        angles = state.get("joint_angles", [0] * 6)
         for i, (bar, lbl) in enumerate(self._joint_bars):
             a = angles[i] if i < len(angles) else 0
-            bar['value'] = max(0, a + 180)
+            bar["value"] = max(0, a + 180)
             lbl.configure(text=f"{a:.0f}\u00b0")
-        self._set_kv("Gripper", state.get('gripper_state', 'open'))
+        self._set_kv("Gripper", state.get("gripper_state", "open"))
         self._set_kv("Obstacle (cm)", f"{state.get('obstacle_cm', 0):.0f}")
-        self._set_kv("Op Mode", state.get('op_mode', 'idle'))
+        self._set_kv("Op Mode", state.get("op_mode", "idle"))
 
     def _update_aircraft(self, state):
         self._set_kv("Altitude (ft)", f"{state.get('altitude_ft', 0):.0f}")
         self._set_kv("Airspeed (kts)", f"{state.get('airspeed_kts', 0):.0f}")
         self._set_kv("Heading (\u00b0)", f"{state.get('heading_deg', 0):.0f}")
         self._set_kv("VS (fpm)", f"{state.get('vs_fpm', 0):.0f}")
-        self._set_kv("Gear", state.get('gear_state', 'UP'))
+        self._set_kv("Gear", state.get("gear_state", "UP"))
         self._set_kv("Flaps", f"{state.get('flap_deg', 0)}\u00b0")
-        self._set_kv("Flight Phase", state.get('flight_phase', 'ground'))
+        self._set_kv("Flight Phase", state.get("flight_phase", "ground"))
 
     def _update_industrial(self, state, vm=None):
-        self._set_kv("Conveyor Speed", state.get('conveyor_speed', 0))
-        self._set_kv("Motor Status", state.get('motor_status', 'off'))
+        self._set_kv("Conveyor Speed", state.get("conveyor_speed", 0))
+        self._set_kv("Motor Status", state.get("motor_status", "off"))
         if vm:
-            mb = vm.peripherals.get('modbus0')
+            mb = vm.peripherals.get("modbus0")
             if mb:
                 self._set_kv("Modbus TXN", mb.transaction_count)
-                rt = self._domain_widgets.get('_reg_text')
+                rt = self._domain_widgets.get("_reg_text")
                 if rt:
                     regs = mb.registers[:16]
                     lines = []
                     for i in range(0, len(regs), 8):
-                        vals = " ".join(f"{v:5d}" for v in regs[i:i+8])
+                        vals = " ".join(f"{v:5d}" for v in regs[i : i + 8])
                         lines.append(f"[{i:02d}] {vals}")
                     rt.configure(state=tk.NORMAL)
                     rt.delete("1.0", tk.END)
                     rt.insert("1.0", "\n".join(lines))
                     rt.configure(state=tk.DISABLED)
-            relay = vm.peripherals.get('relay0')
+            relay = vm.peripherals.get("relay0")
             if relay:
-                bits = "".join("1" if s else "0" for s in getattr(relay, 'states', []))
+                bits = "".join("1" if s else "0" for s in getattr(relay, "states", []))
                 self._set_kv("Relay States", bits or "\u2014")
 
     def _update_generic(self, state):
@@ -548,12 +589,19 @@ class TkSimulatorApp(ttk.Frame):
         state_frame = ttk.LabelFrame(mid_right, text="Simulator State", padding=2)
         mid_right.add(state_frame, weight=1)
         self._state_text = tk.Text(
-            state_frame, wrap=tk.WORD, font=("Consolas", 9),
-            bg="#1e1e1e", fg="#d4d4d4", state=tk.DISABLED,
-            height=8, width=35,
+            state_frame,
+            wrap=tk.WORD,
+            font=("Consolas", 9),
+            bg="#1e1e1e",
+            fg="#d4d4d4",
+            state=tk.DISABLED,
+            height=8,
+            width=35,
         )
         state_scroll = ttk.Scrollbar(
-            state_frame, orient=tk.VERTICAL, command=self._state_text.yview,
+            state_frame,
+            orient=tk.VERTICAL,
+            command=self._state_text.yview,
         )
         self._state_text.configure(yscrollcommand=state_scroll.set)
         self._state_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -568,7 +616,8 @@ class TkSimulatorApp(ttk.Frame):
 
     def _build_toolbar(self, parent):
         ttk.Label(parent, text="Product:", font=("", 9)).pack(
-            side=tk.LEFT, padx=(0, 4),
+            side=tk.LEFT,
+            padx=(0, 4),
         )
         products = sorted(PRODUCT_CATALOG.keys())
         self._product_display_map = {}
@@ -580,39 +629,58 @@ class TkSimulatorApp(ttk.Frame):
             self._product_display_map[dn] = key
         self._toolbar_product_var = tk.StringVar()
         self._toolbar_product_combo = ttk.Combobox(
-            parent, textvariable=self._toolbar_product_var,
-            values=display_names, state="readonly", width=22,
+            parent,
+            textvariable=self._toolbar_product_var,
+            values=display_names,
+            state="readonly",
+            width=22,
         )
         self._toolbar_product_combo.pack(side=tk.LEFT, padx=(0, 8))
         self._toolbar_product_combo.bind(
-            "<<ComboboxSelected>>", self._on_toolbar_product,
+            "<<ComboboxSelected>>",
+            self._on_toolbar_product,
         )
 
         self._btn_build = ttk.Button(
-            parent, text="\u25b6 Build & Run", command=self._on_build, width=12,
+            parent,
+            text="\u25b6 Build & Run",
+            command=self._on_build,
+            width=12,
         )
         self._btn_build.pack(side=tk.LEFT, padx=2)
 
         self._btn_pause = ttk.Button(
-            parent, text="\u23f8 Pause", command=self._on_pause, width=8,
+            parent,
+            text="\u23f8 Pause",
+            command=self._on_pause,
+            width=8,
             state=tk.DISABLED,
         )
         self._btn_pause.pack(side=tk.LEFT, padx=2)
 
         self._btn_step = ttk.Button(
-            parent, text="\u23ed Step", command=self._on_step, width=7,
+            parent,
+            text="\u23ed Step",
+            command=self._on_step,
+            width=7,
             state=tk.DISABLED,
         )
         self._btn_step.pack(side=tk.LEFT, padx=2)
 
         self._btn_stop = ttk.Button(
-            parent, text="\u23f9 Stop", command=self._on_stop, width=7,
+            parent,
+            text="\u23f9 Stop",
+            command=self._on_stop,
+            width=7,
             state=tk.DISABLED,
         )
         self._btn_stop.pack(side=tk.LEFT, padx=2)
 
         self._btn_reset = ttk.Button(
-            parent, text="\u21ba Reset", command=self._on_reset, width=7,
+            parent,
+            text="\u21ba Reset",
+            command=self._on_reset,
+            width=7,
             state=tk.DISABLED,
         )
         self._btn_reset.pack(side=tk.LEFT, padx=2)
@@ -621,49 +689,71 @@ class TkSimulatorApp(ttk.Frame):
         sep.pack(side=tk.LEFT, fill=tk.Y, padx=8)
 
         ttk.Label(parent, text="Scenario:", font=("", 9)).pack(
-            side=tk.LEFT, padx=(0, 4),
+            side=tk.LEFT,
+            padx=(0, 4),
         )
         self._scenario_var = tk.StringVar()
         self._scenario_combo = ttk.Combobox(
-            parent, textvariable=self._scenario_var,
-            values=[], state="readonly", width=20,
+            parent,
+            textvariable=self._scenario_var,
+            values=[],
+            state="readonly",
+            width=20,
         )
         self._scenario_combo.pack(side=tk.LEFT, padx=(0, 4))
 
         self._btn_load_scenario = ttk.Button(
-            parent, text="Load Scenario", command=self._on_load_scenario,
-            width=14, state=tk.DISABLED,
+            parent,
+            text="Load Scenario",
+            command=self._on_load_scenario,
+            width=14,
+            state=tk.DISABLED,
         )
         self._btn_load_scenario.pack(side=tk.LEFT, padx=2)
 
     def _build_status_bar(self, parent):
         self._status_mode = ttk.Label(
-            parent, text="Mode: Idle", font=("Consolas", 9),
-            relief=tk.SUNKEN, padding=(4, 1),
+            parent,
+            text="Mode: Idle",
+            font=("Consolas", 9),
+            relief=tk.SUNKEN,
+            padding=(4, 1),
         )
         self._status_mode.pack(side=tk.LEFT, padx=(0, 4))
 
         self._status_cycles = ttk.Label(
-            parent, text="Cycles: 0", font=("Consolas", 9),
-            relief=tk.SUNKEN, padding=(4, 1),
+            parent,
+            text="Cycles: 0",
+            font=("Consolas", 9),
+            relief=tk.SUNKEN,
+            padding=(4, 1),
         )
         self._status_cycles.pack(side=tk.LEFT, padx=(0, 4))
 
         self._status_elapsed = ttk.Label(
-            parent, text="Elapsed: 0.0s", font=("Consolas", 9),
-            relief=tk.SUNKEN, padding=(4, 1),
+            parent,
+            text="Elapsed: 0.0s",
+            font=("Consolas", 9),
+            relief=tk.SUNKEN,
+            padding=(4, 1),
         )
         self._status_elapsed.pack(side=tk.LEFT, padx=(0, 4))
 
         self._status_arch = ttk.Label(
-            parent, text="Arch: \u2014", font=("Consolas", 9),
-            relief=tk.SUNKEN, padding=(4, 1),
+            parent,
+            text="Arch: \u2014",
+            font=("Consolas", 9),
+            relief=tk.SUNKEN,
+            padding=(4, 1),
         )
         self._status_arch.pack(side=tk.LEFT, padx=(0, 4))
 
         self._status_product = ttk.Label(
-            parent, text="Product: \u2014", font=("Consolas", 9),
-            relief=tk.SUNKEN, padding=(4, 1),
+            parent,
+            text="Product: \u2014",
+            font=("Consolas", 9),
+            relief=tk.SUNKEN,
+            padding=(4, 1),
         )
         self._status_product.pack(side=tk.LEFT, padx=(0, 4))
 
@@ -671,12 +761,12 @@ class TkSimulatorApp(ttk.Frame):
 
     def _on_toolbar_product(self, event=None):
         display = self._toolbar_product_var.get()
-        product_name = self._product_display_map.get(display, '')
+        product_name = self._product_display_map.get(display, "")
         if not product_name:
             return
         idx = next(
-            (i for i, n in enumerate(self._build_panel._product_names)
-             if n == product_name), -1,
+            (i for i, n in enumerate(self._build_panel._product_names) if n == product_name),
+            -1,
         )
         if idx >= 0:
             self._build_panel.product_combo.current(idx)
@@ -686,40 +776,39 @@ class TkSimulatorApp(ttk.Frame):
         product_name = self._build_panel.get_selected_product_name()
         if not product_name:
             display = self._toolbar_product_var.get()
-            product_name = self._product_display_map.get(display, '')
+            product_name = self._product_display_map.get(display, "")
         if not product_name:
             return
 
         config = self._build_panel.get_build_config()
         vm = self._app.build_and_run(
             product_name,
-            peripherals=config.get('peripherals', []),
-            arch=config.get('arch', ''),
-            ram_mb=config.get('ram_mb', 128),
+            peripherals=config.get("peripherals", []),
+            arch=config.get("arch", ""),
+            ram_mb=config.get("ram_mb", 128),
         )
         if not vm:
             return
 
         tpl = PRODUCT_CATALOG.get(product_name)
-        domain = tpl.domain if tpl else ''
+        domain = tpl.domain if tpl else ""
         self.periph_panel.configure_for_product(vm, domain)
 
         self.viewer_3d.set_domain(domain)
 
-        gpio = vm.peripherals.get('gpio0')
+        gpio = vm.peripherals.get("gpio0")
         if gpio:
             self.gpio_panel.set_gpio_device(gpio)
 
         self.uart_terminal.clear()
         self.uart_terminal.set_inject_callback(
-            lambda text: vm.inject_uart(text)
-            if hasattr(vm, 'inject_uart') else None,
+            lambda text: vm.inject_uart(text) if hasattr(vm, "inject_uart") else None,
         )
 
         if vm.bus:
             self.memory_view.set_bus(vm.bus)
 
-        scenarios = list(getattr(self._app.simulator, 'SCENARIOS', {}).keys())
+        scenarios = list(getattr(self._app.simulator, "SCENARIOS", {}).keys())
         self._scenario_combo.configure(values=scenarios)
         if scenarios:
             self._scenario_combo.current(0)
@@ -785,7 +874,7 @@ class TkSimulatorApp(ttk.Frame):
         name = self._scenario_var.get()
         if not name or not self._app.simulator:
             return
-        if hasattr(self._app.simulator, 'load_scenario'):
+        if hasattr(self._app.simulator, "load_scenario"):
             self._app.simulator.load_scenario(name)
         self._update_all_panels()
 
@@ -809,7 +898,7 @@ class TkSimulatorApp(ttk.Frame):
         if vm.cpu:
             self.cpu_panel.update_state(vm.cpu.state)
 
-        gpio = vm.peripherals.get('gpio0')
+        gpio = vm.peripherals.get("gpio0")
         if gpio:
             self.gpio_panel.update_display(gpio)
 
