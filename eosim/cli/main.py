@@ -245,8 +245,7 @@ def run(platform, headless, timeout, log_dir, firmware, dry_run):
     if engine == "renode":
         _run_renode(p, platform, headless, timeout, log_file, firmware)
     elif engine == "qemu":
-        _run_qemu(p, platform, headless, timeout, log_file, firmware,
-                  dry_run=dry_run)
+        _run_qemu(p, platform, headless, timeout, log_file, firmware, dry_run=dry_run)
     elif engine == "eosim":
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
     else:
@@ -309,8 +308,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
     machine = p.get("qemu", {}).get("machine", "virt")
     cpu = p.get("qemu", {}).get("cpu", "")
     memory = p.get("runtime", {}).get("memory_mb", 512)
-    cmd = [qemu or qemu_bin, "-machine", machine, "-m", str(memory),
-           "-nographic", "-no-reboot"]
+    cmd = [qemu or qemu_bin, "-machine", machine, "-m", str(memory), "-nographic", "-no-reboot"]
     if cpu:
         cmd += ["-cpu", cpu]
     if firmware:
@@ -328,8 +326,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"QEMU NOT INSTALLED for {arch} — nothing was executed.\n")
         click.echo(f"QEMU NOT INSTALLED for {arch} — nothing was executed.", err=True)
-        click.echo(f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.",
-                   err=True)
+        click.echo(f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.", err=True)
         sys.exit(2)
 
     try:
