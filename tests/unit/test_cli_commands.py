@@ -169,26 +169,41 @@ class TestRunRenode:
 
 
 class TestRunQemuAndNative:
-    def test_qemu_missing_is_a_logged_dry_run(self, platforms, invoke, monkeypatch, fake_run):
+    def test_qemu_missing_is_not_a_pass(self, platforms, invoke, monkeypatch, fake_run):
         asked = []
         monkeypatch.setattr(cli_main.shutil, "which", lambda n: asked.append(n))
         res = invoke("run", "qemu-board", "--log-dir", "logs")
         assert asked == ["qemu-system-aarch64"]
-        assert "QEMU not found for arm64 — simulation skipped" in res.output
-        assert "Install: sudo apt install qemu-system-arm64" in res.output
-        log = (platforms.parent / "logs" / "qemu-board.log").read_text()
-        assert log == "QEMU not available for arm64\nPASSED (dry run)\n"
+        assert "QEMU NOT INSTALLED for arm64 — nothing was executed." in res.output
+        assert "Install: sudo apt install qemu-system-arm64, or pass --dry-run." in res.output
+        assert "PASSED" not in res.output
+        log = (platforms.parent / "logs" / "qemu-board.log").read_text(encoding="utf-8")
+        assert log == "QEMU NOT INSTALLED for arm64 — nothing was executed.\n"
+        assert res.exit_code == 2
+        fake_run.assert_not_called()
+
+    def test_qemu_dry_run_is_logged_and_not_executed(self, platforms, invoke, monkeypatch, fake_run):
+        tool_paths(monkeypatch, {})
+        res = invoke("run", "qemu-board", "--log-dir", "logs", "--dry-run")
+        assert "DRY RUN — qemu was not executed." in res.output
+        log = (platforms.parent / "logs" / "qemu-board.log").read_text(encoding="utf-8")
+        assert log == (
+            "DRY RUN — qemu was not executed (explicit --dry-run).\n"
+            "qemu-system-aarch64 -machine virt -m 256 -nographic -no-reboot -cpu cortex-a57\n"
+        )
         assert res.exit_code == 0
         fake_run.assert_not_called()
 
-    def test_qemu_command_line_is_built_but_not_executed(
+    def test_qemu_command_line_is_built_and_executed(
         self, platforms, invoke, monkeypatch, fake_run
     ):
         tool_paths(monkeypatch, {"qemu-system-aarch64": "/usr/bin/qemu-system-aarch64"})
         res = invoke("run", "qemu-board", "--log-dir", "logs")
-        expected = "Running: /usr/bin/qemu-system-aarch64 -machine virt -m 256 -nographic -no-reboot -cpu cortex-a57"
-        assert expected in res.output
-        fake_run.assert_not_called()
+        cmd = "/usr/bin/qemu-system-aarch64 -machine virt -m 256 -nographic -no-reboot -cpu cortex-a57"
+        assert "Running: " + cmd in res.output
+        fake_run.assert_called_once_with(cmd.split(), timeout=60, capture_output=True, text=True)
+        assert "PASSED" in res.output
+        assert res.exit_code == 0
 
     def test_unknown_engine(self, platforms, invoke):
         res = invoke("run", "odd-board", "--log-dir", "logs")
@@ -283,12 +298,20 @@ class TestTestAndValidate:
 
 
 class TestSimulate:
-    def test_qemu_dry_run_with_nested_install(self, platforms, invoke, monkeypatch):
+    def test_qemu_missing_stops_before_nested_install(self, platforms, invoke, monkeypatch):
         tool_paths(monkeypatch, {})
         res = invoke("simulate", "--platform", "qemu-board", "--nested-install")
         assert "EoSim: simulating qemu-board (arm64) via qemu" in res.output
-        assert "Nested install test: simulated for qemu-board" in res.output
+        assert "QEMU NOT INSTALLED for arm64" in res.output
+        assert "Nested install" not in res.output
         assert (platforms.parent / "out" / "logs" / "qemu-board.log").exists()
+        assert res.exit_code == 2
+
+    def test_qemu_run_then_nested_install(self, platforms, invoke, monkeypatch, fake_run):
+        tool_paths(monkeypatch, {"qemu-system-aarch64": "/usr/bin/qemu-system-aarch64"})
+        res = invoke("simulate", "--platform", "qemu-board", "--nested-install")
+        fake_run.assert_called_once()
+        assert "Nested install test: simulated for qemu-board" in res.output
         assert res.exit_code == 0
 
     def test_duration_is_renode_timeout(self, platforms, invoke, monkeypatch, fake_run):
