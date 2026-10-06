@@ -5,6 +5,7 @@
 All simulators are pure Python, cross-platform (Linux/Windows/macOS).
 No OS-specific dependencies. No tkinter, no C extensions.
 """
+
 from eosim.engine.native.simulators.aerodynamics import AerodynamicsSimulator
 from eosim.engine.native.simulators.agriculture import AgricultureSimulator
 from eosim.engine.native.simulators.aircraft import AircraftSimulator
@@ -60,8 +61,8 @@ from eosim.engine.native.simulators.weather import WeatherSimulator
 class BaseSimulator:
     """Base class for all product simulators (fallback for unmapped types)."""
 
-    PRODUCT_TYPE = 'generic'
-    DISPLAY_NAME = 'Generic Simulator'
+    PRODUCT_TYPE = "generic"
+    DISPLAY_NAME = "Generic Simulator"
 
     def __init__(self, vm):
         self.vm = vm
@@ -74,7 +75,7 @@ class BaseSimulator:
     def tick(self):
         self.tick_count += 1
         for name, dev in self.vm.peripherals.items():
-            if hasattr(dev, 'simulate_tick'):
+            if hasattr(dev, "simulate_tick"):
                 dev.simulate_tick()
 
     def get_state(self) -> dict:
@@ -93,222 +94,222 @@ class BaseSimulator:
 
 SIMULATOR_MAP = {
     # Automotive
-    'vehicle': VehicleSimulator,
-    'automotive_ecu': VehicleSimulator,
-    'ev_powertrain': VehicleSimulator,
-    'adas_controller': VehicleSimulator,
-    'electric_scooter': VehicleSimulator,
+    "vehicle": VehicleSimulator,
+    "automotive_ecu": VehicleSimulator,
+    "ev_powertrain": VehicleSimulator,
+    "adas_controller": VehicleSimulator,
+    "electric_scooter": VehicleSimulator,
     # V2X
-    'v2x': AutomotiveV2XSimulator,
-    'v2x_rsu': AutomotiveV2XSimulator,
+    "v2x": AutomotiveV2XSimulator,
+    "v2x_rsu": AutomotiveV2XSimulator,
     # Drone
-    'drone': DroneSimulator,
-    'drone_controller': DroneSimulator,
-    'ag_drone': DroneSimulator,
+    "drone": DroneSimulator,
+    "drone_controller": DroneSimulator,
+    "ag_drone": DroneSimulator,
     # Robot
-    'robot': RobotSimulator,
-    'robot_controller': RobotSimulator,
-    'surgical_robot': RobotSimulator,
+    "robot": RobotSimulator,
+    "robot_controller": RobotSimulator,
+    "surgical_robot": RobotSimulator,
     # Aircraft
-    'aircraft': AircraftSimulator,
-    'fixed_wing': AircraftSimulator,
+    "aircraft": AircraftSimulator,
+    "fixed_wing": AircraftSimulator,
     # Satellite
-    'cubesat': SatelliteSimulator,
-    'satellite': SatelliteSimulator,
+    "cubesat": SatelliteSimulator,
+    "satellite": SatelliteSimulator,
     # Medical
-    'medical': MedicalSimulator,
-    'medical_monitor': MedicalSimulator,
+    "medical": MedicalSimulator,
+    "medical_monitor": MedicalSimulator,
     # Industrial
-    'industrial': IndustrialSimulator,
-    'industrial_plc': IndustrialSimulator,
+    "industrial": IndustrialSimulator,
+    "industrial_plc": IndustrialSimulator,
     # IoT
-    'iot': IoTSimulator,
-    'iot_sensor': IoTSimulator,
-    'smart_home_hub': IoTSimulator,
+    "iot": IoTSimulator,
+    "iot_sensor": IoTSimulator,
+    "smart_home_hub": IoTSimulator,
     # Energy
-    'smart_meter': EnergySimulator,
-    'energy': EnergySimulator,
-    'solar_inverter': EnergySimulator,
+    "smart_meter": EnergySimulator,
+    "energy": EnergySimulator,
+    "solar_inverter": EnergySimulator,
     # Smart Grid
-    'smart_grid': SmartGridSimulator,
-    'power_distribution': SmartGridSimulator,
-    'substation': SmartGridSimulator,
+    "smart_grid": SmartGridSimulator,
+    "power_distribution": SmartGridSimulator,
+    "substation": SmartGridSimulator,
     # Wearable
-    'wearable': WearableSimulator,
-    'wearable_device': WearableSimulator,
+    "wearable": WearableSimulator,
+    "wearable_device": WearableSimulator,
     # Media
-    'iptv_stb': MediaDeviceSimulator,
-    'cast_device': MediaDeviceSimulator,
-    'tv_os': MediaDeviceSimulator,
-    'media_device': MediaDeviceSimulator,
+    "iptv_stb": MediaDeviceSimulator,
+    "cast_device": MediaDeviceSimulator,
+    "tv_os": MediaDeviceSimulator,
+    "media_device": MediaDeviceSimulator,
     # Speaker / Camera
-    'smart_speaker': SmartSpeakerSimulator,
-    'google_mini': SmartSpeakerSimulator,
-    'home_camera': HomeCameraSimulator,
-    'spy_camera': HomeCameraSimulator,
+    "smart_speaker": SmartSpeakerSimulator,
+    "google_mini": SmartSpeakerSimulator,
+    "home_camera": HomeCameraSimulator,
+    "spy_camera": HomeCameraSimulator,
     # Aerodynamics
-    'aerodynamics': AerodynamicsSimulator,
-    'wind_tunnel': AerodynamicsSimulator,
-    'cfd_lab': AerodynamicsSimulator,
+    "aerodynamics": AerodynamicsSimulator,
+    "wind_tunnel": AerodynamicsSimulator,
+    "cfd_lab": AerodynamicsSimulator,
     # Physiology
-    'physiology': PhysiologySimulator,
-    'patient_model': PhysiologySimulator,
+    "physiology": PhysiologySimulator,
+    "patient_model": PhysiologySimulator,
     # Finance
-    'finance': FinanceSimulator,
-    'stock_market': FinanceSimulator,
-    'trading_sim': FinanceSimulator,
+    "finance": FinanceSimulator,
+    "stock_market": FinanceSimulator,
+    "trading_sim": FinanceSimulator,
     # Weather
-    'weather': WeatherSimulator,
-    'weather_station_sim': WeatherSimulator,
-    'atmosphere': WeatherSimulator,
+    "weather": WeatherSimulator,
+    "weather_station_sim": WeatherSimulator,
+    "atmosphere": WeatherSimulator,
     # Gaming
-    'gaming': GamingSimulator,
-    'game_world': GamingSimulator,
-    'physics_sandbox': GamingSimulator,
+    "gaming": GamingSimulator,
+    "game_world": GamingSimulator,
+    "physics_sandbox": GamingSimulator,
     # Telecom
-    'telecom': TelecomSimulator,
-    'base_station_5g': TelecomSimulator,
-    'lte_enodeb': TelecomSimulator,
-    'network_switch': TelecomSimulator,
+    "telecom": TelecomSimulator,
+    "base_station_5g": TelecomSimulator,
+    "lte_enodeb": TelecomSimulator,
+    "network_switch": TelecomSimulator,
     # Defense
-    'defense': DefenseSimulator,
-    'tactical_radio': DefenseSimulator,
-    'radar_system': DefenseSimulator,
-    'missile_guidance': DefenseSimulator,
+    "defense": DefenseSimulator,
+    "tactical_radio": DefenseSimulator,
+    "radar_system": DefenseSimulator,
+    "missile_guidance": DefenseSimulator,
     # Submarine
-    'submarine': SubmarineSimulator,
-    'submarine_sim': SubmarineSimulator,
-    'auv': SubmarineSimulator,
+    "submarine": SubmarineSimulator,
+    "submarine_sim": SubmarineSimulator,
+    "auv": SubmarineSimulator,
     # Network
-    'network': NetworkSimulator,
-    'router': NetworkSimulator,
-    'firewall': NetworkSimulator,
-    'sdn_controller': NetworkSimulator,
+    "network": NetworkSimulator,
+    "router": NetworkSimulator,
+    "firewall": NetworkSimulator,
+    "sdn_controller": NetworkSimulator,
     # Smart City
-    'smart_city': SmartCitySimulator,
-    'traffic_light': SmartCitySimulator,
-    'smart_parking': SmartCitySimulator,
-    'street_lighting': SmartCitySimulator,
+    "smart_city": SmartCitySimulator,
+    "traffic_light": SmartCitySimulator,
+    "smart_parking": SmartCitySimulator,
+    "street_lighting": SmartCitySimulator,
     # Railway
-    'railway': RailwaySimulator,
-    'train_control': RailwaySimulator,
-    'signaling': RailwaySimulator,
-    'ptc_system': RailwaySimulator,
+    "railway": RailwaySimulator,
+    "train_control": RailwaySimulator,
+    "signaling": RailwaySimulator,
+    "ptc_system": RailwaySimulator,
     # Agriculture
-    'agriculture': AgricultureSimulator,
-    'irrigation': AgricultureSimulator,
-    'tractor_ecu': AgricultureSimulator,
-    'greenhouse': AgricultureSimulator,
+    "agriculture": AgricultureSimulator,
+    "irrigation": AgricultureSimulator,
+    "tractor_ecu": AgricultureSimulator,
+    "greenhouse": AgricultureSimulator,
     # Maritime
-    'maritime': MaritimeSimulator,
-    'ship_autopilot': MaritimeSimulator,
-    'ais_transponder': MaritimeSimulator,
-    'port_crane': MaritimeSimulator,
+    "maritime": MaritimeSimulator,
+    "ship_autopilot": MaritimeSimulator,
+    "ais_transponder": MaritimeSimulator,
+    "port_crane": MaritimeSimulator,
     # Mining
-    'mining': MiningSimulator,
-    'drill_controller': MiningSimulator,
-    'mine_ventilation': MiningSimulator,
-    'gas_detection': MiningSimulator,
+    "mining": MiningSimulator,
+    "drill_controller": MiningSimulator,
+    "mine_ventilation": MiningSimulator,
+    "gas_detection": MiningSimulator,
     # Construction
-    'construction': ConstructionSimulator,
-    'crane_controller': ConstructionSimulator,
-    'excavator': ConstructionSimulator,
-    'concrete_pump': ConstructionSimulator,
+    "construction": ConstructionSimulator,
+    "crane_controller": ConstructionSimulator,
+    "excavator": ConstructionSimulator,
+    "concrete_pump": ConstructionSimulator,
     # Retail
-    'retail': RetailSimulator,
-    'pos_terminal': RetailSimulator,
-    'smart_shelf': RetailSimulator,
-    'vending_machine': RetailSimulator,
+    "retail": RetailSimulator,
+    "pos_terminal": RetailSimulator,
+    "smart_shelf": RetailSimulator,
+    "vending_machine": RetailSimulator,
     # Education
-    'education': EducationSimulator,
-    'lab_equipment': EducationSimulator,
-    'stem_kit': EducationSimulator,
-    'coding_robot': EducationSimulator,
+    "education": EducationSimulator,
+    "lab_equipment": EducationSimulator,
+    "stem_kit": EducationSimulator,
+    "coding_robot": EducationSimulator,
     # Nuclear
-    'nuclear': NuclearSimulator,
-    'reactor_control': NuclearSimulator,
-    'radiation_monitor': NuclearSimulator,
+    "nuclear": NuclearSimulator,
+    "reactor_control": NuclearSimulator,
+    "radiation_monitor": NuclearSimulator,
     # Rover / Space
-    'rover': RoverSimulator,
-    'mars_rover': RoverSimulator,
-    'lunar_rover': RoverSimulator,
-    'exploration_bot': RoverSimulator,
+    "rover": RoverSimulator,
+    "mars_rover": RoverSimulator,
+    "lunar_rover": RoverSimulator,
+    "exploration_bot": RoverSimulator,
     # Launch Vehicle
-    'launch_vehicle': LaunchVehicleSimulator,
-    'rocket_guidance': LaunchVehicleSimulator,
-    'stage_separation': LaunchVehicleSimulator,
+    "launch_vehicle": LaunchVehicleSimulator,
+    "rocket_guidance": LaunchVehicleSimulator,
+    "stage_separation": LaunchVehicleSimulator,
     # Printer
-    'printer': PrinterSimulator,
-    '3d_printer': PrinterSimulator,
-    'laser_printer': PrinterSimulator,
-    'inkjet_printer': PrinterSimulator,
+    "printer": PrinterSimulator,
+    "3d_printer": PrinterSimulator,
+    "laser_printer": PrinterSimulator,
+    "inkjet_printer": PrinterSimulator,
     # HVAC
-    'hvac': HVACSimulator,
-    'hvac_controller': HVACSimulator,
-    'thermostat': HVACSimulator,
+    "hvac": HVACSimulator,
+    "hvac_controller": HVACSimulator,
+    "thermostat": HVACSimulator,
     # Elevator
-    'elevator': ElevatorSimulator,
-    'lift_controller': ElevatorSimulator,
-    'escalator': ElevatorSimulator,
+    "elevator": ElevatorSimulator,
+    "lift_controller": ElevatorSimulator,
+    "escalator": ElevatorSimulator,
     # Traffic
-    'traffic': TrafficSimulator,
-    'traffic_light_controller': TrafficSimulator,
-    'speed_camera': TrafficSimulator,
+    "traffic": TrafficSimulator,
+    "traffic_light_controller": TrafficSimulator,
+    "speed_camera": TrafficSimulator,
     # Water
-    'water': WaterSimulator,
-    'water_treatment': WaterSimulator,
-    'pump_station': WaterSimulator,
+    "water": WaterSimulator,
+    "water_treatment": WaterSimulator,
+    "pump_station": WaterSimulator,
     # Oil & Gas
-    'oil_gas': OilGasSimulator,
-    'pipeline_scada': OilGasSimulator,
-    'wellhead_controller': OilGasSimulator,
+    "oil_gas": OilGasSimulator,
+    "pipeline_scada": OilGasSimulator,
+    "wellhead_controller": OilGasSimulator,
     # Logistics
-    'logistics': LogisticsSimulator,
-    'warehouse_robot': LogisticsSimulator,
-    'conveyor_sort': LogisticsSimulator,
+    "logistics": LogisticsSimulator,
+    "warehouse_robot": LogisticsSimulator,
+    "conveyor_sort": LogisticsSimulator,
     # AR/VR
-    'ar_vr': ARVRSimulator,
-    'ar_glasses': ARVRSimulator,
-    'vr_headset': ARVRSimulator,
-    'haptic_controller': ARVRSimulator,
+    "ar_vr": ARVRSimulator,
+    "ar_glasses": ARVRSimulator,
+    "vr_headset": ARVRSimulator,
+    "haptic_controller": ARVRSimulator,
     # Cybersecurity
-    'cybersecurity': CybersecuritySimulator,
-    'firewall_appliance': CybersecuritySimulator,
-    'ids_ips': CybersecuritySimulator,
-    'hsm': CybersecuritySimulator,
+    "cybersecurity": CybersecuritySimulator,
+    "firewall_appliance": CybersecuritySimulator,
+    "ids_ips": CybersecuritySimulator,
+    "hsm": CybersecuritySimulator,
     # Quantum
-    'quantum': QuantumSimulator,
-    'quantum_processor': QuantumSimulator,
-    'error_correction': QuantumSimulator,
+    "quantum": QuantumSimulator,
+    "quantum_processor": QuantumSimulator,
+    "error_correction": QuantumSimulator,
     # Sports
-    'sports': SportsSimulator,
-    'performance_tracker': SportsSimulator,
-    'scoring_system': SportsSimulator,
+    "sports": SportsSimulator,
+    "performance_tracker": SportsSimulator,
+    "scoring_system": SportsSimulator,
     # Forestry
-    'forestry': ForestrySimulator,
-    'fire_detection': ForestrySimulator,
-    'fire_detection_node': ForestrySimulator,
-    'chainsaw_controller': ForestrySimulator,
+    "forestry": ForestrySimulator,
+    "fire_detection": ForestrySimulator,
+    "fire_detection_node": ForestrySimulator,
+    "chainsaw_controller": ForestrySimulator,
     # Fisheries
-    'fisheries': FisheriesSimulator,
-    'sonar_finder': FisheriesSimulator,
-    'fish_finder': FisheriesSimulator,
-    'aquaculture': FisheriesSimulator,
-    'aquaculture_controller': FisheriesSimulator,
+    "fisheries": FisheriesSimulator,
+    "sonar_finder": FisheriesSimulator,
+    "fish_finder": FisheriesSimulator,
+    "aquaculture": FisheriesSimulator,
+    "aquaculture_controller": FisheriesSimulator,
     # Android
-    'android': AndroidSimulator,
-    'android_phone': AndroidSimulator,
-    'android_tablet': AndroidSimulator,
-    'android_tv_device': AndroidSimulator,
-    'android_auto': AndroidSimulator,
-    'android_wear': AndroidSimulator,
+    "android": AndroidSimulator,
+    "android_phone": AndroidSimulator,
+    "android_tablet": AndroidSimulator,
+    "android_tv_device": AndroidSimulator,
+    "android_auto": AndroidSimulator,
+    "android_wear": AndroidSimulator,
     # iOS
-    'ios': IOSSimulator,
-    'iphone': IOSSimulator,
-    'ipad': IOSSimulator,
-    'apple_watch': IOSSimulator,
+    "ios": IOSSimulator,
+    "iphone": IOSSimulator,
+    "ipad": IOSSimulator,
+    "apple_watch": IOSSimulator,
     # Generic fallback
-    'vbox_test': BaseSimulator,
+    "vbox_test": BaseSimulator,
 }
 
 
@@ -316,7 +317,7 @@ class SimulatorFactory:
     """Factory to create the right simulator from a product template name."""
 
     @staticmethod
-    def create(product_type: str, vm) -> 'BaseSimulator':
+    def create(product_type: str, vm) -> "BaseSimulator":
         cls = SIMULATOR_MAP.get(product_type, BaseSimulator)
         sim = cls(vm)
         sim.setup()

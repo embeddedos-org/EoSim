@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """WebSocket support for live simulation data streaming."""
-import json
+
 import asyncio
 
 
@@ -14,7 +14,7 @@ class SimulationWebSocket:
 
     def register(self, app):
         try:
-            from fastapi import WebSocket, WebSocketDisconnect
+            from fastapi import WebSocket
 
             @app.websocket("/ws/simulations/{name}")
             async def websocket_endpoint(websocket: WebSocket, name: str):

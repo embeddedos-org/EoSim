@@ -64,22 +64,36 @@ class SatelliteRenderer(BaseRenderer):
         """Tiny cube as satellite body."""
         h = size / 2
         verts = [
-            (cx - h, cy - h, cz - h), (cx + h, cy - h, cz - h),
-            (cx + h, cy + h, cz - h), (cx - h, cy + h, cz - h),
-            (cx - h, cy - h, cz + h), (cx + h, cy - h, cz + h),
-            (cx + h, cy + h, cz + h), (cx - h, cy + h, cz + h),
+            (cx - h, cy - h, cz - h),
+            (cx + h, cy - h, cz - h),
+            (cx + h, cy + h, cz - h),
+            (cx - h, cy + h, cz - h),
+            (cx - h, cy - h, cz + h),
+            (cx + h, cy - h, cz + h),
+            (cx + h, cy + h, cz + h),
+            (cx - h, cy + h, cz + h),
         ]
         edges = [
-            (0, 1), (1, 2), (2, 3), (3, 0),
-            (4, 5), (5, 6), (6, 7), (7, 4),
-            (0, 4), (1, 5), (2, 6), (3, 7),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 0),
+            (4, 5),
+            (5, 6),
+            (6, 7),
+            (7, 4),
+            (0, 4),
+            (1, 5),
+            (2, 6),
+            (3, 7),
         ]
         for a, b in edges:
             ax.plot(
                 [verts[a][0], verts[b][0]],
                 [verts[a][1], verts[b][1]],
                 [verts[a][2], verts[b][2]],
-                color=color, linewidth=0.8,
+                color=color,
+                linewidth=0.8,
             )
 
     # ---- renderer interface ----
@@ -123,8 +137,13 @@ class SatelliteRenderer(BaseRenderer):
                 for j in range(12):
                     lon = math.pi + 2 * math.pi * j / 12
                     ax.scatter(
-                        [r * math.cos(lon)], [r * math.sin(lon)], [z],
-                        color="#000022", s=3, alpha=0.4, depthshade=False,
+                        [r * math.cos(lon)],
+                        [r * math.sin(lon)],
+                        [z],
+                        color="#000022",
+                        s=3,
+                        alpha=0.4,
+                        depthshade=False,
                     )
 
         # orbit ring
@@ -135,8 +154,7 @@ class SatelliteRenderer(BaseRenderer):
             ring_xs.append(sat_r * math.cos(a))
             ring_ys.append(sat_r * math.sin(a))
             ring_zs.append(0.0)
-        ax.plot(ring_xs, ring_ys, ring_zs, color="#445566", linewidth=0.5,
-                alpha=0.4)
+        ax.plot(ring_xs, ring_ys, ring_zs, color="#445566", linewidth=0.5, alpha=0.4)
 
         # satellite position (use tick to animate around orbit)
         tick = state.get("tick", 0)
@@ -155,15 +173,13 @@ class SatelliteRenderer(BaseRenderer):
         for sign in (-1, 1):
             px = sx + sign * panel_len * math.cos(att_yaw + orbit_angle)
             py = sy + sign * panel_len * math.sin(att_yaw + orbit_angle)
-            ax.plot([sx, px], [sy, py], [sz, sz],
-                    color="#4488cc", linewidth=2.5)
+            ax.plot([sx, px], [sy, py], [sz, sz], color="#4488cc", linewidth=2.5)
 
         # velocity vector
         v_scale = 0.15
         vx = -math.sin(orbit_angle) * v_scale
         vy = math.cos(orbit_angle) * v_scale
-        ax.quiver(sx, sy, sz, vx, vy, 0,
-                  color="#ff6644", arrow_length_ratio=0.3, linewidth=1.0)
+        ax.quiver(sx, sy, sz, vx, vy, 0, color="#ff6644", arrow_length_ratio=0.3, linewidth=1.0)
 
         # adjust view
         lim = sat_r + 0.5

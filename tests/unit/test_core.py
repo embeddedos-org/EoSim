@@ -2,6 +2,15 @@
 """Unit tests for EoSim core."""
 import os
 
+# Minimal ARM image: MOV r0,#1 then UDF (halt). Needed because
+# VirtualMachine.run() now refuses to report a boot when no firmware is
+# loaded - see tests/unit/test_native_engine_execution.py.
+def _tiny_arm_image() -> bytes:
+    import struct
+    return b"".join(struct.pack("<I", w) for w in (0xE3A00001, 0xE7FFDEFE))
+
+
+
 import yaml
 
 from eosim.artifacts.manager import collect_artifacts, generate_junit
@@ -23,7 +32,7 @@ class TestPlatform:
         assert p.qemu.machine == "virt"
 
     def test_discover(self):
-        root = os.path.join(os.path.dirname(__file__), "..", "..", "platforms")
+        root = os.path.join(os.path.dirname(__file__), "..", "..", "eosim", "platforms")
         platforms = discover_platforms(root)
         assert len(platforms) >= 4
         assert "arm64-linux" in platforms
@@ -244,12 +253,24 @@ class TestNativeEngine:
         assert len(vm.peripherals) >= 5
 
     def test_vm_run(self):
+        """Runs a real image. This previously called run() with NO firmware
+        and asserted success, which is what allowed the engine to report a
+        successful EoS boot for stepping over zeroed memory."""
+        from eosim.engine.native import VirtualMachine
+        vm = VirtualMachine('test', 'arm', ram_mb=32)
+        vm.load_binary(_tiny_arm_image(), addr=0x08000000)
+        result = vm.run(max_cycles=100, timeout_s=5)
+        assert result['success']
+        assert result['reason'] == 'halted'
+        assert result['cycles'] > 0
+        assert 'EoSim' in result['boot_log']
+
+    def test_vm_run_without_firmware_is_not_a_boot(self):
         from eosim.engine.native import VirtualMachine
         vm = VirtualMachine('test', 'arm', ram_mb=32)
         result = vm.run(max_cycles=100, timeout_s=5)
-        assert result['success']
-        assert result['cycles'] > 0
-        assert 'EoSim' in result['boot_log']
+        assert result['success'] is False
+        assert result['reason'] == 'no-firmware'
 
     def test_memory(self):
         from eosim.engine.native.memory import MemoryBus, MemoryRegion
@@ -412,6 +433,13 @@ class TestRegistry:
         reg = self._make_registry()
         assert reg.get("nonexistent") is None
 
+    def test_filter_empty_strings_mean_unset(self):
+        """CLI defaults are "" — they must behave like no filter."""
+        reg = self._make_registry()
+        assert len(reg.all()) > 0
+        assert len(reg.filter(arch="", vendor="", platform_class="",
+                              engine="", domain="")) == len(reg.all())
+
     def test_filter_by_arch(self):
         reg = self._make_registry()
         results = reg.filter(arch="arm")
@@ -514,7 +542,7 @@ class TestRegistry:
 
     def test_registry_from_dir(self):
         from eosim.core.registry import PlatformRegistry
-        root = os.path.join(os.path.dirname(__file__), "..", "..", "platforms")
+        root = os.path.join(os.path.dirname(__file__), "..", "..", "eosim", "platforms")
         reg = PlatformRegistry(root)
         assert reg.count() >= 41
 

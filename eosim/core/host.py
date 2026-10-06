@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Host environment detection and binary resolution."""
+
 import os
 import platform as _platform
 import shutil
