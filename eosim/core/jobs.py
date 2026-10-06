@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Job queue for simulation runs."""
+
 import json
 import os
 import uuid
@@ -38,7 +39,7 @@ class JobQueue:
         path = self._job_path(job_id)
         if not os.path.isfile(path):
             return None
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
         return Job(**data)
 
@@ -48,7 +49,7 @@ class JobQueue:
             if fname.endswith(".json"):
                 path = os.path.join(self._storage_dir, fname)
                 try:
-                    with open(path) as f:
+                    with open(path, encoding="utf-8") as f:
                         data = json.load(f)
                     jobs.append(Job(**data))
                 except Exception:

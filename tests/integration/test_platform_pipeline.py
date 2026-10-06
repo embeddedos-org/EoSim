@@ -89,7 +89,7 @@ class TestPlatformValidation:
 
     def test_validate_all_real_platforms(self):
         """Validate all platform.yml files in the platforms/ directory."""
-        platforms_dir = Path(__file__).parent.parent.parent / "platforms"
+        platforms_dir = Path(__file__).parent.parent.parent / "eosim" / "platforms"
         if not platforms_dir.exists():
             pytest.skip("platforms/ directory not found")
 
@@ -107,7 +107,7 @@ class TestPlatformValidation:
 
     def test_discover_real_platforms(self):
         """Verify discover_platforms can load the real platforms/ directory."""
-        platforms_dir = Path(__file__).parent.parent.parent / "platforms"
+        platforms_dir = Path(__file__).parent.parent.parent / "eosim" / "platforms"
         if not platforms_dir.exists():
             pytest.skip("platforms/ directory not found")
 

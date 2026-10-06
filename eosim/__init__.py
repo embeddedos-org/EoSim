@@ -11,9 +11,10 @@ Production API: https://api.eosim.io
 Documentation:  https://docs.eosim.io
 Status:         https://status.eosim.io
 """
+
 from __future__ import annotations
 
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 __author__ = "EoS Project"
 __email__ = "team@embeddedos.org"
 __license__ = "MIT"

@@ -2,7 +2,7 @@
 # Copyright (c) 2026 EoS Project
 import struct
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 
 @dataclass
@@ -30,20 +30,23 @@ class MemoryRegion:
     def read32(self, addr: int) -> int:
         off = addr - self.base
         if 0 <= off + 3 < self.size:
-            return struct.unpack_from('<I', self.data, off)[0]
+            return struct.unpack_from("<I", self.data, off)[0]
         return 0
 
     def write8(self, addr: int, val: int):
-        if self.readonly: return
+        if self.readonly:
+            return
         off = addr - self.base
         if 0 <= off < self.size:
             self.data[off] = val & 0xFF
 
     def write32(self, addr: int, val: int):
-        if self.readonly: return
+        if self.readonly:
+            return
         off = addr - self.base
         if 0 <= off + 3 < self.size:
-            struct.pack_into('<I', self.data, off, val & 0xFFFFFFFF)
+            struct.pack_into("<I", self.data, off, val & 0xFFFFFFFF)
+
 
 class MemoryBus:
     def __init__(self):
@@ -65,31 +68,33 @@ class MemoryBus:
 
     def read8(self, addr: int) -> int:
         if addr in self.io_handlers:
-            return self.io_handlers[addr]('read8', addr, 0)
+            return self.io_handlers[addr]("read8", addr, 0)
         r = self._find_region(addr)
         return r.read8(addr) if r else 0
 
     def read32(self, addr: int) -> int:
         base = addr & ~3
         if base in self.io_handlers:
-            return self.io_handlers[base]('read32', addr, 0)
+            return self.io_handlers[base]("read32", addr, 0)
         r = self._find_region(addr)
         return r.read32(addr) if r else 0
 
     def write8(self, addr: int, val: int):
         if addr in self.io_handlers:
-            self.io_handlers[addr]('write8', addr, val)
+            self.io_handlers[addr]("write8", addr, val)
             return
         r = self._find_region(addr)
-        if r: r.write8(addr, val)
+        if r:
+            r.write8(addr, val)
 
     def write32(self, addr: int, val: int):
         base = addr & ~3
         if base in self.io_handlers:
-            self.io_handlers[base]('write32', addr, val)
+            self.io_handlers[base]("write32", addr, val)
             return
         r = self._find_region(addr)
-        if r: r.write32(addr, val)
+        if r:
+            r.write32(addr, val)
 
     def load_binary(self, addr: int, data: bytes):
         for i, b in enumerate(data):
@@ -98,6 +103,6 @@ class MemoryBus:
     def dump(self, addr: int, size: int) -> str:
         lines = []
         for off in range(0, size, 16):
-            hexs = ' '.join(f'{self.read8(addr + off + i):02x}' for i in range(min(16, size - off)))
-            lines.append(f'{addr + off:08x}: {hexs}')
-        return '\n'.join(lines)
+            hexs = " ".join(f"{self.read8(addr + off + i):02x}" for i in range(min(16, size - off)))
+            lines.append(f"{addr + off:08x}: {hexs}")
+        return "\n".join(lines)

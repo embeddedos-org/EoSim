@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Memory hex dump inspector for EoSim simulation UI."""
+
 import tkinter as tk
 from tkinter import ttk
 
@@ -20,8 +21,10 @@ class MemoryView(ttk.LabelFrame):
         ttk.Label(ctrl_frame, text="Addr:").pack(side=tk.LEFT, padx=(0, 2))
         self.addr_var = tk.StringVar(value="0x20000000")
         self.addr_entry = ttk.Entry(
-            ctrl_frame, textvariable=self.addr_var,
-            font=("Consolas", 9), width=12,
+            ctrl_frame,
+            textvariable=self.addr_var,
+            font=("Consolas", 9),
+            width=12,
         )
         self.addr_entry.pack(side=tk.LEFT, padx=(0, 4))
         self.addr_entry.bind("<Return>", self._on_go)
@@ -33,34 +36,40 @@ class MemoryView(ttk.LabelFrame):
         ttk.Label(ctrl_frame, text="Region:").pack(side=tk.LEFT, padx=(0, 2))
         self.region_var = tk.StringVar(value="ram")
         self.region_combo = ttk.Combobox(
-            ctrl_frame, textvariable=self.region_var,
-            values=["ram"], state="readonly", width=10,
+            ctrl_frame,
+            textvariable=self.region_var,
+            values=["ram"],
+            state="readonly",
+            width=10,
         )
         self.region_combo.pack(side=tk.LEFT, padx=(0, 4))
         self.region_combo.bind("<<ComboboxSelected>>", self._on_region_select)
 
         # Hex dump display
         self.hex_text = tk.Text(
-            self, wrap=tk.NONE, font=("Consolas", 9),
-            bg="#1e1e1e", fg="#d4d4d4", insertbackground="#d4d4d4",
-            state=tk.DISABLED, height=8, width=75,
+            self,
+            wrap=tk.NONE,
+            font=("Consolas", 9),
+            bg="#1e1e1e",
+            fg="#d4d4d4",
+            insertbackground="#d4d4d4",
+            state=tk.DISABLED,
+            height=8,
+            width=75,
         )
-        hex_scroll_y = ttk.Scrollbar(
-            self, orient=tk.VERTICAL, command=self.hex_text.yview
-        )
-        hex_scroll_x = ttk.Scrollbar(
-            self, orient=tk.HORIZONTAL, command=self.hex_text.xview
-        )
-        self.hex_text.configure(
-            yscrollcommand=hex_scroll_y.set, xscrollcommand=hex_scroll_x.set
-        )
+        hex_scroll_y = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.hex_text.yview)
+        hex_scroll_x = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.hex_text.xview)
+        self.hex_text.configure(yscrollcommand=hex_scroll_y.set, xscrollcommand=hex_scroll_x.set)
         self.hex_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         hex_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
         hex_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Memory map info
         self.map_label = ttk.Label(
-            self, text="", font=("Consolas", 8), foreground="gray",
+            self,
+            text="",
+            font=("Consolas", 8),
+            foreground="gray",
         )
         self.map_label.pack(fill=tk.X, side=tk.BOTTOM, pady=(4, 0))
 
@@ -72,9 +81,7 @@ class MemoryView(ttk.LabelFrame):
             self.region_var.set(regions[0])
         map_lines = []
         for r in bus.regions:
-            map_lines.append(
-                f"{r.name}: 0x{r.base:08X} ({r.size // 1024}KB)"
-            )
+            map_lines.append(f"{r.name}: 0x{r.base:08X} ({r.size // 1024}KB)")
         self.map_label.configure(text="  |  ".join(map_lines))
 
     def _on_go(self, event=None):
@@ -112,9 +119,7 @@ class MemoryView(ttk.LabelFrame):
                 for b in bytes_str:
                     try:
                         val = int(b, 16)
-                        ascii_chars.append(
-                            chr(val) if 32 <= val < 127 else "."
-                        )
+                        ascii_chars.append(chr(val) if 32 <= val < 127 else ".")
                     except ValueError:
                         ascii_chars.append(".")
                 ascii_str = "".join(ascii_chars)

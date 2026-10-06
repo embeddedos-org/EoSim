@@ -71,7 +71,7 @@ eosim/
 │   └── openfoam.py       # OpenFOAM CFD solver bridge
 ├── artifacts/        # Output collection
 │   └── collector.py      # Log collection, JUnit XML generation
-├── platforms/        # Platform discovery helpers
+├── platforms/        # Packaged platform definitions and engine assets
 ├── tests/            # Runtime test framework (not pytest)
 │   ├── runner.py         # CheckResult, run_checks()
 │   └── scenarios.py      # Multi-step scenario runner
@@ -80,7 +80,7 @@ eosim/
 
 ## Platform Discovery
 
-EoSim scans `platforms/*/platform.yml` for available simulation targets. Each platform YAML defines:
+EoSim scans `eosim/platforms/*/platform.yml` for available simulation targets. Each platform YAML defines:
 
 - **Identity:** `name`, `display_name`, `vendor`, `soc`
 - **Architecture:** `arch` (one of 13 supported architectures)

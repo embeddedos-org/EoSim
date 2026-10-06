@@ -213,17 +213,40 @@ class TestCLIVersion:
         runner = CliRunner()
         result = runner.invoke(cli, ['--version'])
         assert result.exit_code == 0
-        assert '2.0.0' in result.output
+        # Pinned to the package version rather than a literal: the CLI hardcoded
+        # 2.0.0 while pyproject/eosim.__version__ said 3.0.1.
+        from eosim import __version__
+        assert __version__ in result.output
 
 
 class TestCLIRun:
-    def test_run_eosim_engine(self, tmp_path):
+    def test_run_eosim_engine_without_firmware_exits_2(self, tmp_path):
+        """`eosim run <platform>` with no image executes nothing.
+
+        This asserted exit_code == 0, which is why `eosim run stm32f4` printed
+        "PASSED (10000 cycles)" while stepping over zeroed memory.
+        """
         from eosim.cli.main import cli
         runner = CliRunner()
         result = runner.invoke(cli, ['run', 'esp32', '--timeout', '5',
                                       '--log-dir', str(tmp_path)])
-        # Should succeed (eosim native engine)
+        assert result.exit_code == 2
+        assert 'NO FIRMWARE' in result.output
+
+    def test_run_eosim_engine_with_firmware(self, tmp_path):
+        """The same command with --firmware runs the image to its halt."""
+        import struct
+
+        from eosim.cli.main import cli
+        img = tmp_path / 'fw.bin'
+        img.write_bytes(b''.join(struct.pack('<I', w)
+                                 for w in (0xE3A00001, 0xE7FFDEFE)))
+        runner = CliRunner()
+        result = runner.invoke(cli, ['run', 'esp32', '--timeout', '5',
+                                      '--log-dir', str(tmp_path),
+                                      '--firmware', str(img)])
         assert result.exit_code == 0
+        assert 'PASSED' in result.output
 
     def test_run_missing_platform(self):
         from eosim.cli.main import cli

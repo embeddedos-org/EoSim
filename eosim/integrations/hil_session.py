@@ -22,9 +22,15 @@ class HILSession:
         self._config = {}
         self._connected = False
 
-    def start(self, adapter: str = 'stlink', target: str = 'stm32f4',
-              serial_port: str = '', baudrate: int = 115200,
-              gdb_port: int = 3333, arch: str = 'arm'):
+    def start(
+        self,
+        adapter: str = "stlink",
+        target: str = "stm32f4",
+        serial_port: str = "",
+        baudrate: int = 115200,
+        gdb_port: int = 3333,
+        arch: str = "arm",
+    ):
         """Start a full HIL session: OpenOCD → GDB → serial → state bridge."""
         from eosim.engine.qemu.gdb_client import GDBRemoteClient
         from eosim.engine.qemu.state_bridge import TargetStateBridge
@@ -32,9 +38,12 @@ class HILSession:
         from eosim.integrations.serial_bridge import SerialBridge
 
         self._config = {
-            'adapter': adapter, 'target': target,
-            'serial_port': serial_port, 'baudrate': baudrate,
-            'gdb_port': gdb_port, 'arch': arch,
+            "adapter": adapter,
+            "target": target,
+            "serial_port": serial_port,
+            "baudrate": baudrate,
+            "gdb_port": gdb_port,
+            "arch": arch,
         }
 
         self._openocd = OpenOCDManager()
@@ -83,7 +92,7 @@ class HILSession:
         """Read target memory via GDB."""
         if self._bridge:
             return self._bridge.read_memory(addr, length)
-        return b''
+        return b""
 
     def set_serial_callback(self, callback):
         """Set callback for serial data received from hardware."""
@@ -98,15 +107,14 @@ class HILSession:
     def get_state(self) -> dict:
         """Get combined HIL session state."""
         state = dict(self._config)
-        state['connected'] = self._connected
+        state["connected"] = self._connected
         if self._openocd:
-            state['openocd'] = self._openocd.get_status()
+            state["openocd"] = self._openocd.get_status()
         if self._gdb:
-            state['gdb_connected'] = self._gdb.connected
-            state['registers'] = (
-                self._bridge.last_registers if self._bridge else {})
+            state["gdb_connected"] = self._gdb.connected
+            state["registers"] = self._bridge.last_registers if self._bridge else {}
         if self._serial:
-            state['serial_connected'] = self._serial.is_connected
+            state["serial_connected"] = self._serial.is_connected
         return state
 
     @property

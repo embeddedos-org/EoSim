@@ -9,11 +9,12 @@ Run directly:
 Production deployment:
     gunicorn eosim.api.server:app -k uvicorn.workers.UvicornWorker -w 4
 """
+
 from __future__ import annotations
 
+import logging
 import os
 import time
-import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,7 @@ class EoSimAPIServer:
         # Request-ID + timing headers
         try:
             import uuid
+
             from starlette.middleware.base import BaseHTTPMiddleware
             from starlette.requests import Request as _Req
 
@@ -112,7 +114,7 @@ class EoSimAPIServer:
                     t0 = time.perf_counter()
                     resp = await call_next(request)
                     resp.headers["X-Request-ID"] = rid
-                    resp.headers["X-Response-Time"] = f"{(time.perf_counter()-t0)*1000:.1f}ms"
+                    resp.headers["X-Response-Time"] = f"{(time.perf_counter() - t0) * 1000:.1f}ms"
                     resp.headers["X-EoSim-Version"] = _ver
                     return resp
 
@@ -126,6 +128,7 @@ class EoSimAPIServer:
 
     def _register_routes(self) -> None:
         from eosim.api.routes import register_routes
+
         register_routes(self.app, self)
 
     def run(self) -> None:
