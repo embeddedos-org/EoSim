@@ -5,7 +5,7 @@ engine: eosim
 class: mcu
 vendor: M5Stack
 soc: ESP32-S3
-domain: radio
+domain: iot
 modeling: deterministic
 qemu:
   machine: virt

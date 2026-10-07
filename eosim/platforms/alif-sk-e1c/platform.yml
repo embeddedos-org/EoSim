@@ -5,7 +5,7 @@ engine: eosim
 class: mcu
 vendor: Alif
 soc: Ensemble E1C
-domain: edge-ai
+domain: iot
 modeling: deterministic
 qemu:
   machine: virt
