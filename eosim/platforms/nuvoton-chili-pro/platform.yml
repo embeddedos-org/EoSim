@@ -1,0 +1,16 @@
+name: nuvoton-chili-pro
+display_name: Nuvoton NuMaker-IoT-MA35D0-A2 "Chili Pro"
+arch: arm64
+engine: eosim
+class: soc
+vendor: Nuvoton
+soc: MA35D0
+domain: iot
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a35
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

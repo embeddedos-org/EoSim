@@ -1,0 +1,16 @@
+name: m5stack-sx1262
+display_name: M5Stack Stamp LoRa-1262 / Module13.2 (SX1262)
+arch: xtensa
+engine: eosim
+class: mcu
+vendor: M5Stack
+soc: ESP32-S3
+domain: radio
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: lx7
+runtime:
+  memory_mb: 512
+  headless: true
+  uart: sysbus.uart0

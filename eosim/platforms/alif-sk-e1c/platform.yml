@@ -1,0 +1,16 @@
+name: alif-sk-e1c
+display_name: Alif StartKit SK-E1C (Cortex-M55 + Ethos-U55)
+arch: arm
+engine: eosim
+class: mcu
+vendor: Alif
+soc: Ensemble E1C
+domain: edge-ai
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-m55
+runtime:
+  memory_mb: 2
+  headless: true
+  uart: sysbus.uart0
