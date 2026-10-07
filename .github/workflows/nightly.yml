@@ -84,8 +84,8 @@ jobs:
           from eosim.core.schema import validate_platform
 
           count = errors = 0
-          for name in sorted(os.listdir('platforms')):
-              yml = os.path.join('platforms', name, 'platform.yml')
+          for name in sorted(os.listdir('eosim/platforms')):
+              yml = os.path.join('eosim/platforms', name, 'platform.yml')
               if not os.path.isfile(yml):
                   continue
               count += 1
@@ -96,6 +96,8 @@ jobs:
                   errors += 1
                   print(f'FAIL: {name}: {errs}')
           print(f'{count} platforms checked, {errors} errors')
+          if count == 0:
+              sys.exit('no platform.yml found under eosim/platforms')
           sys.exit(1 if errors else 0)
           "
       - name: Smoke test all simulators
@@ -175,7 +177,7 @@ jobs:
           from eosim.gui.product_templates import PRODUCT_CATALOG
           import os
 
-          platforms = len([d for d in os.listdir('platforms') if os.path.isdir(os.path.join('platforms', d))])
+          platforms = len([d for d in os.listdir('eosim/platforms') if os.path.isdir(os.path.join('eosim/platforms', d))])
 
           print(f'### Metrics')
           print(f'| Metric | Count |')
