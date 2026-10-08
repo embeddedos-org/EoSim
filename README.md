@@ -198,7 +198,7 @@ eosim/
 │   ├── gui/              Tkinter GUI dashboard
 │   ├── integrations/     External tool integrations
 │   ├── artifacts/        Simulation artifact management
-│   └── platforms/        149 platform definitions (YAML + Renode .repl/.resc)
+│   └── platforms/        153 platform definitions (YAML + Renode .repl/.resc)
 │       ├── stm32f4/      STM32F4 Discovery
 │       ├── raspi4/       Raspberry Pi 4
 │       ├── esp32/        ESP32

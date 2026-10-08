@@ -1,10 +1,15 @@
 """Integration tests — CLI commands via Click test runner."""
 import json
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
+import eosim
 from eosim.cli.main import cli
+
+# Every platform the package ships is one platform.yml under eosim/platforms.
+SHIPPED_PLATFORMS = len(list((Path(eosim.__file__).parent / "platforms").glob("*/platform.yml")))
 
 
 @pytest.fixture
@@ -25,7 +30,10 @@ class TestCLICommands:
         assert result.exit_code == 0
         # The CLI passes "" for every unset filter; that must not filter out
         # every platform (regression: "Available platforms (0)").
-        assert "Available platforms (149)" in result.output
+        # Compared with what the package ships rather than a literal, which
+        # every new board def broke (149 -> 153 in b34572c).
+        assert SHIPPED_PLATFORMS > 100
+        assert f"Available platforms ({SHIPPED_PLATFORMS})" in result.output
         assert "stm32f4" in result.output
 
     def test_list_with_arch_filter(self, runner):
