@@ -1,0 +1,13 @@
+name: nxp-frdm-imxrt1186
+display_name: NXP FRDM-IMXRT1186 (M7 800MHz + M33 300MHz, dual GbE TSN, motor control)
+arch: arm
+engine: eosim
+class: mcu
+vendor: NXP
+soc: i.MX RT1186
+domain: industrial
+modeling: deterministic
+runtime:
+  memory_mb: 2
+  headless: true
+  uart: sysbus.uart0

@@ -1,0 +1,15 @@
+name: debix-m8391-01
+display_name: DEBIX M8391-01 (MediaTek Genio 720, 9-TOPS NPU850, industrial)
+arch: arm64
+engine: qemu
+class: sbc
+vendor: DEBIX
+soc: MediaTek Genio 720
+domain: vision
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a72
+runtime:
+  memory_mb: 8192
+  headless: true

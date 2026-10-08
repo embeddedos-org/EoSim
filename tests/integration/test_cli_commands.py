@@ -36,6 +36,30 @@ class TestCLICommands:
         assert f"Available platforms ({SHIPPED_PLATFORMS})" in result.output
         assert "stm32f4" in result.output
 
+    def test_october_2026_boards_parse(self, runner):
+        # The October 2026 board intake (DEBIX M8391-01, Arduino VENTUNO Q,
+        # NXP FRDM-IMXRT1186, Bluemag Pi): every new def must parse and
+        # carry the schema fields the list/search/info commands rely on.
+        # New boards are asserted by name so a missing def fails loudly
+        # instead of hiding inside the dynamic count.
+        from eosim.core.platform import discover_platforms
+        root = str(Path(eosim.__file__).parent / "platforms")
+        platforms = discover_platforms(root)
+        expected = {
+            "debix-m8391-01": ("arm64", "qemu", "DEBIX"),
+            "arduino-ventuno-q": ("arm64", "qemu", "Arduino"),
+            "nxp-frdm-imxrt1186": ("arm", "eosim", "NXP"),
+            "bluemag-pi": ("riscv", "qemu", "Upbeat"),
+        }
+        for name, (arch, engine, vendor) in expected.items():
+            assert name in platforms, f"board def missing: {name}"
+            p = platforms[name]
+            assert p.arch == arch, f"{name}: arch"
+            assert p.engine == engine, f"{name}: engine"
+            assert p.vendor == vendor, f"{name}: vendor"
+            assert p.soc, f"{name}: soc is empty"
+            assert p.platform_class, f"{name}: class is empty"
+
     def test_list_with_arch_filter(self, runner):
         result = runner.invoke(cli, ["list", "--arch", "arm", "--format", "json"])
         assert result.exit_code == 0
