@@ -1,6 +1,6 @@
 name: bluemag-pi
 display_name: Upbeat Bluemag Pi (SiFive E3+E2 RISC-V flight controller, onboard AI)
-arch: riscv
+arch: riscv64
 engine: qemu
 class: mcu
 vendor: Upbeat

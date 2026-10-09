@@ -5,7 +5,7 @@ engine: qemu
 class: sbc
 vendor: DEBIX
 soc: MediaTek Genio 720
-domain: vision
+domain: robotics
 modeling: deterministic
 qemu:
   machine: virt
