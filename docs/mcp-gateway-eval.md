@@ -38,3 +38,28 @@ dependency.
 2. Add fw-context-mcp (0.29.1) over the eos tree as the second backend
    (generate `compile_commands.json` first; defer Ollama enrichment).
 3. Hardware bridges and CAD surface follow the same pattern.
+
+## Security requirements (day-one posture)
+
+The Agentics' *Enterprise MCP Guide 2026* (68 MCP server CVEs in one
+month) names six attack classes and a control set that map 1:1 onto the
+gateway's day-one posture — this is the external validation the
+evaluation's existing "policy hooks (allow/confirm/deny)" requirement
+needed:
+
+- **Six attack classes the gateway must be designed against:** tool
+  poisoning, schema poisoning, tool shadowing, command injection,
+  shadow servers, context oversharing. (Per-class mapping for the
+  IPC surface: `embeddedos-org/eIPC` `docs/mcp-attack-classes-ipc.md`.)
+- **Per-agent allowlists** — which tools each agent identity may call.
+- **Identity binding** — backends authenticate before the gateway lists
+  them (no shadow servers).
+- **Centralized policy enforcement** — the gateway *is* the one
+  policy-enforcement point for all tool traffic.
+- **Human approval for destructive actions** — confirm/deny hooks on
+  privileged tool invocations.
+
+The 200k-stdIO-instances stat (OX Security: stdio-transport command
+execution across 150M+ downloads) is why the fabric's standing rules —
+pinned versions, approval on config change, no intra-network trust —
+are first-class gateway controls, not documentation niceties.
