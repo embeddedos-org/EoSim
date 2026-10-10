@@ -49,7 +49,7 @@ class TestCLICommands:
             "debix-m8391-01": ("arm64", "qemu", "DEBIX"),
             "arduino-ventuno-q": ("arm64", "qemu", "Arduino"),
             "nxp-frdm-imxrt1186": ("arm", "eosim", "NXP"),
-            "bluemag-pi": ("riscv", "qemu", "Upbeat"),
+            "bluemag-pi": ("riscv64", "qemu", "Upbeat"),
         }
         for name, (arch, engine, vendor) in expected.items():
             assert name in platforms, f"board def missing: {name}"
