@@ -191,6 +191,23 @@ def sim_launch(
     plan["pid"] = proc.pid
     plan["log_file"] = log_file
     plan["started_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    # Persist a session record so sim_status can report on this launch after
+    # the launching call returns (the Popen handle is gone by then).
+    session_file = os.path.join(log_dir, f"{platform}-{session_id}.session.json")
+    with open(session_file, "w", encoding="utf-8") as sf:
+        json.dump(
+            {
+                "session_id": session_id,
+                "pid": proc.pid,
+                "platform": platform,
+                "log_file": log_file,
+                "started_at": plan["started_at"],
+                "started_epoch": time.time(),
+            },
+            sf,
+            indent=2,
+        )
+    plan["session_file"] = session_file
     return plan
 
 
@@ -279,6 +296,89 @@ def sim_flash(
     plan["staged_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     plan["meta_path"] = meta_path
     return plan
+
+
+# ---------------------------------------------------------------------------
+# Tool: sim_status
+# ---------------------------------------------------------------------------
+
+SIM_STATUS_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "session_id": {
+            "type": "string",
+            "description": "Session id returned by sim_launch (dry_run=false)",
+        },
+        "log_dir": {
+            "type": "string",
+            "default": os.path.join("out", "logs"),
+            "description": "Directory holding session logs and records",
+        },
+    },
+    "required": ["session_id"],
+    "additionalProperties": False,
+}
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, owned by someone else
+    except OSError:
+        return False
+    return True
+
+
+def sim_status(
+    session_id: str,
+    log_dir: str = os.path.join("out", "logs"),
+) -> dict[str, Any]:
+    """Report the state of a simulation launched via sim_launch.
+
+    Reads the session record sim_launch persisted next to the log and
+    checks whether the recorded pid is still alive. Sessions launched
+    before session records existed report state "unknown" (log presence
+    only) rather than a fabricated running/exited verdict.
+    """
+    if not _SESSION_ID_RE.match(session_id or ""):
+        return {"ok": False, "error": f"invalid session_id: {session_id!r}"}
+    log_path = Path(log_dir)
+    records = sorted(log_path.glob(f"*-{session_id}.session.json")) if log_path.is_dir() else []
+    logs = sorted(log_path.glob(f"*-{session_id}.log")) if log_path.is_dir() else []
+    if not records and not logs:
+        return {
+            "ok": False,
+            "error": f"no session {session_id!r} found in {log_dir!r}; "
+            "launch with sim_launch(dry_run=false) first",
+        }
+    result: dict[str, Any] = {"ok": True, "session_id": session_id}
+    if logs:
+        result["log_file"] = str(logs[0])
+        result["log_size"] = logs[0].stat().st_size
+    if not records:
+        result["state"] = "unknown"
+        result["note"] = "no session record (launched before sim_status existed); log presence only"
+        return result
+    try:
+        record = json.loads(records[0].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"ok": False, "error": f"cannot read session record {records[0]}: {exc}"}
+    pid = int(record.get("pid", 0))
+    alive = _pid_alive(pid) if pid > 0 else False
+    result.update(
+        {
+            "platform": record.get("platform"),
+            "pid": pid,
+            "started_at": record.get("started_at"),
+            "state": "running" if alive else "exited",
+        }
+    )
+    if alive and record.get("started_epoch"):
+        result["uptime_seconds"] = round(time.time() - float(record["started_epoch"]), 1)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -376,6 +476,13 @@ TOOLS: dict[str, dict[str, Any]] = {
         "out/firmware/<platform>/ with a .meta.json sidecar.",
         "inputSchema": SIM_FLASH_SCHEMA,
         "handler": sim_flash,
+    },
+    "sim_status": {
+        "description": "Report the state of a simulation launched with "
+        "sim_launch(dry_run=false): running/exited (from the persisted "
+        "session record + pid liveness), pid, platform, uptime, log size.",
+        "inputSchema": SIM_STATUS_SCHEMA,
+        "handler": sim_status,
     },
     "console_tail": {
         "description": "Return the tail of a simulation session's console log "
