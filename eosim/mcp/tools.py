@@ -11,10 +11,10 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
-import struct
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import time
@@ -509,10 +509,10 @@ NET_CAPTURE_MAX_PACKETS = 1000
 
 # pcap magic -> (struct endianness prefix, timestamp divisor)
 _PCAP_MAGICS = {
-    b"\xd4\xc3\xb2\xa1": ("<", 1_000_000),       # little-endian, microsecond
-    b"\xa1\xb2\xc3\xd4": (">", 1_000_000),       # big-endian, microsecond
-    b"\x4d\x3c\xb2\xa1": ("<", 1_000_000_000),   # little-endian, nanosecond
-    b"\xa1\xb2\x3c\x4d": (">", 1_000_000_000),   # big-endian, nanosecond
+    b"\xd4\xc3\xb2\xa1": ("<", 1_000_000),  # little-endian, microsecond
+    b"\xa1\xb2\xc3\xd4": (">", 1_000_000),  # big-endian, microsecond
+    b"\x4d\x3c\xb2\xa1": ("<", 1_000_000_000),  # little-endian, nanosecond
+    b"\xa1\xb2\x3c\x4d": (">", 1_000_000_000),  # big-endian, nanosecond
 }
 
 _IP_PROTO_NAMES = {1: "ICMP", 6: "TCP", 17: "UDP", 58: "ICMPv6"}
@@ -582,7 +582,8 @@ def _parse_ip(data: bytes, version: int):
         if proto_num == 6 and len(header) >= 14:
             flags = header[13]
             names = "".join(
-                ch for bit, ch in ((0x02, "S"), (0x10, "A"), (0x01, "F"), (0x04, "R"), (0x08, "P"))
+                ch
+                for bit, ch in ((0x02, "S"), (0x10, "A"), (0x01, "F"), (0x04, "R"), (0x08, "P"))
                 if flags & bit
             )
             if names:
@@ -607,8 +608,7 @@ def _read_pcap(path: Path, limit: int):
             "not a pcap file: bad magic (pcapng and other containers are not supported)"
         )
     endian, divisor = _PCAP_MAGICS[magic]
-    _vmaj, _vmin, _tz, _sig, _snap, linktype = struct.unpack(
-        endian + "HHIIII", raw[4:24])
+    _vmaj, _vmin, _tz, _sig, _snap, linktype = struct.unpack(endian + "HHIIII", raw[4:24])
     if linktype not in (0, 1, 101):
         raise ValueError(f"unsupported pcap linktype: {linktype}")
     from collections import Counter
@@ -626,7 +626,7 @@ def _read_pcap(path: Path, limit: int):
         offset += header_struct.size
         if incl_len > len(raw) - offset:
             raise ValueError("truncated pcap file: packet record overruns end of file")
-        data = raw[offset:offset + incl_len]
+        data = raw[offset : offset + incl_len]
         offset += incl_len
         total += 1
         ts = ts_sec + ts_frac / divisor
@@ -663,9 +663,7 @@ def net_capture(
         candidate = Path(pcap_path)
     else:
         log_path = Path(log_dir)
-        matches = (
-            sorted(log_path.glob(f"*-{session_id}.pcap")) if log_path.is_dir() else []
-        )
+        matches = sorted(log_path.glob(f"*-{session_id}.pcap")) if log_path.is_dir() else []
         if not matches:
             return {
                 "ok": False,
@@ -677,15 +675,14 @@ def net_capture(
         return {"ok": False, "error": f"pcap not found: {str(candidate)!r}"}
     try:
         linktype, packets, total, histogram, talkers, first_ts, last_ts = _read_pcap(
-            candidate, effective_max)
+            candidate, effective_max
+        )
     except (OSError, ValueError) as exc:
         return {"ok": False, "error": f"cannot parse pcap {candidate}: {exc}"}
 
     summaries: list[str] = []
     for idx, (ts, proto, src, dst, length, tail) in enumerate(packets, start=1):
-        summaries.append(
-            f"#{idx} {ts:.6f} {src or '?'} -> {dst or '?'} {tail} len={length}"
-        )
+        summaries.append(f"#{idx} {ts:.6f} {src or '?'} -> {dst or '?'} {tail} len={length}")
     return {
         "ok": True,
         "session_id": session_id,
@@ -785,4 +782,3 @@ def call_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     if isinstance(result, dict):
         return result
     return {"ok": True, "result": result}
-
