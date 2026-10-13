@@ -9,7 +9,9 @@ the domain logic so tools are unit-testable without stdio.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
+import struct
 import os
 import re
 import shutil
@@ -470,6 +472,241 @@ def console_tail(
 
 
 # ---------------------------------------------------------------------------
+# Tool: net_capture (offline pcap summary only)
+# ---------------------------------------------------------------------------
+
+NET_CAPTURE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "session_id": {
+            "type": "string",
+            "description": "Session id returned by sim_launch (dry_run=false)",
+        },
+        "pcap_path": {
+            "type": "string",
+            "description": "Explicit path to a .pcap file (offline analysis only); "
+            "defaults to a pcap recorded for the session in log_dir",
+        },
+        "max_packets": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 200,
+            "description": "Max one-line packet summaries to return (clamped server-side)",
+        },
+        "log_dir": {
+            "type": "string",
+            "default": os.path.join("out", "logs"),
+            "description": "Directory holding session logs / recorded pcaps",
+        },
+    },
+    "required": ["session_id"],
+    "additionalProperties": False,
+}
+
+#: Server-side hard cap on packet summaries, whatever the caller asks for.
+NET_CAPTURE_MAX_PACKETS = 1000
+
+# pcap magic -> (struct endianness prefix, timestamp divisor)
+_PCAP_MAGICS = {
+    b"\xd4\xc3\xb2\xa1": ("<", 1_000_000),       # little-endian, microsecond
+    b"\xa1\xb2\xc3\xd4": (">", 1_000_000),       # big-endian, microsecond
+    b"\x4d\x3c\xb2\xa1": ("<", 1_000_000_000),   # little-endian, nanosecond
+    b"\xa1\xb2\x3c\x4d": (">", 1_000_000_000),   # big-endian, nanosecond
+}
+
+_IP_PROTO_NAMES = {1: "ICMP", 6: "TCP", 17: "UDP", 58: "ICMPv6"}
+
+
+def _mac(raw: bytes) -> str:
+    return ":".join(f"{b:02x}" for b in raw)
+
+
+def _parse_packet(data: bytes, linktype: int):
+    """Walk Ethernet/IP/TCP/UDP headers; return (proto, src, dst, summary_tail).
+
+    Headers only — payload bytes are never inspected or returned.
+    """
+    if linktype == 1:  # Ethernet
+        if len(data) < 14:
+            return "Other", "", "", "truncated ethernet header"
+        dst_mac, src_mac = _mac(data[0:6]), _mac(data[6:12])
+        ethertype = struct.unpack(">H", data[12:14])[0]
+        offset = 14
+        if ethertype == 0x8100 and len(data) >= 18:  # 802.1Q VLAN tag
+            ethertype = struct.unpack(">H", data[16:18])[0]
+            offset = 18
+        payload = data[offset:]
+        if ethertype == 0x0806:
+            return "ARP", src_mac, dst_mac, "ARP"
+        if ethertype == 0x0800:
+            return _parse_ip(payload, 4)
+        if ethertype == 0x86DD:
+            return _parse_ip(payload, 6)
+        return "Other", src_mac, dst_mac, f"ethertype=0x{ethertype:04x}"
+    if linktype == 0:  # BSD loopback: 4-byte AF header, then IP
+        if len(data) < 5:
+            return "Other", "", "", "truncated loopback header"
+        version = data[4] >> 4
+        return _parse_ip(data[4:], version if version in (4, 6) else 4)
+    if linktype == 101:  # raw IP
+        if not data:
+            return "Other", "", "", "empty packet"
+        return _parse_ip(data, data[0] >> 4)
+    return "Other", "", "", f"linktype={linktype}"
+
+
+def _parse_ip(data: bytes, version: int):
+    if version == 4:
+        if len(data) < 20:
+            return "IPv4", "", "", "truncated ipv4 header"
+        ihl = (data[0] & 0x0F) * 4
+        proto_num = data[9]
+        src = str(ipaddress.IPv4Address(data[12:16]))
+        dst = str(ipaddress.IPv4Address(data[16:20]))
+        header = data[ihl:] if ihl >= 20 else data[20:]
+    else:
+        if len(data) < 40:
+            return "IPv6", "", "", "truncated ipv6 header"
+        proto_num = data[6]
+        src = str(ipaddress.IPv6Address(data[8:24]))
+        dst = str(ipaddress.IPv6Address(data[24:40]))
+        header = data[40:]
+    proto = _IP_PROTO_NAMES.get(proto_num, f"IP/{proto_num}")
+    tail = proto
+    if proto_num in (6, 17) and len(header) >= 4:  # TCP / UDP ports
+        sport, dport = struct.unpack(">HH", header[0:4])
+        src = f"{src}:{sport}"
+        dst = f"{dst}:{dport}"
+        tail = f"{proto} {sport} -> {dport}"
+        if proto_num == 6 and len(header) >= 14:
+            flags = header[13]
+            names = "".join(
+                ch for bit, ch in ((0x02, "S"), (0x10, "A"), (0x01, "F"), (0x04, "R"), (0x08, "P"))
+                if flags & bit
+            )
+            if names:
+                tail += f" [{names}]"
+    return proto, src, dst, tail
+
+
+def _read_pcap(path: Path, limit: int):
+    """Parse a classic pcap file with stdlib only.
+
+    Returns (linktype, packets, total, histogram, talkers, first_ts,
+    last_ts): ``packets`` holds at most ``limit`` summarized entries,
+    while the count, histogram, talkers, and timestamps cover every
+    packet in the file.
+    """
+    raw = path.read_bytes()
+    if len(raw) < 24:
+        raise ValueError("not a pcap file: shorter than the 24-byte global header")
+    magic = raw[0:4]
+    if magic not in _PCAP_MAGICS:
+        raise ValueError(
+            "not a pcap file: bad magic (pcapng and other containers are not supported)"
+        )
+    endian, divisor = _PCAP_MAGICS[magic]
+    _vmaj, _vmin, _tz, _sig, _snap, linktype = struct.unpack(
+        endian + "HHIIII", raw[4:24])
+    if linktype not in (0, 1, 101):
+        raise ValueError(f"unsupported pcap linktype: {linktype}")
+    from collections import Counter
+
+    packets: list[tuple[float, str, str, str, int, str]] = []
+    histogram: Counter = Counter()
+    talkers: Counter = Counter()
+    first_ts: float | None = None
+    last_ts: float | None = None
+    total = 0
+    offset = 24
+    header_struct = struct.Struct(endian + "IIII")
+    while offset + header_struct.size <= len(raw):
+        ts_sec, ts_frac, incl_len, orig_len = header_struct.unpack_from(raw, offset)
+        offset += header_struct.size
+        if incl_len > len(raw) - offset:
+            raise ValueError("truncated pcap file: packet record overruns end of file")
+        data = raw[offset:offset + incl_len]
+        offset += incl_len
+        total += 1
+        ts = ts_sec + ts_frac / divisor
+        if first_ts is None:
+            first_ts = ts
+        last_ts = ts
+        proto, src, dst, tail = _parse_packet(data, linktype)
+        histogram[proto] += 1
+        if src and dst:
+            talkers[(src, dst)] += 1
+        if len(packets) < limit:
+            packets.append((ts, proto, src, dst, orig_len, tail))
+    return linktype, packets, total, histogram, talkers, first_ts, last_ts
+
+
+def net_capture(
+    session_id: str,
+    pcap_path: str | None = None,
+    max_packets: int = 200,
+    log_dir: str = os.path.join("out", "logs"),
+) -> dict[str, Any]:
+    """Summarize a recorded pcap for a session — OFFLINE analysis only.
+
+    No live capture, no interface access, no elevated permissions, and
+    no raw payload bytes in the output (headers / summary only). Reads
+    ``pcap_path`` when given, otherwise the pcap recorded for the
+    session under ``log_dir``. ``max_packets`` is clamped server-side
+    to :data:`NET_CAPTURE_MAX_PACKETS`.
+    """
+    if not _SESSION_ID_RE.match(session_id or ""):
+        return {"ok": False, "error": f"invalid session_id: {session_id!r}"}
+    effective_max = max(1, min(int(max_packets or 200), NET_CAPTURE_MAX_PACKETS))
+    if pcap_path:
+        candidate = Path(pcap_path)
+    else:
+        log_path = Path(log_dir)
+        matches = (
+            sorted(log_path.glob(f"*-{session_id}.pcap")) if log_path.is_dir() else []
+        )
+        if not matches:
+            return {
+                "ok": False,
+                "error": f"no pcap found for session {session_id!r} in {log_dir!r}; "
+                "pass pcap_path explicitly",
+            }
+        candidate = matches[0]
+    if not candidate.is_file():
+        return {"ok": False, "error": f"pcap not found: {str(candidate)!r}"}
+    try:
+        linktype, packets, total, histogram, talkers, first_ts, last_ts = _read_pcap(
+            candidate, effective_max)
+    except (OSError, ValueError) as exc:
+        return {"ok": False, "error": f"cannot parse pcap {candidate}: {exc}"}
+
+    summaries: list[str] = []
+    for idx, (ts, proto, src, dst, length, tail) in enumerate(packets, start=1):
+        summaries.append(
+            f"#{idx} {ts:.6f} {src or '?'} -> {dst or '?'} {tail} len={length}"
+        )
+    return {
+        "ok": True,
+        "session_id": session_id,
+        "pcap_path": str(candidate),
+        "linktype": linktype,
+        "packet_count": total,
+        "summarized": len(packets),
+        "max_packets": effective_max,
+        "truncated": total > len(packets),
+        "protocol_histogram": dict(sorted(histogram.items())),
+        "top_talkers": [
+            {"src": src, "dst": dst, "count": count}
+            for (src, dst), count in talkers.most_common(10)
+        ],
+        "first_timestamp": first_ts,
+        "last_timestamp": last_ts,
+        "packets": summaries,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Tool registry
 # ---------------------------------------------------------------------------
 
@@ -508,15 +745,30 @@ TOOLS: dict[str, dict[str, Any]] = {
         "inputSchema": CONSOLE_TAIL_SCHEMA,
         "handler": console_tail,
     },
+    "net_capture": {
+        "description": "Summarize a recorded pcap for a session (offline "
+        "analysis only: packet count, protocol histogram, top talkers, "
+        "bounded one-line packet summaries; no live capture, no payloads).",
+        "inputSchema": NET_CAPTURE_SCHEMA,
+        "handler": net_capture,
+        "annotations": {"readOnlyHint": True},
+    },
 }
 
 
 def list_tools() -> list[dict[str, Any]]:
     """Return MCP tool descriptors (name, description, inputSchema)."""
-    return [
-        {"name": name, "description": spec["description"], "inputSchema": spec["inputSchema"]}
-        for name, spec in TOOLS.items()
-    ]
+    descriptors = []
+    for name, spec in TOOLS.items():
+        descriptor = {
+            "name": name,
+            "description": spec["description"],
+            "inputSchema": spec["inputSchema"],
+        }
+        if spec.get("annotations"):
+            descriptor["annotations"] = spec["annotations"]
+        descriptors.append(descriptor)
+    return descriptors
 
 
 def call_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
@@ -533,3 +785,4 @@ def call_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     if isinstance(result, dict):
         return result
     return {"ok": True, "result": result}
+
