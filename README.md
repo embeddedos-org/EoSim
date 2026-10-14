@@ -146,6 +146,15 @@ eosim gui stm32f4                 # open GUI dashboard
 
 ## MCP Server
 
+Registry metadata: the repo root's `server.json` describes this
+server for the MCP Registry and the org's Agent fabric discovery
+(name `io.github.embeddedos-org/eosim`, version matching
+`pyproject.toml`). The `server.json validation` workflow runs the
+org's reusable validator on every change to either file, so the
+registry metadata cannot drift from the package version. The
+server itself is stdio-only — there is no remote endpoint to
+advertise; clients launch it as shown below.
+
 EoSim exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP, spec rev 2026-07-28)
 server so AI coding agents can drive simulations directly — list platforms, launch a sim, and verify
 against ground truth instead of hallucinating. JSON-RPC 2.0 over stdio, no extra dependencies.

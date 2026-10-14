@@ -1,0 +1,26 @@
+name: server.json validation
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - server.json
+      - pyproject.toml
+      - .github/workflows/server-json.yml
+  pull_request:
+    paths:
+      - server.json
+      - pyproject.toml
+      - .github/workflows/server-json.yml
+
+permissions:
+  contents: read
+
+jobs:
+  server-json:
+    uses: embeddedos-org/.github/.github/workflows/reusable-server-json.yml@master
+    with:
+      server_json_path: server.json
+      # Must equal [project] version in pyproject.toml — bump both
+      # together. The reusable validator fails on drift.
+      expected_version: "3.0.2"
