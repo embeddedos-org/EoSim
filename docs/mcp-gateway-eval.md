@@ -63,3 +63,35 @@ The 200k-stdIO-instances stat (OX Security: stdio-transport command
 execution across 150M+ downloads) is why the fabric's standing rules —
 pinned versions, approval on config change, no intra-network trust —
 are first-class gateway controls, not documentation niceties.
+
+## Update — 2026-10-15
+
+Two selection inputs refreshed; the decision above is unchanged.
+
+- **mcp-gateway-registry (watch candidate) is at 1.32.1**
+  (2026-10-06, GitHub releases). The 1.32.x line is the
+  forward-proxy egress theme: 1.32.0 shipped forward-proxy egress
+  controls with the credential-endpoint protection noted in the
+  2026-10-14 research pass, and 1.32.1 adds forward-proxy TLS and
+  an MCP 2.x pin. The egress/credential-guard criterion it
+  introduced stays on this evaluation's scorecard for whichever
+  gateway is stood up; the candidate itself remains "watch",
+  behind the selected Strata.
+- **The command-injection class now has an exploited instance
+  with a name: CVE-2026-42271 (LiteLLM).** LiteLLM's MCP preview
+  endpoints (`POST /mcp-rest/test/connection`,
+  `POST /mcp-rest/test/tools/list`) accepted a full stdio server
+  configuration — `command`, `args`, `env` — and spawned it as a
+  subprocess on the proxy host; any authenticated low-privilege
+  key could run arbitrary commands (CWE-78). CISA KEV-listed
+  2026-06-08; fixed in LiteLLM 1.83.7 by requiring the
+  PROXY_ADMIN role on those endpoints. Criterion recorded for
+  the org gateway, whichever candidate is stood up: *registering
+  or previewing a stdio server is code execution* — that surface
+  is admin-gated, never available to ordinary tool-callers, and
+  stdio server definitions are treated as code, with the same
+  review discipline as code.
+- A claim about an "SEP-1932" for durable/resumable MCP streams
+  circulated in the 2026-10-15 research pass; it could not be
+  verified against MCP specification sources and is **not**
+  recorded here as a selection factor.

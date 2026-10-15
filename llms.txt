@@ -1,0 +1,37 @@
+# EoSim
+
+> llms.txt for the EoSim repository (embeddedos-org/EoSim).
+> Status: multi-architecture embedded simulation platform,
+> distribution version 3.0.2 (`embeddedos-eosim` on PyPI). Its
+> MCP server is registered via the root `server.json`
+> (io.github.embeddedos-org/eosim, stdio, `python -m eosim.mcp`).
+
+EoSim simulates EmbeddedOS targets across architectures and
+boards (63+ platforms plus QEMU machines): agents and developers
+list platforms, launch and flash simulations, read session
+status and console output, and inspect captured network traffic
+through the CLI or the MCP server. It is also the home of the
+org's Agent Skills catalog and the MCP gateway evaluation that
+the whole agent fabric will sit behind.
+
+## Docs
+
+- [Getting started](docs/getting-started.md) — install and first simulation
+- [Architecture](docs/architecture.md) — simulator structure
+- [CLI reference](docs/cli-reference.md) — the `eosim` command line
+- [API reference](docs/api-reference.md) — the Python API
+- [Platform authoring](docs/platform-authoring.md) — adding a board/platform
+- [Peripheral guide](docs/peripheral-guide.md) — modelling peripherals
+- [Plugin development](docs/plugin-development.md) — extending EoSim
+- [Engine integration](docs/engine-integration.md) — embedding the engine
+- [Digital twin guide](docs/digital-twin-guide.md) — twin workflows
+- [HIL guide](docs/hil-guide.md) — hardware-in-the-loop setups
+- [Domain guide](docs/domain-guide.md) — domain simulators
+- [Analysis guide](docs/analysis-guide.md) — analysing runs and captures
+- [Docker guide](docs/docker-guide.md) — containerised simulation
+- [MCP gateway evaluation](docs/mcp-gateway-eval.md) — the org gateway decision record
+
+## Machine-readable
+
+- [server.json](server.json) — MCP Registry metadata for the EoSim MCP server
+- [llms-full.txt](llms-full.txt) — this corpus concatenated as one document

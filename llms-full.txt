@@ -1,0 +1,2417 @@
+# EoSim — full documentation (llms-full.txt)
+
+This file is a checked-in concatenation of EoSim's documentation,
+in the order listed below, so agents and tools can read the whole
+corpus as one document. When a source doc changes, update this
+file in the same commit. Excluded: docs/TEST_REPORT.md (a dated
+report, not guidance) and docs/book/book.md (a compiled aggregate
+of these same sources).
+
+Sources, in order:
+
+- `docs/getting-started.md`
+- `docs/architecture.md`
+- `docs/cli-reference.md`
+- `docs/api-reference.md`
+- `docs/platform-authoring.md`
+- `docs/peripheral-guide.md`
+- `docs/plugin-development.md`
+- `docs/engine-integration.md`
+- `docs/digital-twin-guide.md`
+- `docs/hil-guide.md`
+- `docs/domain-guide.md`
+- `docs/analysis-guide.md`
+- `docs/docker-guide.md`
+- `docs/mcp-gateway-eval.md`
+
+# === docs/getting-started.md ===
+
+# Getting Started with EoSim
+
+This guide walks you through installing EoSim, running your first simulation, and understanding the output.
+
+## Prerequisites
+
+- **Python 3.9+** (3.11 or 3.12 recommended)
+- **pip** (comes with Python)
+- **Optional:** [QEMU](https://www.qemu.org/) for hardware emulation
+- **Optional:** [Renode](https://renode.io/) for advanced peripheral simulation
+- **Optional:** [OpenOCD](https://openocd.org/) for hardware-in-the-loop (HIL) testing
+
+> **Note:** EoSim's native engine requires zero external dependencies. You can simulate firmware using only Python.
+
+## Installation
+
+### From GitHub (latest)
+
+```bash
+pip install git+https://github.com/embeddedos-org/eosim.git
+```
+
+### From source (development)
+
+```bash
+git clone https://github.com/embeddedos-org/eosim.git
+cd eosim
+pip install -e ".[all]"
+```
+
+### Install extras
+
+| Extra | What it adds |
+|-------|-------------|
+| `dev` | pytest, pytest-cov, ruff (for development) |
+| `viz` | matplotlib (for visualization) |
+| `elf` | pyelftools (for ELF binary loading) |
+| `hil` | pyserial (for serial port communication) |
+| `all` | Everything above |
+
+```bash
+pip install -e ".[dev,viz]"    # specific extras
+pip install -e ".[all]"        # everything
+```
+
+## Verify Installation
+
+Check that EoSim is installed and your environment is healthy:
+
+```bash
+eosim doctor
+```
+
+This reports:
+- Python version
+- Available simulation engines (Renode, QEMU)
+- Detected debug probes
+- Platform configuration status
+
+## Your First Simulation
+
+### Step 1: List available platforms
+
+```bash
+eosim list
+```
+
+This shows all 52+ supported platforms organized by architecture. Use filters to narrow down:
+
+```bash
+eosim list --arch arm          # ARM Cortex-M/A platforms only
+eosim list --vendor ST         # STMicroelectronics boards only
+eosim list --domain automotive # Automotive-grade platforms
+eosim list --engine eosim      # Platforms with native engine support
+```
+
+### Step 2: Inspect a platform
+
+```bash
+eosim info stm32f4
+```
+
+This shows the platform's architecture, engine, memory, boot configuration, vendor, SoC, domain classification, and available test checks.
+
+### Step 3: Run a simulation
+
+```bash
+eosim run stm32f4
+```
+
+EoSim will:
+1. Load `platforms/stm32f4/platform.yml`
+2. Select the best available engine (EoSim native → Renode → QEMU → dry-run)
+3. Initialize the virtual machine (CPU, memory, peripherals)
+4. Run the simulation
+5. Capture serial (UART) output
+6. Save logs to `out/logs/`
+
+### Step 4: Run validation tests
+
+```bash
+eosim test stm32f4
+```
+
+This runs the test checks defined in `platforms/stm32f4/tests.yml` against the simulation output:
+- Serial output pattern matching
+- Exit code verification
+- Boot timeout enforcement
+- Boot success detection
+
+### Step 5: Export artifacts
+
+```bash
+eosim artifact stm32f4
+```
+
+Generates test reports, JUnit XML files, and collects simulation logs.
+
+## Understanding SimResult
+
+Every simulation produces a `SimResult` with:
+
+| Field | Description |
+|-------|-------------|
+| `platform` | Platform name that was simulated |
+| `engine` | Engine used (eosim, renode, qemu, dry-run) |
+| `success` | Whether the simulation completed successfully |
+| `exit_code` | Process exit code (0 = success) |
+| `serial_output` | Captured UART serial output |
+| `duration_s` | Simulation duration in seconds |
+| `log_file` | Path to the simulation log file |
+
+## Validating Platform Configs
+
+Check a single platform configuration:
+
+```bash
+eosim validate platforms/stm32f4/platform.yml
+```
+
+Validate all platforms at once:
+
+```bash
+eosim validate --all
+```
+
+This checks for:
+- Required fields (`name`, `arch`, `engine`)
+- Valid architecture, engine, class, domain, and modeling values
+- Correct data types for runtime configuration
+
+## Using the GUI
+
+Launch the interactive simulation dashboard:
+
+```bash
+eosim gui
+```
+
+The GUI provides:
+- Platform browser with filtering
+- Real-time CPU register display
+- Memory hex viewer
+- UART terminal emulator
+- GPIO pin state visualization
+- 3D product renderers (14 domain-specific models)
+- Peripheral status panels
+
+> **Requires:** A display (X11, Wayland, or Windows desktop). Not available in headless/SSH environments.
+
+## Exploring Domains & Modeling
+
+EoSim categorizes platforms into 15 simulation domains and 10 modeling methods:
+
+```bash
+eosim domain list              # List all domains
+eosim domain info automotive   # Automotive domain details
+eosim modeling list            # List modeling methods
+eosim modeling info cfd        # CFD modeling details
+```
+
+## Next Steps
+
+- **[Platform Authoring Guide](platform-authoring.md)** — Create your own platform configurations
+- **[API Reference](api-reference.md)** — Use EoSim as a Python library
+- **[CLI Reference](cli-reference.md)** — Complete CLI command documentation
+- **[HIL Guide](hil-guide.md)** — Connect to real hardware
+- **[Architecture](architecture.md)** — Understand EoSim's internal design
+
+# === docs/architecture.md ===
+
+# EoSim Architecture
+
+## Overview
+
+EoSim is a multi-architecture embedded simulation platform that provides a unified interface for simulating firmware across 52+ hardware targets. It supports multiple simulation backends and can operate in fully offline mode using its native engine.
+
+## Layer Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  CLI Layer         eosim list | run | test | validate       │
+│                    eosim domain | modeling | hil | bridge    │
+├─────────────────────────────────────────────────────────────┤
+│  GUI Layer         Tkinter dashboard, 3D renderers,         │
+│                    CPU/memory/peripheral panels              │
+├─────────────────────────────────────────────────────────────┤
+│  Platform Layer    YAML configs → Platform dataclass        │
+│                    PlatformRegistry (filter/search/group)    │
+├─────────────────────────────────────────────────────────────┤
+│  Engine Layer      EoSim native │ Renode │ QEMU │ HIL       │
+│                    X-Plane │ Gazebo │ OpenFOAM               │
+├─────────────────────────────────────────────────────────────┤
+│  Test Layer        run_checks() │ run_scenario()            │
+│                    8 check types │ YAML scenarios            │
+├─────────────────────────────────────────────────────────────┤
+│  Artifact Layer    logs │ traces │ reports │ JUnit XML       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Module Structure
+
+```
+eosim/
+├── cli/              # Click-based CLI (entry point)
+│   └── main.py       # All commands: list, run, test, validate, domain, hil, bridge
+├── core/             # Data models and business logic
+│   ├── platform.py   # Platform dataclass, BootConfig, discover_platforms()
+│   ├── registry.py   # PlatformRegistry — filter, search, group, stats
+│   ├── schema.py     # Validation rules (arches, engines, classes, domains)
+│   ├── cluster.py    # Multi-node cluster definitions
+│   ├── domains.py    # 15 domain profiles (automotive, medical, aerospace, ...)
+│   ├── modeling.py   # 10 modeling methods (deterministic, CFD, monte-carlo, ...)
+│   ├── host.py       # Host OS detection, QEMU/Renode binary resolution
+│   └── jobs.py       # Persistent job queue (.eosim/jobs/)
+├── engine/           # Simulation backends
+│   ├── backend.py    # 7 engine classes: EoSim, Renode, QEMU, QemuLive, XPlane, Gazebo, OpenFOAM
+│   └── native/       # EoSim native engine (zero dependencies)
+│       ├── cpu/          # ARM instruction decoder, CPU state, breakpoints
+│       ├── memory/       # MemoryBus, MemoryRegion, address-mapped I/O
+│       ├── peripherals/  # UART, GPIO, Timer, SPI, I2C, NVIC + domain-specific
+│       └── simulators/   # 19 domain simulators (vehicle, aircraft, robot, ...)
+├── engine/qemu/      # QEMU integration
+│   ├── qmp_client.py     # QMP (QEMU Machine Protocol) client
+│   ├── gdb_client.py     # GDB remote protocol client
+│   ├── elf_loader.py     # ELF binary parser
+│   └── state_bridge.py   # QEMU ↔ EoSim state synchronization
+├── gui/              # Tkinter-based dashboard
+│   ├── tk_app.py         # Main application window
+│   ├── simulator_app.py  # Simulator control interface
+│   ├── product_templates.py  # Product-type rendering configs
+│   ├── renderers/        # 14 domain-specific 3D renderers
+│   └── widgets/          # CPU panel, GPIO, UART terminal, memory view, etc.
+├── integrations/     # External tool bridges
+│   ├── eos_runner.py     # EoS build/test integration
+│   ├── ecosystem.py      # Full ecosystem validation
+│   ├── hil_session.py    # Hardware-in-the-loop session management
+│   ├── openocd.py        # OpenOCD debug probe interface
+│   ├── serial_bridge.py  # Serial port bridge
+│   ├── xplane.py         # X-Plane flight simulator bridge
+│   ├── gazebo.py         # Gazebo robotics simulator bridge
+│   └── openfoam.py       # OpenFOAM CFD solver bridge
+├── artifacts/        # Output collection
+│   └── collector.py      # Log collection, JUnit XML generation
+├── platforms/        # Packaged platform definitions and engine assets
+├── tests/            # Runtime test framework (not pytest)
+│   ├── runner.py         # CheckResult, run_checks()
+│   └── scenarios.py      # Multi-step scenario runner
+└── __main__.py       # python -m eosim entry point
+```
+
+## Platform Discovery
+
+EoSim scans `eosim/platforms/*/platform.yml` for available simulation targets. Each platform YAML defines:
+
+- **Identity:** `name`, `display_name`, `vendor`, `soc`
+- **Architecture:** `arch` (one of 13 supported architectures)
+- **Engine:** `engine` (preferred backend: `eosim`, `renode`, `qemu`, `hil`, etc.)
+- **Boot assets:** `kernel`, `rootfs`, `dtb`, `firmware`
+- **Runtime:** `memory_mb`, `headless`, `uart`, `timeout_s`
+- **Classification:** `class` (mcu/sbc/soc/...), `domain` (automotive/medical/...), `modeling` (deterministic/stochastic/...)
+
+Platforms are loaded into a `PlatformRegistry` for filtering, searching, and grouping.
+
+## Engine Selection Cascade
+
+When running a simulation, EoSim selects an engine using this priority:
+
+1. **Explicit:** If the platform specifies `engine: renode` and Renode is installed → use Renode
+2. **EoSim Native:** If no external engine is available → use the built-in Python VM
+3. **Renode fallback:** If Renode is available → use Renode
+4. **QEMU fallback:** If QEMU is available for the target arch → use QEMU
+5. **Dry run:** If nothing is available → simulate a successful run (CI-safe)
+
+The `get_engine(platform)` function implements this cascade.
+
+## Native Engine Architecture
+
+The EoSim native engine is a cycle-based ARM simulator written in pure Python:
+
+- **CPUSimulator:** Decodes and executes ARM instructions (NOP, BX, SVC, MOV, LDR, STR, B). Supports breakpoints, watchpoints, and instruction tracing.
+- **MemoryBus:** Address-mapped memory regions with I/O handler registration for peripheral access.
+- **Peripherals:** UART (serial I/O), GPIO (pin state), Timer (countdown/interrupt), SPI, I2C, NVIC (interrupt controller), plus domain-specific sensors and actuators.
+- **VirtualMachine:** Orchestrates CPU + memory + peripherals. Loads firmware binaries, runs simulation cycles, produces `SimResult`.
+
+## Test Check Types
+
+EoSim supports 8 types of test assertions:
+
+| Type | Description |
+|------|-------------|
+| `serial_contains` | Match a string in UART serial output |
+| `exit_code` | Verify process return code |
+| `timeout` | Boot completes within time limit |
+| `boot_success` | Detect login prompt or boot marker |
+| `wait_for` | Wait for a pattern to appear in output |
+| `assert_no` | Verify a pattern is absent from output |
+| `timing` | Assert duration is within bounds |
+| `count_matches` | Count pattern occurrences in output |
+
+## Multi-Node Clusters
+
+Cluster simulations are defined in YAML files with:
+
+- **Nodes:** Each references a platform name and has a role (gateway, sensor, controller, etc.)
+- **Links:** Define inter-node communication channels (UART, SPI, network) with baud rate and other config
+
+The `Cluster.from_yaml()` loader validates referential integrity against the platform registry.
+
+## Data Flow
+
+```
+platform.yml ──→ Platform.from_yaml() ──→ PlatformRegistry
+                                              │
+                    ┌─────────────────────────┘
+                    ▼
+              get_engine(platform) ──→ Engine.run()
+                                          │
+                                          ▼
+                                     SimResult
+                                          │
+                    ┌─────────────────────┘
+                    ▼
+              run_checks(result, checks) ──→ CheckResult[]
+                                                  │
+                                                  ▼
+                                         generate_junit()
+                                         collect_artifacts()
+```
+
+## Extension Points
+
+- **New platforms:** Add a `platforms/<name>/platform.yml` file
+- **New engines:** Subclass the engine interface in `engine/backend.py`
+- **New peripherals:** Add to `engine/native/peripherals/`
+- **New simulators:** Add to `engine/native/simulators/`
+- **New GUI renderers:** Add to `gui/renderers/`
+- **New integrations:** Add to `integrations/`
+
+# === docs/cli-reference.md ===
+
+# EoSim CLI Reference
+
+Complete command reference for the `eosim` command-line interface.
+
+## Global Usage
+
+```bash
+eosim [OPTIONS] COMMAND [ARGS]...
+```
+
+---
+
+## Core Commands
+
+### `eosim list`
+
+List available simulation platforms.
+
+```bash
+eosim list [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--arch TEXT` | Filter by architecture |
+| `--vendor TEXT` | Filter by vendor |
+| `--class TEXT` | Filter by platform class |
+| `--engine TEXT` | Filter by engine |
+| `--domain TEXT` | Filter by domain |
+| `--group-by TEXT` | Group results by field |
+| `--format TEXT` | Output format (table, json, csv) |
+
+```bash
+eosim list --arch arm --class mcu
+eosim list --domain automotive --group-by vendor
+```
+
+### `eosim search QUERY`
+
+Search platforms by name, vendor, SoC, or architecture.
+
+```bash
+eosim search raspberry
+eosim search stm32
+```
+
+### `eosim info PLATFORM`
+
+Show detailed platform information.
+
+```bash
+eosim info stm32f4
+eosim info raspi4
+```
+
+### `eosim stats`
+
+Show platform registry statistics.
+
+### `eosim run PLATFORM`
+
+Run a simulation for the specified platform.
+
+| Option | Description |
+|--------|-------------|
+| `--headless / --interactive` | Display mode (default: headless) |
+| `--timeout INTEGER` | Simulation timeout in seconds |
+| `--log-dir TEXT` | Directory for simulation logs |
+
+```bash
+eosim run stm32f4
+eosim run raspi4 --timeout 120
+```
+
+### `eosim test PLATFORM`
+
+Run validation tests for a platform.
+
+| Option | Description |
+|--------|-------------|
+| `--timeout INTEGER` | Test timeout in seconds |
+| `--junit / --no-junit` | Generate JUnit XML (default: enabled) |
+
+### `eosim validate [CONFIG]`
+
+Validate a platform configuration file.
+
+| Option | Description |
+|--------|-------------|
+| `--all` | Validate all platform configurations |
+
+```bash
+eosim validate platforms/stm32f4/platform.yml
+eosim validate --all
+```
+
+### `eosim artifact PLATFORM`
+
+Export simulation artifacts (logs, traces, JUnit XML).
+
+### `eosim doctor`
+
+Check EoSim environment health (Python, engines, probes, platforms).
+
+### `eosim gui`
+
+Launch the EoSim simulation UI (requires display).
+
+---
+
+## Domain Commands
+
+| Command | Description |
+|---------|-------------|
+| `eosim domain list` | List all simulation domain categories |
+| `eosim domain info NAME` | Show detailed domain profile |
+
+```bash
+eosim domain info automotive
+eosim domain info aerospace
+```
+
+---
+
+## Modeling Commands
+
+| Command | Description |
+|---------|-------------|
+| `eosim modeling list` | List all modeling methods |
+| `eosim modeling info NAME` | Show detailed modeling method info |
+
+```bash
+eosim modeling info cfd
+eosim modeling info monte-carlo
+```
+
+---
+
+## EoS Integration Commands
+
+| Command | Description |
+|---------|-------------|
+| `eosim eos find` | Find EoS source code on this system |
+| `eosim eos build` | Build EoS from source |
+| `eosim eos test` | Build and run all EoS unit tests |
+| `eosim eos test-suite` | Run eApps Python tests |
+| `eosim ecosystem` | Test ALL EoS repos end-to-end |
+
+---
+
+## HIL Commands
+
+| Command | Description |
+|---------|-------------|
+| `eosim hil detect` | Detect connected debug probes and serial ports |
+| `eosim hil connect` | Connect to a board via OpenOCD |
+| `eosim hil flash FIRMWARE` | Flash firmware to a real target |
+| `eosim hil monitor` | Live register/memory monitoring |
+
+See the [HIL Guide](hil-guide.md) for detailed usage.
+
+---
+
+## Bridge Commands
+
+| Command | Description |
+|---------|-------------|
+| `eosim bridge status` | Show status of all external tool bridges |
+| `eosim bridge xplane connect` | Connect to X-Plane simulator |
+| `eosim bridge gazebo connect` | Connect to Gazebo simulator |
+| `eosim bridge openfoam run` | Run an OpenFOAM simulation |
+
+---
+
+## Command Aliases
+
+| Alias | Equivalent |
+|-------|-----------|
+| `eosim simulate PLATFORM` | `eosim run PLATFORM` |
+| `eosim list-platforms` | `eosim list` |
+
+# === docs/api-reference.md ===
+
+# EoSim API Reference
+
+EoSim can be used as a Python library for programmatic simulation, platform management, and test automation.
+
+## Core Module (`eosim.core`)
+
+### Platform
+
+The central data model representing a simulation target.
+
+```python
+from eosim.core import Platform
+
+platform = Platform.from_yaml("platforms/stm32f4/platform.yml")
+
+print(platform.name)            # "stm32f4"
+print(platform.arch)            # "arm"
+print(platform.engine)          # "eosim"
+print(platform.vendor)          # "ST"
+print(platform.soc)             # "STM32F407"
+print(platform.domain)          # "industrial"
+print(platform.platform_class)  # "mcu"
+print(platform.modeling)        # "deterministic"
+
+# Nested configs
+print(platform.runtime.memory_mb)   # 128
+print(platform.runtime.timeout_s)   # 60
+print(platform.boot.firmware)       # path to firmware binary
+print(platform.qemu.machine)        # "virt"
+```
+
+#### Platform Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `str` | Platform identifier |
+| `display_name` | `str` | Human-readable name |
+| `arch` | `str` | CPU architecture |
+| `engine` | `str` | Preferred simulation engine |
+| `vendor` | `str` | Hardware vendor |
+| `soc` | `str` | System-on-chip identifier |
+| `platform_class` | `str` | Platform classification (mcu, sbc, soc, ...) |
+| `domain` | `str` | Simulation domain (automotive, medical, ...) |
+| `modeling` | `str` | Modeling method (deterministic, cfd, ...) |
+| `boot` | `BootConfig` | Kernel, rootfs, DTB, firmware paths |
+| `qemu` | `QemuConfig` | QEMU machine, CPU, extra args |
+| `runtime` | `RuntimeConfig` | Memory, headless mode, UART, timeout |
+| `artifacts` | `ArtifactConfig` | Output directories for logs, traces, reports |
+| `checks` | `List[TestCheck]` | Test assertions to run |
+| `source_dir` | `str` | Path to platform config directory |
+
+#### Nested Config Types
+
+**BootConfig:** `kernel`, `rootfs`, `dtb`, `firmware`, `initrd`, `append`
+
+**QemuConfig:** `machine` (default: `"virt"`), `cpu`, `extra_args`, `gdb_port` (1234), `qmp_port` (4444), `qmp_socket`, `start_paused`
+
+**RuntimeConfig:** `memory_mb` (512), `headless` (True), `uart` (`"sysbus.uart0"`), `timeout_s` (60)
+
+**ArtifactConfig:** `log_dir` (`"out/logs"`), `trace_dir` (`"out/traces"`), `report_dir` (`"out/reports"`)
+
+### discover_platforms()
+
+Scan a directory for platform YAML configurations.
+
+```python
+from eosim.core import discover_platforms
+
+platforms = discover_platforms("platforms/")
+# Returns: Dict[str, Platform]
+
+for name, platform in platforms.items():
+    print(f"{name}: {platform.arch} ({platform.engine})")
+```
+
+### PlatformRegistry
+
+Filterable, searchable catalog of platforms.
+
+```python
+from eosim.core import PlatformRegistry
+
+# Create from a directory
+registry = PlatformRegistry("platforms/")
+
+# Or from a pre-loaded dict
+registry = PlatformRegistry.from_dict(platforms)
+
+# List all
+all_platforms = registry.all()      # List[Platform]
+count = registry.count()            # int
+
+# Get by name
+stm32 = registry.get("stm32f4")    # Optional[Platform]
+
+# Filter by fields
+arm_mcus = registry.filter(arch="arm", platform_class="mcu")
+st_boards = registry.filter(vendor="ST")
+auto_platforms = registry.filter(domain="automotive")
+
+# Fuzzy search across name, vendor, soc, arch
+results = registry.search("raspberry")
+
+# Group by any field
+by_arch = registry.group_by("arch")     # Dict[str, List[Platform]]
+by_vendor = registry.group_by("vendor")
+
+# Statistics
+stats = registry.stats()
+# Returns: {"arch": {"arm": 15, "arm64": 8, ...}, "vendor": {...}, ...}
+
+# Unique values
+registry.vendors()    # ["Espressif", "Nordic", "Raspberry Pi", "ST", ...]
+registry.arches()     # ["arc", "arm", "arm64", "mipsel", "riscv64", ...]
+registry.classes()    # ["automotive", "devboard", "mcu", "sbc", ...]
+registry.engines()    # ["eosim", "hil", "qemu", "renode", ...]
+registry.domains()    # ["automotive", "consumer", "industrial", ...]
+```
+
+---
+
+## Schema Validation (`eosim.core.schema`)
+
+### validate_platform()
+
+Validate a platform configuration dictionary against the schema.
+
+```python
+from eosim.core.schema import validate_platform
+import yaml
+
+with open("platforms/stm32f4/platform.yml") as f:
+    data = yaml.safe_load(f)
+
+errors = validate_platform(data)
+if errors:
+    for err in errors:
+        print(f"  ERROR: {err}")
+else:
+    print("Valid!")
+```
+
+### Valid Values
+
+| Constant | Values |
+|----------|--------|
+| `VALID_ARCHES` | `arm64`, `aarch64`, `arm`, `riscv64`, `riscv32`, `x86_64`, `mipsel`, `powerpc`, `xtensa`, `tricore`, `arc`, `microblaze`, `mips` |
+| `VALID_ENGINES` | `renode`, `qemu`, `eosim`, `qemu-live`, `hil`, `xplane`, `gazebo`, `openfoam` |
+| `VALID_CLASSES` | `mcu`, `mpu`, `soc`, `sbc`, `fpga`, `virtual`, `desktop`, `server`, `devboard`, `automotive`, `safety`, `industrial`, `medical`, `aerospace` |
+| `VALID_DOMAINS` | `automotive`, `medical`, `industrial`, `consumer`, `aerospace`, `iot`, `robotics`, `defense`, `energy`, `telecom`, `aerodynamics`, `physiology`, `finance`, `weather`, `gaming` |
+| `VALID_MODELING` | `hybrid`, `agent-based`, `cfd`, `monte-carlo`, `finite-element`, `particle-based`, `deterministic`, `continuous`, `discrete-event`, `stochastic` |
+
+---
+
+## Engine Layer (`eosim.engine`)
+
+### SimResult
+
+Result of a simulation run.
+
+```python
+from eosim.engine import SimResult
+
+result = SimResult(
+    platform="stm32f4",
+    engine="eosim",
+    success=True,
+    exit_code=0,
+    serial_output="Booting EoS...\nReady.\n",
+    duration_s=2.5,
+    log_file="out/logs/stm32f4.log",
+)
+```
+
+### get_engine()
+
+Select the best available engine for a platform.
+
+```python
+from eosim.core import Platform
+from eosim.engine import get_engine
+
+platform = Platform.from_yaml("platforms/stm32f4/platform.yml")
+engine = get_engine(platform)
+
+result = engine.run(platform)
+print(result.success)
+print(result.serial_output)
+```
+
+### Engine Classes
+
+All engines share a common interface:
+
+| Engine | Import | Description |
+|--------|--------|-------------|
+| `EoSimEngine` | `from eosim.engine import EoSimEngine` | Native Python VM (always available) |
+| `RenodeEngine` | `from eosim.engine import RenodeEngine` | Renode simulation backend |
+| `QemuEngine` | `from eosim.engine import QemuEngine` | QEMU system emulation |
+
+```python
+engine.available()            # bool — is this engine installed?
+engine.run(platform)          # SimResult
+```
+
+---
+
+## Native Engine (`eosim.engine.native`)
+
+### VirtualMachine
+
+The EoSim native simulation VM.
+
+```python
+from eosim.engine.native import VirtualMachine
+
+vm = VirtualMachine()
+vm.load_firmware("firmware.bin")
+vm.run(max_cycles=100000, timeout=30)
+
+state = vm.dump_state()
+print(state["cpu"])       # CPU register state
+print(state["memory"])    # Memory region summary
+print(state["uart"])      # UART output buffer
+```
+
+---
+
+## Cluster Module (`eosim.core.cluster`)
+
+Multi-node simulation with inter-node communication.
+
+```python
+from eosim.core.cluster import Cluster
+
+cluster = Cluster.from_yaml("examples/cluster-demo/cluster.yml")
+
+print(cluster.name)
+for node in cluster.nodes:
+    print(f"  {node.name}: {node.platform} ({node.role})")
+
+for link in cluster.links:
+    print(f"  {link.from_node} --[{link.type}]--> {link.to_node}")
+
+# Validate against platform registry
+errors = cluster.validate(platforms)
+```
+
+---
+
+## Domain Profiles (`eosim.core.domains`)
+
+```python
+from eosim.core.domains import get_domain, list_domains, suggest_platforms
+
+domains = list_domains()
+
+auto = get_domain("automotive")
+print(auto.safety_level)
+print(auto.standards)
+print(auto.typical_arches)
+```
+
+---
+
+## Modeling Methods (`eosim.core.modeling`)
+
+```python
+from eosim.core.modeling import get_modeling, list_modeling_methods, validate_modeling_for_engine
+
+methods = list_modeling_methods()
+
+cfd = get_modeling("cfd")
+print(cfd.description)
+print(cfd.compatible_engines)
+print(cfd.parameters)
+
+is_valid = validate_modeling_for_engine("cfd", "openfoam")  # True
+```
+
+---
+
+## Test Framework (`eosim.tests`)
+
+### run_checks()
+
+Validate a `SimResult` against a list of test checks.
+
+```python
+from eosim.tests import run_checks, CheckResult
+
+checks = [
+    {"type": "serial_contains", "value": "Booting EoS"},
+    {"type": "exit_code", "value": "0"},
+    {"type": "timeout", "seconds": 60},
+]
+
+results = run_checks(sim_result, checks)
+for r in results:
+    print(f"  {'PASS' if r.passed else 'FAIL'}: {r.check_type} — {r.message}")
+```
+
+---
+
+## Artifacts (`eosim.artifacts`)
+
+```python
+from eosim.artifacts import collect_artifacts, generate_junit
+
+# Collect simulation logs and traces
+artifacts = collect_artifacts(sim_result)
+
+# Generate JUnit XML for CI integration
+generate_junit(check_results, output_path="out/reports/junit.xml")
+```
+
+---
+
+## Job Queue (`eosim.core.jobs`)
+
+Persistent job queue for batch simulation management.
+
+```python
+from eosim.core.jobs import JobQueue
+
+queue = JobQueue()
+job_id = queue.submit(platform="stm32f4", engine="eosim")
+
+job = queue.get(job_id)
+print(job.status)
+
+pending = queue.list_jobs(status="pending")
+queue.update(job_id, status="completed")
+```
+
+---
+
+## Host Environment (`eosim.core.host`)
+
+Detect host OS capabilities and resolve tool paths.
+
+```python
+from eosim.core.host import HostEnvironment
+
+host = HostEnvironment()
+print(host.os_name)          # "Linux", "Windows", "macOS"
+print(host.is_ci)            # True if running in CI
+print(host.is_wsl)           # True if running in WSL
+
+qemu = host.resolve_qemu("arm")     # Path to qemu-system-arm
+renode = host.resolve_renode()        # Path to renode binary
+arches = host.supported_arches()      # List of QEMU-supported arches
+```
+
+# === docs/platform-authoring.md ===
+
+# Platform Authoring Guide
+
+This guide explains how to create new platform configurations for EoSim.
+
+## Platform Directory Structure
+
+Each platform lives in its own directory under `platforms/`:
+
+```
+platforms/
+└── my-board/
+    ├── platform.yml    # Platform configuration (required)
+    └── tests.yml       # Test checks (optional)
+```
+
+## platform.yml Reference
+
+### Minimal Example
+
+```yaml
+name: my-board
+arch: arm
+engine: eosim
+```
+
+### Full Example
+
+```yaml
+name: my-board
+display_name: My Custom Board
+arch: arm
+engine: eosim
+vendor: Acme Corp
+soc: ACM32F407
+class: mcu
+domain: industrial
+modeling: deterministic
+
+boot:
+  firmware: firmware.bin
+  kernel: ""
+  rootfs: ""
+  dtb: ""
+
+runtime:
+  memory_mb: 256
+  headless: true
+  uart: sysbus.uart0
+  timeout_s: 60
+
+qemu:
+  machine: virt
+  cpu: cortex-m4
+  extra_args: []
+
+artifacts:
+  log_dir: out/logs
+  trace_dir: out/traces
+  report_dir: out/reports
+```
+
+### Field Reference
+
+#### Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Unique platform identifier (use lowercase with hyphens) |
+| `arch` | string | CPU architecture (see valid values below) |
+| `engine` | string | Preferred simulation engine |
+
+#### Optional Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `display_name` | string | `""` | Human-readable platform name |
+| `vendor` | string | `""` | Hardware vendor name |
+| `soc` | string | `""` | System-on-chip identifier |
+| `class` | string | `""` | Platform classification |
+| `domain` | string | `""` | Simulation domain |
+| `modeling` | string | `""` | Modeling method |
+| `repl` | string | `""` | Renode platform description file path |
+| `resc` | string | `""` | Renode script file path |
+
+### Valid Values
+
+**Architectures (`arch`):**
+`arm64`, `aarch64`, `arm`, `riscv64`, `riscv32`, `x86_64`, `mipsel`, `powerpc`, `xtensa`, `tricore`, `arc`, `microblaze`, `mips`
+
+**Engines (`engine`):**
+`eosim` (native), `renode`, `qemu`, `qemu-live`, `hil`, `xplane`, `gazebo`, `openfoam`
+
+**Classes (`class`):**
+`mcu`, `mpu`, `soc`, `sbc`, `fpga`, `virtual`, `desktop`, `server`, `devboard`, `automotive`, `safety`, `industrial`, `medical`, `aerospace`
+
+**Domains (`domain`):**
+`automotive`, `medical`, `industrial`, `consumer`, `aerospace`, `iot`, `robotics`, `defense`, `energy`, `telecom`, `aerodynamics`, `physiology`, `finance`, `weather`, `gaming`
+
+**Modeling (`modeling`):**
+`deterministic`, `stochastic`, `discrete-event`, `continuous`, `hybrid`, `agent-based`, `cfd`, `monte-carlo`, `finite-element`, `particle-based`
+
+## tests.yml Reference
+
+Test files define assertions to validate simulation output.
+
+### Example
+
+```yaml
+checks:
+  - type: serial_contains
+    value: "Booting EoS"
+  - type: exit_code
+    value: "0"
+  - type: timeout
+    seconds: 30
+  - type: boot_success
+    value: "login:"
+```
+
+### Check Types
+
+| Type | Fields | Description |
+|------|--------|-------------|
+| `serial_contains` | `value` | Assert UART output contains the given string |
+| `exit_code` | `value` | Assert process exit code matches (as string) |
+| `timeout` | `seconds` | Assert simulation completes within N seconds |
+| `boot_success` | `value` | Assert boot marker (e.g., login prompt) appears |
+| `wait_for` | `value`, `seconds` | Wait up to N seconds for pattern to appear |
+| `assert_no` | `value` | Assert pattern is NOT present in output |
+| `timing` | `min_seconds`, `max_seconds` | Assert duration is within bounds |
+| `count_matches` | `value`, `count` | Assert pattern appears exactly N times |
+
+## Step-by-Step: Creating a New Platform
+
+### 1. Create the platform directory
+
+```bash
+mkdir platforms/my-board
+```
+
+### 2. Create platform.yml
+
+```bash
+cat > platforms/my-board/platform.yml << 'EOF'
+name: my-board
+display_name: My Custom Board
+arch: arm
+engine: eosim
+vendor: Acme Corp
+soc: ACM32F407
+class: mcu
+domain: industrial
+modeling: deterministic
+runtime:
+  memory_mb: 128
+  timeout_s: 30
+EOF
+```
+
+### 3. Validate the configuration
+
+```bash
+eosim validate platforms/my-board/platform.yml
+```
+
+### 4. Add test checks (optional)
+
+```bash
+cat > platforms/my-board/tests.yml << 'EOF'
+checks:
+  - type: serial_contains
+    value: "Ready"
+  - type: exit_code
+    value: "0"
+EOF
+```
+
+### 5. Verify the platform appears
+
+```bash
+eosim list | grep my-board
+eosim info my-board
+```
+
+### 6. Run a simulation
+
+```bash
+eosim run my-board
+eosim test my-board
+```
+
+## Using the Template
+
+A template platform directory is available at `platforms/templates/` that you can copy and customize:
+
+```bash
+cp -r platforms/templates/custom platforms/my-board
+# Edit platforms/my-board/platform.yml
+```
+
+## Cluster Definitions
+
+For multi-node simulations, create a cluster YAML file:
+
+```yaml
+name: my-cluster
+nodes:
+  - name: gateway
+    platform: raspi4
+    role: gateway
+  - name: sensor-1
+    platform: stm32f4
+    role: sensor
+
+links:
+  - type: uart
+    from: gateway
+    to: sensor-1
+    config:
+      baud: 115200
+```
+
+Run with:
+
+```bash
+eosim run --cluster my-cluster.yml
+```
+
+See `examples/cluster-demo/` for working examples.
+
+# === docs/peripheral-guide.md ===
+
+# Peripheral Development Guide
+
+This guide explains how to create new peripheral models for EoSim.
+
+## Peripheral Types
+
+EoSim peripherals are organized into categories:
+
+| Category | Base Class | Location | Examples |
+|----------|-----------|----------|----------|
+| Sensors | `SensorBase` | `peripherals/sensors*.py` | Temperature, IMU, GPS, pH |
+| Actuators | `ActuatorBase` | `peripherals/actuators*.py` | Motor, valve, heater |
+| Buses | `BusBase` | `peripherals/buses*.py` | CAN, SPI, EtherCAT, Modbus |
+| Wireless | `WirelessBase` | `peripherals/wireless*.py` | BLE, WiFi, NFC, UWB |
+| Composites | `CompositeBase` | `peripherals/composites*.py` | BMS, watchdog, PMIC |
+
+## Creating a Sensor
+
+```python
+from eosim.engine.native.peripherals.sensors import SensorBase
+
+class MySensor(SensorBase):
+    def __init__(self, name='mysensor0', base_addr=0x40110000):
+        super().__init__(name, base_addr)
+        self.value = 0.0
+
+    def simulate_tick(self):
+        super().simulate_tick()
+        self.value += random.gauss(0, 0.1)
+
+    def read_reg(self, offset):
+        if offset == 0x00:
+            return int(self.value * 100) & 0xFFFFFFFF
+        return 0
+
+    def write_reg(self, offset, val):
+        if offset == 0x08:
+            self.enabled = bool(val & 1)
+```
+
+## Creating an Actuator
+
+```python
+from eosim.engine.native.peripherals.actuators import ActuatorBase
+
+class MyActuator(ActuatorBase):
+    def __init__(self, name='myactuator0', base_addr=0x40210000):
+        super().__init__(name, base_addr)
+        self.position = 0.0
+        self.target = 0.0
+
+    def simulate_tick(self):
+        super().simulate_tick()
+        err = self.target - self.position
+        self.position += err * 0.1
+```
+
+## Register Layout Convention
+
+| Offset | Purpose |
+|--------|---------|
+| 0x00 | Primary value (read) |
+| 0x04 | Secondary value (read) |
+| 0x08 | Control / enable register (write) |
+| 0x0C | Status register (read) |
+| 0x10+ | Extended registers |
+
+## Available Peripherals (100+)
+
+### Sensors
+- **Environment**: Temperature, Humidity, SoilMoisture, pH, Gas, WaterLevel, UV, NoiseLevel
+- **Industrial**: LoadCell, FlowSensor, VibrationSensor, TorqueSensor, StrainGauge, LevelSensor
+- **Navigation**: Radar, LiDAR, DepthSounder, Sonar, Compass, GPS, IMU
+- **Imaging**: Camera, ThermalCamera, InfraredSensor, XRaySensor
+- **Medical**: ECG, PulseOximeter
+- **General**: Pressure, Proximity, Light, ADC, CurrentSensor
+
+### Actuators
+- **Motion**: MotorController, SteeringActuator, ServoController, ESCController
+- **Industrial**: ConveyorBelt, CraneController, DrillMotor, PrintHead, Extruder
+- **Environment**: IrrigationValve, FanController, HeaterElement, Compressor, Damper
+- **Vehicle**: ThrottleActuator, BrakeActuator
+
+### Buses
+- **Automotive**: CAN, LIN, FlexRay, ARINC 429
+- **Industrial**: EtherCAT, PROFINET, Modbus TCP, OPC UA, HART
+- **Network**: Ethernet MAC, USB, PCIe, HDMI, I2S
+- **Serial**: SPI, I2C, UART
+
+### Wireless
+- **Short Range**: BLE, WiFi, Zigbee, NFC, UWB, Thread, Matter
+- **Long Range**: LoRa, LTE Cat-M1, NB-IoT, Satellite
+
+# === docs/plugin-development.md ===
+
+# Plugin Development Guide
+
+EoSim includes a plugin system for extending simulation behavior.
+
+## Plugin Architecture
+
+```
+PluginLoader
+├── discover()          — Scan directories for plugin modules
+├── load_all()          — Call on_load() on all discovered plugins
+├── unload_all()        — Call on_unload() on all plugins
+├── get_plugin(name)    — Get a specific plugin instance
+└── list_plugins()      — List all plugins with info
+
+PluginBase (abstract)
+├── NAME                — Plugin name string
+├── VERSION             — Plugin version string
+├── DESCRIPTION         — Plugin description
+├── on_load()           — Called when plugin is loaded (required)
+├── on_unload()         — Called when plugin is unloaded
+├── on_tick()           — Called each simulation tick
+└── on_scenario_load()  — Called when a scenario is loaded
+```
+
+## Creating a Plugin
+
+### 1. Create Plugin File
+
+```python
+# my_plugins/data_logger.py
+from eosim.plugins.base import PluginBase
+import json
+
+class DataLoggerPlugin(PluginBase):
+    NAME = "data-logger"
+    VERSION = "1.0.0"
+    DESCRIPTION = "Logs simulation state to JSON file each tick"
+
+    def __init__(self, context=None):
+        super().__init__(context)
+        self._log = []
+        self._output_file = "sim_log.json"
+
+    def on_load(self):
+        self._log = []
+        print(f"[{self.NAME}] Plugin loaded, logging to {self._output_file}")
+
+    def on_tick(self, simulator, state):
+        self._log.append(dict(state))
+
+    def on_unload(self):
+        with open(self._output_file, 'w') as f:
+            json.dump(self._log, f, indent=2, default=str)
+        print(f"[{self.NAME}] Wrote {len(self._log)} entries to {self._output_file}")
+```
+
+### 2. Load Plugins
+
+```python
+from eosim.plugins.loader import PluginLoader
+
+loader = PluginLoader(plugin_dirs=['./my_plugins'])
+loader.discover()
+loader.load_all()
+
+# List discovered plugins
+for name, info in loader.list_plugins().items():
+    print(f"  {name} v{info['version']} — {info['description']}")
+
+# Get a specific plugin
+logger = loader.get_plugin('data-logger')
+```
+
+### 3. Integrate with Simulation Loop
+
+```python
+# In your simulation loop:
+for tick in range(1000):
+    simulator.tick()
+    state = simulator.get_state()
+    for plugin in loader.plugins.values():
+        plugin.on_tick(simulator, state)
+
+# Cleanup
+loader.unload_all()
+```
+
+## Plugin Ideas
+
+- **Data Logger** — log state to CSV/JSON/Parquet
+- **Fault Injector** — randomly inject sensor faults
+- **Performance Monitor** — track tick rate and memory
+- **Alert System** — trigger alerts on threshold violations
+- **Remote Dashboard** — push state to web UI
+- **Replay Recorder** — record/replay simulation sessions
+
+# === docs/engine-integration.md ===
+
+# Engine Integration Guide
+
+## Overview
+
+EoSim supports 10 simulation engine backends. Each engine provides a bridge to an
+external simulation tool or an internal simulation model.
+
+## Engine Architecture
+
+```
+get_engine(platform)
+    → EoSimEngine     (Pure Python, always available)
+    → QemuEngine      (Binary emulation via QEMU)
+    → QemuLiveEngine  (QEMU + QMP/GDB for interactive debugging)
+    → RenodeEngine    (Deterministic simulation via Renode)
+    → XPlaneEngine    (X-Plane flight simulator bridge)
+    → GazeboEngine    (Gazebo robot simulator bridge)
+    → OpenFOAMEngine  (OpenFOAM CFD solver)
+    → CARLAEngine     (CARLA autonomous driving simulator)
+    → AirSimEngine    (AirSim drone/car simulator)
+    → ROS2Engine      (ROS 2 node bridge)
+```
+
+## Adding a New Engine
+
+### 1. Create Integration Bridge
+
+Create a client in `eosim/integrations/`:
+
+```python
+# eosim/integrations/my_engine.py
+class MyEngineConnection:
+    def __init__(self, host='127.0.0.1', port=5000):
+        self.host = host
+        self.port = port
+        self._connected = False
+
+    def connect(self, timeout=5.0):
+        # Connect to external engine
+        ...
+        return self._connected
+
+    def disconnect(self):
+        self._connected = False
+```
+
+### 2. Create Engine Backend
+
+Add a class in `eosim/engine/backend.py`:
+
+```python
+class MyEngine:
+    @staticmethod
+    def available() -> bool:
+        # Check if the external engine is running
+        ...
+
+    @staticmethod
+    def run(platform, timeout=60, log_file=''):
+        result = SimResult(engine='my_engine', platform=platform.name)
+        # Run simulation
+        ...
+        return result
+```
+
+### 3. Register in `get_engine()`
+
+```python
+def get_engine(platform):
+    if platform.engine == "my_engine":
+        return MyEngine()
+    ...
+```
+
+### 4. Add Schema Entry
+
+Add the engine name to `VALID_ENGINES` in `eosim/core/schema.py`.
+
+## Available Integration Bridges
+
+| Bridge | File | Protocol | External Tool |
+|--------|------|----------|---------------|
+| CARLAConnection | `carla.py` | TCP | CARLA Simulator |
+| AirSimConnection | `airsim.py` | TCP/msgpack | Microsoft AirSim |
+| ROS2Bridge | `ros2.py` | rclpy | ROS 2 |
+| VerilatorBridge | `verilator.py` | File I/O | Verilator RTL sim |
+| MATLABBridge | `matlab.py` | matlab.engine | MATLAB/Simulink |
+| NS3Bridge | `ns3.py` | subprocess | ns-3 network sim |
+| DockerSimRunner | `docker_sim.py` | Docker API | Containerized sims |
+| XPlaneConnection | `xplane.py` | UDP | X-Plane |
+| GazeboConnection | `gazebo.py` | TCP | Gazebo |
+| OpenFOAMRunner | `openfoam.py` | subprocess | OpenFOAM |
+
+# === docs/digital-twin-guide.md ===
+
+# Digital Twin Guide
+
+EoSim's digital twin engine mirrors physical hardware state in real-time.
+
+## Overview
+
+A digital twin is a virtual replica of a physical embedded device that:
+- **Mirrors** the device's real-time state
+- **Predicts** future behavior through simulation
+- **Records** historical state for analysis
+- **Exports** data for offline processing
+
+## Usage
+
+```python
+from eosim.engine.native.simulators import SimulatorFactory
+from eosim.digital_twin.twin import DigitalTwin
+
+# Create simulator
+class VM:
+    peripherals = {}
+    def add_peripheral(self, name, dev):
+        self.peripherals[name] = dev
+
+vm = VM()
+sim = SimulatorFactory.create('automotive_ecu', vm)
+
+# Create digital twin
+twin = DigitalTwin('engine_ecu_001', sim)
+
+# Sync current state (call periodically)
+state = twin.sync()
+print(f"Current state: {state}")
+
+# Predict future (runs simulation forward)
+predictions = twin.predict(steps=100)
+print(f"Predicted speed in 100 ticks: {predictions[-1].get('speed_kmh', 'N/A')}")
+
+# Export history
+twin.export_json('twin_history.json')
+
+# Check twin status
+print(twin.status())
+```
+
+## Architecture
+
+```
+Physical Device ─── Serial/Network ───> Data Ingestion
+                                              │
+                                        DigitalTwin
+                                        ├── sync()      ── Mirror state
+                                        ├── predict()   ── Run simulation
+                                        ├── history     ── Store states
+                                        └── export()    ── JSON/CSV output
+```
+
+## Integration with REST API
+
+The digital twin can be exposed via the REST API:
+
+```python
+from eosim.api.server import EoSimAPIServer
+from eosim.digital_twin.twin import DigitalTwin
+
+server = EoSimAPIServer()
+twin = DigitalTwin('pump_001', pump_sim)
+server.add_simulation('pump_001', twin.simulator)
+server.run()
+```
+
+Access via: `GET /api/v1/simulations/pump_001/state`
+
+# === docs/hil-guide.md ===
+
+# Hardware-in-the-Loop (HIL) Guide
+
+This guide covers connecting EoSim to real development boards for hardware-in-the-loop testing.
+
+## Overview
+
+EoSim's HIL mode bridges the gap between simulation and real hardware testing. It connects to development boards via debug probes (SWD/JTAG) using OpenOCD, allowing you to:
+
+- Flash firmware to real targets
+- Monitor registers and memory in real-time
+- Run the same test checks against physical hardware
+- Validate simulation accuracy against real behavior
+
+## Prerequisites
+
+- **OpenOCD** — Install from [openocd.org](https://openocd.org/) or your package manager
+- **Debug probe** — One of the supported probes (see below)
+- **Development board** — Any board with a debug header
+- **USB cable** — To connect the debug probe to your computer
+- **pyserial** — Install with `pip install "embeddedos-eosim[hil]"`
+
+### Supported Debug Probes
+
+| Probe | Interface | Notes |
+|-------|-----------|-------|
+| ST-Link V2/V3 | SWD/JTAG | Built into STM32 Nucleo and Discovery boards |
+| J-Link | SWD/JTAG | Segger J-Link (all variants) |
+| CMSIS-DAP | SWD | Standard ARM debug interface |
+| Black Magic Probe | SWD/JTAG | Open-source probe |
+| Raspberry Pi GPIO | SWD | Use RPi GPIO pins as SWD adapter |
+
+## Quick Start
+
+### 1. Connect your hardware
+
+Connect the debug probe to your development board's debug header (SWD or JTAG). Connect the probe to your computer via USB.
+
+### 2. Detect connected probes
+
+```bash
+eosim hil detect
+```
+
+Output:
+```
+Debug probes:
+  [1] ST-Link V2 (serial: 066BFF343633...)
+      Interface: SWD
+      Target: STM32F407
+
+Serial ports:
+  [1] COM3 / /dev/ttyACM0 (115200 baud)
+```
+
+### 3. Connect to the target
+
+```bash
+eosim hil connect --probe stlink --target stm32f4x
+```
+
+This starts an OpenOCD session and establishes a debug connection.
+
+### 4. Flash firmware
+
+```bash
+eosim hil flash firmware.bin --target stm32f4x
+```
+
+Options:
+- `--verify` — Verify flash after writing
+- `--reset` — Reset target after flashing
+- `--address 0x08000000` — Specify flash base address
+
+### 5. Monitor in real-time
+
+```bash
+eosim hil monitor --target stm32f4x
+```
+
+The monitor shows:
+- CPU registers (R0-R15, PSR, control registers)
+- Memory regions (SRAM, Flash, peripherals)
+- UART output (if serial port is connected)
+- GPIO pin states
+
+## Wiring Guide
+
+### SWD Connection (4 wires)
+
+```
+Debug Probe          Target Board
+───────────          ────────────
+SWCLK  ────────────  SWCLK
+SWDIO  ────────────  SWDIO
+GND    ────────────  GND
+3.3V   ────────────  VDD (optional, if board is self-powered)
+```
+
+### JTAG Connection (5+ wires)
+
+```
+Debug Probe          Target Board
+───────────          ────────────
+TCK    ────────────  TCK
+TMS    ────────────  TMS
+TDI    ────────────  TDI
+TDO    ────────────  TDO
+GND    ────────────  GND
+TRST   ────────────  TRST (optional)
+```
+
+### Serial Console (for UART output)
+
+```
+USB-Serial Adapter   Target Board
+──────────────────   ────────────
+TX     ────────────  RX
+RX     ────────────  TX
+GND    ────────────  GND
+```
+
+## Platform Configuration for HIL
+
+Set `engine: hil` in your platform YAML:
+
+```yaml
+name: stm32f4-hil
+display_name: STM32F4 Discovery (Real Hardware)
+arch: arm
+engine: hil
+vendor: ST
+soc: STM32F407
+class: devboard
+domain: industrial
+
+boot:
+  firmware: build/firmware.bin
+
+runtime:
+  timeout_s: 30
+  uart: /dev/ttyACM0
+```
+
+## Running HIL Tests
+
+Once connected, you can run the same test framework against real hardware:
+
+```bash
+eosim test stm32f4-hil
+```
+
+This will:
+1. Flash firmware to the target
+2. Reset and start execution
+3. Capture UART output via serial port
+4. Run test checks (serial_contains, timeout, boot_success, etc.)
+5. Generate test results and JUnit XML
+
+## Troubleshooting
+
+### Probe not detected
+
+- Check USB connection and cable
+- Ensure OpenOCD is installed: `openocd --version`
+- On Linux, ensure udev rules are installed for your probe
+- On Windows, ensure the correct USB driver is installed (WinUSB/libusb)
+
+### Connection fails
+
+- Verify SWD/JTAG wiring (especially GND)
+- Check that the target is powered
+- Try reducing SWD clock speed: `eosim hil connect --speed 1000`
+- Ensure no other debugger is connected to the target
+
+### Flash verification fails
+
+- Ensure the firmware binary matches the target architecture
+- Check flash base address (`--address`)
+- Try erasing flash first: `eosim hil flash --erase firmware.bin`
+
+### No serial output
+
+- Verify TX/RX wiring (they should be crossed: probe TX → target RX)
+- Check baud rate matches firmware configuration
+- Ensure the correct serial port is specified in platform config
+
+# === docs/domain-guide.md ===
+
+# Domain Guide — Adding New Industry Domains
+
+## Overview
+
+EoSim supports 40 industry domains. Each domain includes:
+
+1. **Domain Profile** — standards, safety levels, typical architectures
+2. **Schema Entry** — validation in `VALID_DOMAINS`
+3. **Simulator(s)** — domain-specific simulation logic
+4. **Product Templates** — pre-configured products
+5. **GUI Renderer** — 3D visualization
+6. **Platform Definitions** — target hardware definitions
+
+## Current Domains (40)
+
+| Domain | Standards | Safety |
+|--------|-----------|--------|
+| automotive | ISO 26262, AUTOSAR | ASIL-A to D |
+| aerospace | DO-178C, ARINC 653 | DAL-A to E |
+| medical | IEC 62304, FDA | Class A/B/C |
+| industrial | IEC 61508 | SIL-1 to 4 |
+| nuclear | IEC 61513, IEEE 603 | SIL-3/4 |
+| railway | EN 50128/50129, ETCS | SIL-3/4 |
+| defense | MIL-STD-810/461 | SIL-3/4 |
+| energy | IEC 61850 | SIL-2/3 |
+| telecom | 3GPP, O-RAN | — |
+| iot | MQTT, CoAP | — |
+| consumer | Bluetooth, Matter | — |
+| robotics | ROS 2, ISO 10218 | PLd/e |
+| agriculture | ISO 11783 (ISOBUS) | PLa/b |
+| maritime | IMO SOLAS, NMEA | SIL-1/2 |
+| mining | IEC 60079, MSHA | SIL-2/3 |
+| construction | ISO 15998, EN 13849 | PLc/d/e |
+| retail | PCI DSS, EMV | — |
+| education | IEEE P2841 | — |
+| sports | ANT+, BLE | — |
+| smart-city | FIWARE, oneM2M | SIL-1 |
+| space | ECSS, CCSDS | Cat-1/2/3 |
+| quantum | IEEE P7131 | — |
+| hvac | ASHRAE 135, BACnet | SIL-1 |
+| printing | ISO/ASTM 52900 | — |
+| elevator | EN 81-20, ISO 8100 | SIL-3 |
+| traffic | NTCIP, ETSI ITS | SIL-1/2 |
+| water | EPA SCADA, AWWA | SIL-1/2 |
+| oil-gas | API 1164, ISA-95 | SIL-2/3 |
+| forestry | ISO 11850 | PLb/c |
+| fisheries | IMO SOLAS | — |
+| logistics | GS1, VDA 5050 | PLd |
+| cybersecurity | FIPS 140-3, CC | EAL4-6 |
+| ar-vr | OpenXR, Khronos | — |
+| aerodynamics | NASA CFD, AIAA | — |
+| physiology | HL7 FHIR | Class I-III |
+| finance | FIX, ISO 20022 | Critical/High |
+| weather | WMO, GRIB2 | — |
+| gaming | PhysX, Vulkan | — |
+| photonics | IEEE 802.3, ITU-T | — |
+| neuromorphic | IEEE 2801 | — |
+
+## Adding a New Domain
+
+### Step 1: Schema (`eosim/core/schema.py`)
+Add the domain name to `VALID_DOMAINS`.
+
+### Step 2: Domain Profile (`eosim/core/domains.py`)
+Add a `DomainProfile` entry to `DOMAIN_CATALOG`.
+
+### Step 3: Simulator (`eosim/engine/native/simulators/`)
+Create a new simulator file. See [Simulator Guide](simulator-guide.md).
+
+### Step 4: Product Templates (`eosim/gui/product_templates.py`)
+Add at least one product template for the domain.
+
+### Step 5: Platform Definition (`platforms/`)
+Create a platform YAML for the domain.
+
+### Step 6: GUI Renderer (`eosim/gui/renderers/`)
+Create a domain-specific 3D renderer.
+
+### Step 7: Tests
+Add tests covering the new simulator, domain profile, and products.
+
+# === docs/analysis-guide.md ===
+
+# Analysis Tools Guide
+
+EoSim includes five analysis modules for production-grade embedded system validation.
+
+## Power Analysis
+
+Estimate power consumption and battery life for embedded platforms.
+
+```python
+from eosim.analysis.power import PowerAnalyzer, PowerProfile
+
+analyzer = PowerAnalyzer()
+analyzer.add_profile('nrf52840', PowerProfile(
+    name='nrf52840',
+    voltage_v=3.3,
+    current_active_ma=5.0,
+    current_sleep_ma=0.002,
+    current_deep_sleep_ua=0.4,
+    clock_mhz=64.0,
+))
+
+# Measure power in different modes
+active = analyzer.measure('nrf52840', mode='active', duration_s=0.01)
+sleep = analyzer.measure('nrf52840', mode='sleep', duration_s=0.99)
+
+# Estimate battery life (hours)
+hours = analyzer.estimate_battery_life('nrf52840', capacity_mah=250, duty_cycle_pct=1)
+print(f"Battery life: {hours:.0f} hours ({hours/24:.0f} days)")
+```
+
+## Thermal Modeling
+
+Predict temperature rise and thermal limits.
+
+```python
+from eosim.analysis.thermal import ThermalModel
+
+model = ThermalModel(
+    ambient_c=25.0,
+    thermal_resistance_cw=15.0,  # °C/W (junction-to-ambient)
+    thermal_capacitance_jc=5.0,  # J/°C
+)
+
+# Steady-state temperature at 2W
+print(model.steady_state(power_w=2.0))  # 55.0°C
+
+# Time to reach 85°C thermal limit
+print(model.time_to_limit(power_w=3.0, limit_c=85.0))
+```
+
+## Functional Safety (ISO 26262 / IEC 61508)
+
+Track and verify safety requirements.
+
+```python
+from eosim.analysis.safety import SafetyAnalyzer, SafetyRequirement
+
+sa = SafetyAnalyzer()
+sa.add_requirement(SafetyRequirement(
+    req_id='SWR-001',
+    description='Watchdog timer shall reset within 100ms',
+    standard='ISO 26262',
+    level='ASIL-D',
+))
+sa.add_requirement(SafetyRequirement(
+    req_id='SWR-002',
+    description='CAN bus error shall trigger safe state',
+    standard='ISO 26262',
+    level='ASIL-B',
+))
+
+# Verify requirements
+sa.verify('SWR-001')
+report = sa.report()
+print(f"Coverage: {report['coverage_pct']:.0f}%")
+```
+
+## Security Analysis (ISO 21434 / IEC 62443)
+
+Threat modeling and risk scoring.
+
+```python
+from eosim.analysis.security import SecurityAnalyzer, ThreatModel
+
+sa = SecurityAnalyzer()
+sa.add_threat(ThreatModel(
+    asset='ECU firmware',
+    threat='Tampering via debug port',
+    impact='critical',
+    likelihood='medium',
+))
+sa.mitigate('ECU firmware', 'Disable JTAG in production, secure boot')
+print(sa.report())
+```
+
+## WCET Analysis
+
+Worst-case execution time and schedulability analysis.
+
+```python
+from eosim.analysis.timing import WCETAnalyzer
+
+wa = WCETAnalyzer(clock_mhz=168)  # STM32F4 @ 168 MHz
+wa.add_task('sensor_read', cycles=5000, period_us=1000)
+wa.add_task('can_tx', cycles=2000, period_us=500)
+wa.add_task('pid_control', cycles=10000, period_us=5000)
+
+report = wa.report()
+print(f"CPU Utilization: {report['utilization']*100:.1f}%")
+print(f"Schedulable (Liu & Layland): {report['schedulable']}")
+```
+
+# === docs/docker-guide.md ===
+
+# Docker Build & Deployment Guide
+
+This guide covers building, running, and deploying EoSim using Docker in production environments.
+
+---
+
+## Quick Start
+
+```bash
+# Build and start the API server
+docker compose up api -d
+
+# Check it's running
+curl http://localhost:8080/api/v1/platforms
+
+# View logs
+docker compose logs -f api
+
+# Stop
+docker compose down
+```
+
+---
+
+## Docker Images
+
+The Dockerfile provides **6 build stages** for different use cases:
+
+| Stage | Target | Size | Use Case |
+|-------|--------|------|----------|
+| `builder` | — | — | Internal build stage |
+| `test` | `--target test` | ~250 MB | CI test runner |
+| `production` | `--target production` | ~180 MB | Slim CLI runner (no QEMU) |
+| `production-qemu` | `--target production-qemu` | ~800 MB | CLI + full QEMU emulation |
+| `api-server` | `--target api-server` | ~200 MB | REST API server (FastAPI) |
+| `development` | `--target development` | ~1.2 GB | Full dev environment |
+
+### Building Specific Targets
+
+```bash
+# Production slim (CLI only, no QEMU)
+docker build --target production -t eosim:latest .
+
+# API server
+docker build --target api-server -t eosim-api:latest .
+
+# Full simulation with QEMU
+docker build --target production-qemu -t eosim-qemu:latest .
+
+# Development environment
+docker build --target development -t eosim-dev:latest .
+
+# Test runner (for CI)
+docker build --target test -t eosim-test:latest .
+```
+
+---
+
+## Running Containers
+
+### CLI Commands
+
+```bash
+# List platforms
+docker run --rm eosim:latest eosim list
+
+# Platform info
+docker run --rm eosim:latest eosim info stm32h7
+
+# Run simulation
+docker run --rm eosim:latest eosim run stm32f4
+
+# Validate all platforms
+docker run --rm eosim:latest eosim validate --all
+
+# Platform statistics
+docker run --rm eosim:latest eosim stats
+
+# Search
+docker run --rm eosim:latest eosim search bluetooth
+```
+
+### API Server
+
+```bash
+# Start API server
+docker run -d \
+  --name eosim-api \
+  -p 8080:8080 \
+  --restart unless-stopped \
+  --memory 2g \
+  --cpus 2 \
+  eosim-api:latest
+
+# Endpoints:
+#   GET  http://localhost:8080/api/v1/platforms
+#   GET  http://localhost:8080/api/v1/domains
+#   GET  http://localhost:8080/api/v1/simulators
+#   GET  http://localhost:8080/api/v1/templates
+#   GET  http://localhost:8080/api/v1/simulations
+#   POST http://localhost:8080/api/v1/simulations/{name}/tick
+#   WS   ws://localhost:8080/ws/simulations/{name}
+#
+# Interactive docs:
+#   http://localhost:8080/docs      (Swagger UI)
+#   http://localhost:8080/redoc     (ReDoc)
+```
+
+### With Custom Platforms
+
+```bash
+# Mount your own platform definitions
+docker run -d \
+  -p 8080:8080 \
+  -v /path/to/my/platforms:/opt/eosim/platforms:ro \
+  eosim-api:latest
+```
+
+### With Plugins
+
+```bash
+# Mount plugin directory
+docker run -d \
+  -p 8080:8080 \
+  -v /path/to/plugins:/opt/eosim/plugins:ro \
+  eosim-api:latest
+```
+
+---
+
+## Docker Compose
+
+### Services
+
+| Service | Purpose | Port | Profile |
+|---------|---------|------|---------|
+| `api` | REST API server | 8080 | default |
+| `cli` | CLI runner | — | `cli` |
+| `cli-qemu` | CLI + QEMU | — | `cli` |
+| `test` | Test runner | — | `test` |
+| `dev` | Development | 8080, 8888 | `dev` |
+
+### Commands
+
+```bash
+# Start API server (default service)
+docker compose up api -d
+
+# Run CLI commands
+docker compose run --rm cli list
+docker compose run --rm cli info stm32h7
+docker compose run --rm cli stats
+
+# Run with QEMU (full firmware simulation)
+docker compose run --rm cli-qemu run arm64-linux
+
+# Run tests
+docker compose --profile test run --rm test
+
+# Start development environment
+docker compose --profile dev run --rm dev
+
+# View API logs
+docker compose logs -f api
+
+# Stop everything
+docker compose down
+
+# Rebuild after code changes
+docker compose build --no-cache api
+docker compose up api -d
+```
+
+---
+
+## Production Deployment
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EOSIM_HOST` | `0.0.0.0` | API server bind address |
+| `EOSIM_PORT` | `8080` | API server port |
+| `EOSIM_LOG_LEVEL` | `INFO` | Logging level |
+| `EOSIM_WORKERS` | `2` | Number of uvicorn workers |
+| `EOSIM_DEV` | — | Enable development mode |
+
+### Resource Limits
+
+Recommended resource limits for production:
+
+| Workload | CPU | Memory | Storage |
+|----------|-----|--------|---------|
+| API server | 1-2 cores | 512 MB - 2 GB | 500 MB |
+| CLI validation | 0.5-1 core | 256 MB | 500 MB |
+| QEMU simulation | 2-4 cores | 2-8 GB | 2 GB |
+| Development | 2+ cores | 4+ GB | 5 GB |
+
+### Health Checks
+
+The production images include built-in health checks:
+
+```bash
+# Check container health
+docker inspect --format='{{.State.Health.Status}}' eosim-api
+
+# API server health
+curl -f http://localhost:8080/api/v1/platforms
+
+# CLI health
+docker run --rm eosim:latest python -c \
+  "from eosim.engine.native.simulators import SimulatorFactory; print('OK')"
+```
+
+### Logging
+
+```bash
+# Follow logs
+docker compose logs -f api
+
+# JSON structured logging (for log aggregation)
+docker run -d \
+  -p 8080:8080 \
+  -e EOSIM_LOG_LEVEL=INFO \
+  eosim-api:latest
+
+# Export logs to file
+docker compose logs api > eosim-api.log 2>&1
+```
+
+---
+
+## Security
+
+### Non-root Container
+
+The production images run as a dedicated `eosim` user (non-root):
+
+```bash
+# Verify
+docker run --rm eosim:latest whoami
+# → eosim
+```
+
+### Read-only Filesystem
+
+```bash
+docker run -d \
+  --read-only \
+  --tmpfs /tmp \
+  -p 8080:8080 \
+  -v eosim-data:/opt/eosim/out \
+  eosim-api:latest
+```
+
+### Network Isolation
+
+```bash
+# Create isolated network
+docker network create eosim-net
+
+docker run -d \
+  --name eosim-api \
+  --network eosim-net \
+  -p 8080:8080 \
+  eosim-api:latest
+```
+
+### Image Scanning
+
+```bash
+# Scan for vulnerabilities
+docker scout cve eosim:latest
+
+# Or with Trivy
+trivy image eosim:latest
+```
+
+---
+
+## Kubernetes Deployment
+
+### Deployment Manifest
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eosim-api
+  labels:
+    app: eosim
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eosim
+  template:
+    metadata:
+      labels:
+        app: eosim
+    spec:
+      containers:
+        - name: eosim
+          image: ghcr.io/embeddedos-org/eosim:v2.0.0
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/platforms
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/platforms
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          env:
+            - name: EOSIM_LOG_LEVEL
+              value: "INFO"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eosim-api
+spec:
+  selector:
+    app: eosim
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eosim-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: eosim.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: eosim-api
+                port:
+                  number: 80
+```
+
+### Helm Values (example)
+
+```yaml
+replicaCount: 2
+image:
+  repository: ghcr.io/embeddedos-org/eosim
+  tag: v2.0.0
+service:
+  port: 8080
+resources:
+  requests:
+    cpu: 500m
+    memory: 256Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+- name: Build & push Docker image
+  run: |
+    docker build --target api-server -t ghcr.io/embeddedos-org/eosim:${{ github.ref_name }} .
+    echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    docker push ghcr.io/embeddedos-org/eosim:${{ github.ref_name }}
+```
+
+### GitLab CI
+
+```yaml
+docker:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build --target api-server -t registry.example.com/eosim:$CI_COMMIT_TAG .
+    - docker push registry.example.com/eosim:$CI_COMMIT_TAG
+```
+
+---
+
+## Troubleshooting
+
+### Container won't start
+
+```bash
+# Check logs
+docker logs eosim-api
+
+# Run interactively
+docker run -it --rm eosim:latest bash
+
+# Test Python import
+docker run --rm eosim:latest python -c "import eosim; print('OK')"
+```
+
+### Port already in use
+
+```bash
+# Find what's using port 8080
+lsof -i :8080
+
+# Use a different port
+docker run -p 9090:8080 eosim-api:latest
+```
+
+### Permission denied
+
+```bash
+# The container runs as non-root — mount volumes with correct ownership
+docker run -v ./data:/opt/eosim/out eosim:latest
+# If needed, fix ownership:
+sudo chown -R 999:999 ./data  # UID/GID of eosim user in container
+```
+
+# === docs/mcp-gateway-eval.md ===
+
+# MCP gateway evaluation — Klavis Strata selected
+
+**Status:** Decision recorded. **Date:** 2026-10-05
+**Context:** Agent fabric plan §"Agent fabric: linking everything" — one
+MCP gateway fronting the org's servers (EoSim MCP, fw-context-mcp over the
+eos tree, hardware bridges, CAD surface).
+
+## Requirement
+
+One gateway that agents connect to instead of N individual servers, with
+progressive tool discovery (agents see tools only when relevant — the
+anti-context-bloat requirement), self-hostable, and policy hooks
+(allow/confirm/deny).
+
+## Candidates
+
+| Candidate | License | Progressive discovery | Verdict |
+|---|---|---|---|
+| **Klavis Strata** | open-source | yes (`pipx install strata-mcp`) | **selected** |
+| Consiliency/pmcp | open-source | yes (~200-token minimal mode) | runner-up, watch |
+| agentic-community/mcp-gateway-registry | Apache 2.0 | Keycloak/Entra integration | watch (auth story) |
+| sdys666/mcp-gateway | — | SKILL.md validation + allow/confirm/deny policies | pattern reference only, not a dependency |
+
+## Decision
+
+**Klavis Strata.** It is open-source, self-hostable, installs via
+`pipx install strata-mcp`, and progressive tool discovery is built in —
+the core requirement. Caveats accepted: extra discovery round-trips, and
+no SOC 2 posture (fine for a dev-fabric gateway; not for customer data).
+
+sdys666/mcp-gateway stays useful as a *pattern reference* for SKILL.md
+validation and allow/confirm/deny policies — we adopt the pattern, not the
+dependency.
+
+## Next steps
+
+1. Stand up Strata in front of the existing EoSim MCP server.
+2. Add fw-context-mcp (0.29.1) over the eos tree as the second backend
+   (generate `compile_commands.json` first; defer Ollama enrichment).
+3. Hardware bridges and CAD surface follow the same pattern.
+
+## Security requirements (day-one posture)
+
+The Agentics' *Enterprise MCP Guide 2026* (68 MCP server CVEs in one
+month) names six attack classes and a control set that map 1:1 onto the
+gateway's day-one posture — this is the external validation the
+evaluation's existing "policy hooks (allow/confirm/deny)" requirement
+needed:
+
+- **Six attack classes the gateway must be designed against:** tool
+  poisoning, schema poisoning, tool shadowing, command injection,
+  shadow servers, context oversharing. (Per-class mapping for the
+  IPC surface: `embeddedos-org/eIPC` `docs/mcp-attack-classes-ipc.md`.)
+- **Per-agent allowlists** — which tools each agent identity may call.
+- **Identity binding** — backends authenticate before the gateway lists
+  them (no shadow servers).
+- **Centralized policy enforcement** — the gateway *is* the one
+  policy-enforcement point for all tool traffic.
+- **Human approval for destructive actions** — confirm/deny hooks on
+  privileged tool invocations.
+
+The 200k-stdIO-instances stat (OX Security: stdio-transport command
+execution across 150M+ downloads) is why the fabric's standing rules —
+pinned versions, approval on config change, no intra-network trust —
+are first-class gateway controls, not documentation niceties.
