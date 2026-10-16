@@ -167,7 +167,7 @@ def test_stdio_tools_list_and_call(registry_dir):
         ]
     )
     tools = replies[0]["result"]["tools"]
-    assert sorted(t["name"] for t in tools) == ["console_tail", "list_platforms", "net_capture", "sim_flash", "sim_launch", "sim_status"]
+    assert sorted(t["name"] for t in tools) == ["console_tail", "list_platforms", "net_capture", "sim_build", "sim_flash", "sim_launch", "sim_status"]
     payload = json.loads(replies[1]["result"]["content"][0]["text"])
     assert payload["count"] == 1
     assert payload["platforms"][0]["name"] == "demo-arm"
