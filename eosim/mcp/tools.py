@@ -214,6 +214,70 @@ def sim_launch(
 
 
 # ---------------------------------------------------------------------------
+# Tool: sim_build
+# ---------------------------------------------------------------------------
+
+SIM_BUILD_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "source": {
+            "type": "string",
+            "description": "Path to the EoS source tree (optional; resolved via "
+            "EOS_SOURCE / ./eos when omitted)",
+        },
+        "dry_run": {
+            "type": "boolean",
+            "default": True,
+            "description": "If true (default), resolve the source and return the "
+            "build plan without building",
+        },
+    },
+    "additionalProperties": False,
+}
+
+
+def sim_build(source: str | None = None, dry_run: bool = True) -> dict[str, Any]:
+    """Build EoS from source (the ``eosim eos build`` path).
+
+    With ``dry_run=true`` (default) this resolves the EoS source tree and
+    returns the exact build plan without running anything — safe for agents
+    to probe. With ``dry_run=false`` the build actually runs via
+    ``eosim.integrations.eos_runner.build_eos`` and a bounded tail of the
+    build log is returned. This completes the list -> build -> flash ->
+    console surface of issue #37's roadmap.
+    """
+    from eosim.integrations.eos_runner import build_eos, find_eos_source
+
+    src = source or find_eos_source()
+    if not src:
+        return {
+            "ok": False,
+            "error": "EoS source not found (pass source, set EOS_SOURCE, or clone EoS to ./eos)",
+        }
+    if not os.path.isdir(src):
+        return {"ok": False, "error": f"source is not a directory: {src!r}"}
+
+    plan: dict[str, Any] = {
+        "ok": True,
+        "dry_run": dry_run,
+        "source": src,
+        "command": ["eosim", "eos", "build", "--source", src],
+    }
+    if dry_run:
+        return plan
+
+    started = time.time()
+    ok, log = build_eos(src)
+    plan["ok"] = ok
+    plan["started_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
+    plan["duration_s"] = round(time.time() - started, 3)
+    # Builds can log megabytes; the CLI precedent tails 500 chars on failure.
+    # 2000 is the agent-useful bound.
+    plan["log_tail"] = log[-2000:]
+    return plan
+
+
+# ---------------------------------------------------------------------------
 # Tool: sim_flash
 # ---------------------------------------------------------------------------
 
@@ -720,6 +784,13 @@ TOOLS: dict[str, dict[str, Any]] = {
         "to actually start the simulator detached.",
         "inputSchema": SIM_LAUNCH_SCHEMA,
         "handler": sim_launch,
+    },
+    "sim_build": {
+        "description": "Build EoS from source. Dry-run by default (resolves the "
+        "source tree and returns the build plan); set dry_run=false to "
+        "actually run the build and get a bounded log tail.",
+        "inputSchema": SIM_BUILD_SCHEMA,
+        "handler": sim_build,
     },
     "sim_flash": {
         "description": "Stage a firmware image into a platform's simulated "

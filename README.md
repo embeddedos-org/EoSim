@@ -168,10 +168,11 @@ python -m eosim.mcp
 |---|---|
 | `list_platforms` | List simulation platforms; filters: `arch`, `vendor`, `engine`, `domain`, `limit` |
 | `sim_launch` | Launch a simulation; `platform` (required), `headless`, `timeout`, `firmware`. Dry-run by default — set `dry_run: false` to actually start the simulator detached |
+| `sim_build` | Build EoS from source; `source` (optional, resolved via `EOS_SOURCE` / `./eos`). Dry-run by default — set `dry_run: false` to run the build and get a bounded log tail |
 | `sim_flash` | Stage a firmware image into a platform's simulated flash; `platform` and `firmware` (required). Dry-run by default — set `dry_run: false` to copy it to `out/firmware/<platform>/` with a `.meta.json` sidecar |
 | `console_tail` | Return the tail of a running session's console log; `session_id` (required, from `sim_launch` with `dry_run: false`), `lines` (default 50), `log_dir` (default `out/logs`) |
 
-Roadmap: `sim_build`, `gpio_poke`, `i2c_poke`, `spi_poke` (see issue #37).
+Roadmap: `gpio_poke`, `i2c_poke`, `spi_poke` (see issue #37).
 
 ### Connecting a client
 

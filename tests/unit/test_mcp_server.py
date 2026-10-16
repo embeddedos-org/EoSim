@@ -64,7 +64,7 @@ def registry_dir(tmp_path):
 def test_tools_list_has_exactly_the_shipped_surface():
     tools = list_tools()
     names = sorted(t["name"] for t in tools)
-    assert names == ["console_tail", "list_platforms", "net_capture", "sim_flash", "sim_launch", "sim_status"]
+    assert names == ["console_tail", "list_platforms", "net_capture", "sim_build", "sim_flash", "sim_launch", "sim_status"]
     for t in tools:
         assert t["description"]
         assert t["inputSchema"]["type"] == "object"
@@ -458,3 +458,54 @@ def test_net_capture_finds_session_pcap_in_log_dir(tmp_path):
 def test_net_capture_is_read_only_hint():
     tools = {t["name"]: t for t in list_tools()}
     assert tools["net_capture"]["annotations"] == {"readOnlyHint": True}
+
+
+# --- sim_build ---------------------------------------------------------------
+
+
+def test_sim_build_dry_run_returns_plan_without_building(tmp_path, monkeypatch):
+    import eosim.integrations.eos_runner as runner
+
+    def _boom(src):  # pragma: no cover - must never be called in dry-run
+        raise AssertionError("build_eos called during a dry run")
+
+    monkeypatch.setattr(runner, "build_eos", _boom)
+    res = call_tool("sim_build", {"source": str(tmp_path)})
+    assert res["ok"] is True
+    assert res["dry_run"] is True
+    assert res["source"] == str(tmp_path)
+    assert res["command"] == ["eosim", "eos", "build", "--source", str(tmp_path)]
+
+
+def test_sim_build_missing_source_errors(tmp_path, monkeypatch):
+    import eosim.integrations.eos_runner as runner
+
+    monkeypatch.setattr(runner, "find_eos_source", lambda: None)
+    res = call_tool("sim_build", {})
+    assert res["ok"] is False
+    assert "source not found" in res["error"]
+
+
+def test_sim_build_rejects_non_directory_source(tmp_path):
+    res = call_tool("sim_build", {"source": str(tmp_path / "does-not-exist")})
+    assert res["ok"] is False
+    assert "not a directory" in res["error"]
+
+
+def test_sim_build_real_run_returns_log_tail(tmp_path, monkeypatch):
+    import eosim.integrations.eos_runner as runner
+
+    monkeypatch.setattr(runner, "build_eos", lambda src: (True, "BUILD: PASSED"))
+    res = call_tool("sim_build", {"source": str(tmp_path), "dry_run": False})
+    assert res["ok"] is True
+    assert res["dry_run"] is False
+    assert res["log_tail"] == "BUILD: PASSED"
+
+
+def test_sim_build_failure_log_is_bounded(tmp_path, monkeypatch):
+    import eosim.integrations.eos_runner as runner
+
+    monkeypatch.setattr(runner, "build_eos", lambda src: (False, "x" * 10000))
+    res = call_tool("sim_build", {"source": str(tmp_path), "dry_run": False})
+    assert res["ok"] is False
+    assert len(res["log_tail"]) == 2000
