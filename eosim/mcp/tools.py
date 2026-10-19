@@ -604,9 +604,7 @@ def gpio_poke(
     if not isinstance(value, int) or value not in (0, 1):
         return {"ok": False, "error": f"invalid value: {value!r} (0 or 1)"}
     log_path = Path(log_dir)
-    records = (
-        sorted(log_path.glob(f"*-{session_id}.session.json")) if log_path.is_dir() else []
-    )
+    records = sorted(log_path.glob(f"*-{session_id}.session.json")) if log_path.is_dir() else []
     if not records:
         return {
             "ok": False,
