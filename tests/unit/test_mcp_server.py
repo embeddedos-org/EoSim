@@ -64,7 +64,7 @@ def registry_dir(tmp_path):
 def test_tools_list_has_exactly_the_shipped_surface():
     tools = list_tools()
     names = sorted(t["name"] for t in tools)
-    assert names == ["console_tail", "list_platforms", "net_capture", "sim_build", "sim_flash", "sim_launch", "sim_status"]
+    assert names == ["console_tail", "gpio_poke", "list_platforms", "net_capture", "sim_build", "sim_flash", "sim_launch", "sim_status"]
     for t in tools:
         assert t["description"]
         assert t["inputSchema"]["type"] == "object"
@@ -167,7 +167,7 @@ def test_stdio_tools_list_and_call(registry_dir):
         ]
     )
     tools = replies[0]["result"]["tools"]
-    assert sorted(t["name"] for t in tools) == ["console_tail", "list_platforms", "net_capture", "sim_build", "sim_flash", "sim_launch", "sim_status"]
+    assert sorted(t["name"] for t in tools) == ["console_tail", "gpio_poke", "list_platforms", "net_capture", "sim_build", "sim_flash", "sim_launch", "sim_status"]
     payload = json.loads(replies[1]["result"]["content"][0]["text"])
     assert payload["count"] == 1
     assert payload["platforms"][0]["name"] == "demo-arm"
@@ -333,6 +333,84 @@ def test_sim_status_log_only_session_is_unknown_not_fabricated(tmp_path):
     assert res["ok"] is True
     assert res["state"] == "unknown"
 
+
+
+# --- gpio_poke ---------------------------------------------------------------
+
+
+def test_gpio_poke_dry_run_plans_without_writing(tmp_path):
+    import os as _os
+    import subprocess
+    import sys as _sys
+
+    proc = subprocess.Popen([_sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        log_dir = _write_session(tmp_path, "poke1", proc.pid)
+        res = call_tool(
+            "gpio_poke", {"session_id": "poke1", "pin": 4, "value": 1, "log_dir": log_dir}
+        )
+        assert res["ok"] is True
+        assert res["dry_run"] is True
+        assert res["pin"] == 4 and res["value"] == 1
+        assert res["control_file"].endswith("demo-arm-poke1.gpio.jsonl")
+        assert not _os.path.exists(res["control_file"])
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_gpio_poke_appends_event_for_running_session(tmp_path):
+    import subprocess
+    import sys as _sys
+
+    proc = subprocess.Popen([_sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        log_dir = _write_session(tmp_path, "poke2", proc.pid)
+        res = call_tool(
+            "gpio_poke",
+            {"session_id": "poke2", "pin": 17, "value": 0, "log_dir": log_dir, "dry_run": False},
+        )
+        assert res["ok"] is True
+        assert res["dry_run"] is False
+        lines = open(res["control_file"], encoding="utf-8").read().strip().splitlines()
+        assert len(lines) == 1
+        event = json.loads(lines[0])
+        assert event["pin"] == 17 and event["value"] == 0
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+
+def test_gpio_poke_exited_session_fails_closed(tmp_path):
+    import subprocess
+    import sys as _sys
+
+    proc = subprocess.Popen([_sys.executable, "-c", "pass"])
+    proc.wait(timeout=5)
+    log_dir = _write_session(tmp_path, "poke3", proc.pid)
+    res = call_tool(
+        "gpio_poke",
+        {"session_id": "poke3", "pin": 1, "value": 1, "log_dir": log_dir, "dry_run": False},
+    )
+    assert res["ok"] is False
+    assert "not running" in res["error"]
+
+
+def test_gpio_poke_unknown_session_errors(tmp_path):
+    res = call_tool(
+        "gpio_poke", {"session_id": "nope99", "pin": 1, "value": 1, "log_dir": str(tmp_path)}
+    )
+    assert res["ok"] is False
+    assert "no session" in res["error"]
+
+
+def test_gpio_poke_rejects_bad_pin_and_value(tmp_path):
+    res = call_tool("gpio_poke", {"session_id": "poke1", "pin": 300, "value": 1})
+    assert res["ok"] is False and "pin" in res["error"]
+    res = call_tool("gpio_poke", {"session_id": "poke1", "pin": 1, "value": 2})
+    assert res["ok"] is False and "value" in res["error"]
+    res = call_tool("gpio_poke", {"session_id": "bad id!", "pin": 1, "value": 1})
+    assert res["ok"] is False and "session_id" in res["error"]
 
 
 # --- net_capture -------------------------------------------------------------

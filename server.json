@@ -1,7 +1,7 @@
 {
   "name": "io.github.embeddedos-org/eosim",
-  "description": "EoSim — multi-architecture embedded simulation platform for EmbeddedOS. Its MCP server (stdio, `python -m eosim.mcp`) lets agents list platforms, launch and flash simulations, read session status and console output, and summarize captured network traffic (bounded, offline).",
-  "version": "3.0.2",
+  "description": "EoSim — multi-architecture embedded simulation platform for EmbeddedOS. Its MCP server (stdio, `python -m eosim.mcp`) lets agents list platforms, launch and flash simulations, read session status and console output, queue GPIO pin changes for a running session, and summarize captured network traffic (bounded, offline).",
+  "version": "3.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/embeddedos-org/EoSim"
@@ -10,7 +10,7 @@
     {
       "registryType": "pypi",
       "identifier": "embeddedos-eosim",
-      "version": "3.0.2",
+      "version": "3.1.0",
       "transport": {
         "type": "stdio"
       },

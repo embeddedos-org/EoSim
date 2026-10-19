@@ -171,8 +171,11 @@ python -m eosim.mcp
 | `sim_build` | Build EoS from source; `source` (optional, resolved via `EOS_SOURCE` / `./eos`). Dry-run by default — set `dry_run: false` to run the build and get a bounded log tail |
 | `sim_flash` | Stage a firmware image into a platform's simulated flash; `platform` and `firmware` (required). Dry-run by default — set `dry_run: false` to copy it to `out/firmware/<platform>/` with a `.meta.json` sidecar |
 | `console_tail` | Return the tail of a running session's console log; `session_id` (required, from `sim_launch` with `dry_run: false`), `lines` (default 50), `log_dir` (default `out/logs`) |
+| `sim_status` | Report a session's state (running/exited from the persisted session record + pid liveness), pid, platform, uptime, log size; `session_id` (required), `log_dir` (default `out/logs`) |
+| `gpio_poke` | Queue a GPIO pin change for a running session — appends one event to the session's `<platform>-<session_id>.gpio.jsonl` control file for the simulator to consume; `session_id`, `pin` (0-255), `value` (0/1) required. Dry-run by default; fails closed for exited or unknown sessions |
+| `net_capture` | Summarize a recorded pcap for a session (offline only: packet count, protocol histogram, top talkers, bounded packet summaries; no payloads); `session_id` (required), `pcap_path`, `max_packets` (default 200), `log_dir` |
 
-Roadmap: `gpio_poke`, `i2c_poke`, `spi_poke` (see issue #37).
+Roadmap: `i2c_poke`, `spi_poke` (see issue #37).
 
 ### Connecting a client
 

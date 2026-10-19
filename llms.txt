@@ -2,7 +2,7 @@
 
 > llms.txt for the EoSim repository (embeddedos-org/EoSim).
 > Status: multi-architecture embedded simulation platform,
-> distribution version 3.0.2 (`embeddedos-eosim` on PyPI). Its
+> distribution version 3.1.0 (`embeddedos-eosim` on PyPI). Its
 > MCP server is registered via the root `server.json`
 > (io.github.embeddedos-org/eosim, stdio, `python -m eosim.mcp`).
 

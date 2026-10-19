@@ -23,4 +23,4 @@ jobs:
       server_json_path: server.json
       # Must equal [project] version in pyproject.toml — bump both
       # together. The reusable validator fails on drift.
-      expected_version: "3.0.2"
+      expected_version: "3.1.0"

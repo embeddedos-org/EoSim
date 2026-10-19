@@ -536,6 +536,123 @@ def console_tail(
 
 
 # ---------------------------------------------------------------------------
+# Tool: gpio_poke
+# ---------------------------------------------------------------------------
+
+GPIO_POKE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "session_id": {
+            "type": "string",
+            "description": "Session id returned by sim_launch (dry_run=false)",
+        },
+        "pin": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255,
+            "description": "GPIO pin number to drive (the simulator validates "
+            "it against the platform's actual GPIO count)",
+        },
+        "value": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Logic level to drive: 0 (low) or 1 (high)",
+        },
+        "log_dir": {
+            "type": "string",
+            "default": os.path.join("out", "logs"),
+            "description": "Directory holding session logs and records",
+        },
+        "dry_run": {
+            "type": "boolean",
+            "default": True,
+            "description": "If true (default), validate and return the poke "
+            "plan without queueing anything",
+        },
+    },
+    "required": ["session_id", "pin", "value"],
+    "additionalProperties": False,
+}
+
+
+def gpio_poke(
+    session_id: str,
+    pin: int,
+    value: int,
+    log_dir: str = os.path.join("out", "logs"),
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Queue a GPIO pin change for a running simulation session.
+
+    Delivery is the session control file
+    ``<log_dir>/<platform>-<session_id>.gpio.jsonl`` — one JSON object
+    per poke, appended in call order, for the simulator to consume.
+    ``dry_run=true`` (the default) validates the session and returns
+    the plan without writing anything.
+
+    A poke is queued only for a session whose recorded pid is still
+    alive: poking an exited or record-less session fails closed
+    rather than queueing an event nothing will ever consume.
+    """
+    if not _SESSION_ID_RE.match(session_id or ""):
+        return {"ok": False, "error": f"invalid session_id: {session_id!r}"}
+    if isinstance(pin, bool) or not isinstance(pin, int) or not 0 <= pin <= 255:
+        return {"ok": False, "error": f"invalid pin: {pin!r} (integer 0-255)"}
+    if isinstance(value, bool):
+        value = int(value)
+    if not isinstance(value, int) or value not in (0, 1):
+        return {"ok": False, "error": f"invalid value: {value!r} (0 or 1)"}
+    log_path = Path(log_dir)
+    records = (
+        sorted(log_path.glob(f"*-{session_id}.session.json")) if log_path.is_dir() else []
+    )
+    if not records:
+        return {
+            "ok": False,
+            "error": f"no session {session_id!r} found in {log_dir!r}; "
+            "launch with sim_launch(dry_run=false) first",
+        }
+    try:
+        record = json.loads(records[0].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"ok": False, "error": f"cannot read session record {records[0]}: {exc}"}
+    pid = int(record.get("pid", 0))
+    if pid <= 0 or not _pid_alive(pid):
+        return {
+            "ok": False,
+            "error": f"session {session_id!r} is not running (pid {pid}); "
+            "a poke cannot be delivered to an exited session",
+        }
+    control_file = str(records[0]).removesuffix(".session.json") + ".gpio.jsonl"
+    plan: dict[str, Any] = {
+        "ok": True,
+        "dry_run": dry_run,
+        "session_id": session_id,
+        "platform": record.get("platform"),
+        "pin": pin,
+        "value": value,
+        "control_file": control_file,
+    }
+    if dry_run:
+        plan["note"] = "dry run: nothing queued; set dry_run=false to append the poke event"
+        return plan
+    event = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "epoch": time.time(),
+        "pin": pin,
+        "value": value,
+    }
+    try:
+        with open(control_file, "a", encoding="utf-8") as cf:
+            cf.write(json.dumps(event) + "\n")
+    except OSError as exc:
+        return {"ok": False, "error": f"cannot write control file {control_file}: {exc}"}
+    plan["event"] = event
+    return plan
+
+
+# ---------------------------------------------------------------------------
 # Tool: net_capture (offline pcap summary only)
 # ---------------------------------------------------------------------------
 
@@ -812,6 +929,14 @@ TOOLS: dict[str, dict[str, Any]] = {
         "be inspected without shell access.",
         "inputSchema": CONSOLE_TAIL_SCHEMA,
         "handler": console_tail,
+    },
+    "gpio_poke": {
+        "description": "Queue a GPIO pin change for a running simulation "
+        "session (appends one event to the session's .gpio.jsonl control "
+        "file for the simulator to consume). Dry-run by default; fails "
+        "closed for exited or unknown sessions.",
+        "inputSchema": GPIO_POKE_SCHEMA,
+        "handler": gpio_poke,
     },
     "net_capture": {
         "description": "Summarize a recorded pcap for a session (offline "

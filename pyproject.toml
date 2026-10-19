@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 # PyPI distribution name, matching embeddedos-ebuild. The import package and
 # the `eosim` command keep their names.
 name = "embeddedos-eosim"
-version = "3.0.2"
+version = "3.1.0"
 description = "Multi-architecture embedded simulation platform for EoS — native engine plus Renode/QEMU backends"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -5,7 +5,7 @@ description: Drive the EoSim simulator fleet through its MCP server — discover
 
 # EoSim MCP
 
-The EoSim MCP server (`eosim mcp`) exposes the simulator fleet as four tools.
+The EoSim MCP server (`eosim mcp`) exposes the simulator fleet as eight tools.
 It speaks JSON-RPC over stdio; any MCP client can attach.
 
 ## Tools
@@ -27,6 +27,20 @@ It speaks JSON-RPC over stdio; any MCP client can attach.
   (`<log_dir>/<platform>-<session_id>.log`). Takes `session_id` and
   `lines` (default 50, max 1000). Use it to check boot output, faults, or
   test results after a launch.
+- `sim_status` — report a session's state (running/exited from the
+  persisted session record plus pid liveness), pid, platform, uptime,
+  and log size. Takes `session_id`. A session with a log but no record
+  reports `unknown`, never a fabricated verdict.
+- `gpio_poke` — queue a GPIO pin change for a running session. Takes
+  `session_id`, `pin` (0-255), `value` (0/1). Dry-run by default; with
+  `dry_run=false` it appends one event to the session's
+  `<platform>-<session_id>.gpio.jsonl` control file for the simulator
+  to consume. Fails closed for exited or unknown sessions — a poke is
+  never queued for a simulation that is not running.
+- `net_capture` — summarize a recorded pcap for a session, offline
+  only (packet count, protocol histogram, top talkers, bounded
+  one-line summaries; no payloads). Takes `session_id`, optional
+  `pcap_path` and `max_packets`. Read-only.
 
 ## Discipline
 
@@ -50,4 +64,7 @@ sim_flash({platform: "demo-arm", firmware: "/build/fw.bin", dry_run: false})
 sim_launch({platform: "demo-arm", firmware: "out/firmware/demo-arm/fw.bin", dry_run: false})
   → {ok: true, session_id: "abc123", log_file: "out/logs/demo-arm-abc123.log"}
 console_tail({session_id: "abc123", lines: 50})
+gpio_poke({session_id: "abc123", pin: 4, value: 1})
+  → {ok: true, dry_run: true, control_file: "out/logs/demo-arm-abc123.gpio.jsonl", ...}
+gpio_poke({session_id: "abc123", pin: 4, value: 1, dry_run: false})
 ```
