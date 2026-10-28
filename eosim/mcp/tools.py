@@ -947,6 +947,56 @@ TOOLS: dict[str, dict[str, Any]] = {
 }
 
 
+def _validate_schema(value: Any, schema: dict[str, Any], path: str = "arguments") -> str | None:
+    """Validate the JSON Schema subset used by the published MCP tools."""
+    kind = schema.get("type")
+    matches = {
+        "object": lambda v: isinstance(v, dict),
+        "array": lambda v: isinstance(v, list),
+        "string": lambda v: isinstance(v, str),
+        "boolean": lambda v: isinstance(v, bool),
+        "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+        "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+    }
+    if kind in matches and not matches[kind](value):
+        return f"{path} must be {kind}"
+    if "enum" in schema and value not in schema["enum"]:
+        return f"{path} must be one of {schema['enum']}"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            return f"{path} must be at least {schema['minimum']}"
+        if "maximum" in schema and value > schema["maximum"]:
+            return f"{path} must be at most {schema['maximum']}"
+    if isinstance(value, str):
+        if len(value) < schema.get("minLength", 0):
+            return f"{path} is too short"
+        if len(value) > schema.get("maxLength", float("inf")):
+            return f"{path} is too long"
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0) or len(value) > schema.get("maxItems", float("inf")):
+            return f"{path} has an invalid number of items"
+        if "items" in schema:
+            for index, item in enumerate(value):
+                error = _validate_schema(item, schema["items"], f"{path}[{index}]")
+                if error:
+                    return error
+    if isinstance(value, dict):
+        for required in schema.get("required", []):
+            if required not in value:
+                return f"{path}.{required} is required"
+        properties = schema.get("properties", {})
+        if schema.get("additionalProperties") is False:
+            unknown = value.keys() - properties.keys()
+            if unknown:
+                return f"{path} contains unknown property {sorted(unknown)[0]!r}"
+        for key, item in value.items():
+            if key in properties:
+                error = _validate_schema(item, properties[key], f"{path}.{key}")
+                if error:
+                    return error
+    return None
+
+
 def list_tools() -> list[dict[str, Any]]:
     """Return MCP tool descriptors (name, description, inputSchema)."""
     descriptors = []
@@ -967,6 +1017,9 @@ def call_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     spec = TOOLS.get(name)
     if spec is None:
         return {"ok": False, "error": f"unknown tool: {name!r}"}
+    error = _validate_schema(arguments or {}, spec["inputSchema"])
+    if error:
+        return {"ok": False, "error": error}
     try:
         result = spec["handler"](**(arguments or {}))
     except TypeError as exc:

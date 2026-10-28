@@ -58,14 +58,14 @@ def _handle_tools_list(msg_id: Any) -> dict[str, Any]:
 def _handle_tools_call(msg_id: Any, params: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(params, dict) or "name" not in params:
         return _error(msg_id, -32602, "tools/call requires params.name")
-    arguments = params.get("arguments") or {}
+    arguments = params.get("arguments", {})
     if not isinstance(arguments, dict):
         return _error(msg_id, -32602, "tools/call params.arguments must be an object")
     result = call_tool(params["name"], arguments)
-    return _response(
-        msg_id,
-        {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]},
-    )
+    response = {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]}
+    if result.get("ok") is False:
+        response["isError"] = True
+    return _response(msg_id, response)
 
 
 def handle_message(msg: dict[str, Any]) -> dict[str, Any] | None:

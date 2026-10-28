@@ -76,6 +76,32 @@ def test_call_unknown_tool_is_an_error_dict_not_a_crash():
     assert "unknown tool" in res["error"]
 
 
+@pytest.mark.parametrize(
+    ("tool", "arguments"),
+    [
+        ("sim_launch", {"platform": "demo-arm", "timeout": 0}),
+        ("sim_launch", {"platform": "demo-arm", "timeout": 3601}),
+        ("sim_launch", {"platform": "demo-arm", "timeout": True}),
+        ("sim_launch", {"platform": "demo-arm", "headless": "yes"}),
+        ("sim_launch", {"platform": "demo-arm", "unexpected": 1}),
+        ("sim_flash", {"platform": "demo-arm", "firmware": "fw.bin", "dry_run": 1}),
+        ("list_platforms", {"limit": 0}),
+        ("list_platforms", {"limit": 501}),
+        ("list_platforms", {"limit": 1.5}),
+        ("console_tail", {"session_id": "abc123", "lines": 0}),
+        ("console_tail", {"session_id": "abc123", "lines": 1001}),
+        ("gpio_poke", {"session_id": "abc123", "pin": True, "value": 0}),
+        ("gpio_poke", {"session_id": "abc123", "pin": 1, "value": 3}),
+        ("net_capture", {"session_id": "abc123", "max_packets": 0}),
+        ("sim_status", {"unexpected": "value"}),
+    ],
+)
+def test_call_tool_rejects_arguments_outside_published_schema(tool, arguments):
+    result = call_tool(tool, arguments)
+    assert result["ok"] is False
+    assert "error" in result
+
+
 # --- list_platforms ---------------------------------------------------------
 
 
@@ -127,7 +153,7 @@ def test_sim_launch_missing_firmware_errors(registry_dir):
 def test_sim_launch_requires_platform_arg():
     res = call_tool("sim_launch", {})
     assert res["ok"] is False
-    assert "invalid arguments" in res["error"]
+    assert "platform is required" in res["error"]
 
 
 # --- JSON-RPC stdio framing --------------------------------------------------
@@ -171,6 +197,22 @@ def test_stdio_tools_list_and_call(registry_dir):
     payload = json.loads(replies[1]["result"]["content"][0]["text"])
     assert payload["count"] == 1
     assert payload["platforms"][0]["name"] == "demo-arm"
+
+
+def test_tools_call_rejects_non_object_arguments():
+    reply = handle_message(
+        {"jsonrpc": "2.0", "id": 3, "method": "tools/call",
+         "params": {"name": "list_platforms", "arguments": []}}
+    )
+    assert reply["error"]["code"] == -32602
+
+
+def test_tools_call_marks_domain_errors_as_mcp_tool_errors():
+    reply = handle_message(
+        {"jsonrpc": "2.0", "id": 4, "method": "tools/call",
+         "params": {"name": "unknown_tool", "arguments": {}}}
+    )
+    assert reply["result"]["isError"] is True
 
 
 def test_stdio_unknown_method_is_32601():
@@ -483,7 +525,7 @@ def test_net_capture_clamps_max_packets(tmp_path):
     pcap = _sample_pcap(tmp_path)
     res = call_tool(
         "net_capture",
-        {"session_id": "abc123", "pcap_path": str(pcap), "max_packets": 100_000},
+        {"session_id": "abc123", "pcap_path": str(pcap), "max_packets": 1000},
     )
     assert res["ok"] is True
     assert res["max_packets"] == 1000  # server-side cap
