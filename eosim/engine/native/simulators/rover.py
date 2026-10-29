@@ -26,6 +26,7 @@ class RoverSimulator:
         self.state = {}
         self.scenario = ""
         self._scenario_step = 0
+        self._cmd_vel = None  # (linear_mps, angular_radps) from set_cmd_vel()
 
     def setup(self):
         from eosim.engine.native.peripherals.actuators import MotorController
@@ -50,6 +51,18 @@ class RoverSimulator:
             "scenario": "",
         }
 
+    def set_cmd_vel(self, linear_mps, angular_radps):
+        """Store a drive command (ROS cmd_vel) applied by tick().
+
+        Driving and scenarios are mutually exclusive: an active scenario
+        owns speed/heading every tick, so commanding a drive under one
+        raises ValueError naming the scenario instead of silently
+        fighting it. Clearing the scenario (reset()) re-enables driving.
+        """
+        if self.scenario:
+            raise ValueError("cannot drive while scenario %r is active" % (self.scenario,))
+        self._cmd_vel = (float(linear_mps), float(angular_radps))
+
     def load_scenario(self, name):
         if name in self.SCENARIOS:
             self.scenario = name
@@ -62,6 +75,13 @@ class RoverSimulator:
             if hasattr(dev, "simulate_tick"):
                 dev.simulate_tick()
         self._apply_scenario()
+        if self._cmd_vel is not None and not self.scenario:
+            # Same 10 ms tick factor as the position advance below.
+            linear_mps, angular_radps = self._cmd_vel
+            self.state["speed_mps"] = linear_mps
+            self.state["heading_deg"] = (
+                self.state["heading_deg"] + math.degrees(angular_radps) * 0.01
+            ) % 360
         speed = self.state["speed_mps"]
         heading = math.radians(self.state["heading_deg"])
         self.state["position_x"] += speed * math.cos(heading) * 0.01
@@ -104,3 +124,4 @@ class RoverSimulator:
         self.state = {}
         self.scenario = ""
         self._scenario_step = 0
+        self._cmd_vel = None
