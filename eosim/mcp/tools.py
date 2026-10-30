@@ -973,7 +973,9 @@ def _validate_schema(value: Any, schema: dict[str, Any], path: str = "arguments"
         if len(value) > schema.get("maxLength", float("inf")):
             return f"{path} is too long"
     if isinstance(value, list):
-        if len(value) < schema.get("minItems", 0) or len(value) > schema.get("maxItems", float("inf")):
+        if len(value) < schema.get("minItems", 0) or len(value) > schema.get(
+            "maxItems", float("inf")
+        ):
             return f"{path} has an invalid number of items"
         if "items" in schema:
             for index, item in enumerate(value):
