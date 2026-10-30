@@ -947,6 +947,17 @@ TOOLS: dict[str, dict[str, Any]] = {
 }
 
 
+def _is_json_integer(value: Any) -> bool:
+    """JSON Schema integer: an int, or a float with a zero fractional part (200.0).
+
+    bool is an int subclass in Python but a separate JSON type, so it never
+    counts. inf and nan are not integers (``float.is_integer`` is False).
+    """
+    if isinstance(value, bool):
+        return False
+    return isinstance(value, int) or (isinstance(value, float) and value.is_integer())
+
+
 def _validate_schema(value: Any, schema: dict[str, Any], path: str = "arguments") -> str | None:
     """Validate the JSON Schema subset used by the published MCP tools."""
     kind = schema.get("type")
@@ -955,7 +966,7 @@ def _validate_schema(value: Any, schema: dict[str, Any], path: str = "arguments"
         "array": lambda v: isinstance(v, list),
         "string": lambda v: isinstance(v, str),
         "boolean": lambda v: isinstance(v, bool),
-        "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+        "integer": _is_json_integer,
         "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
     }
     if kind in matches and not matches[kind](value):
@@ -999,6 +1010,26 @@ def _validate_schema(value: Any, schema: dict[str, Any], path: str = "arguments"
     return None
 
 
+def _coerce_integers(value: Any, schema: dict[str, Any]) -> Any:
+    """Return ``value`` with whole floats in integer-typed fields turned into int.
+
+    Call only on a value ``_validate_schema`` accepted. Handlers use these
+    numbers as slice bounds, CLI arguments and ``isinstance(..., int)``
+    checks, so ``200.0`` must reach them as ``200``. The input is not mutated.
+    """
+    if schema.get("type") == "integer" and isinstance(value, float):
+        return int(value)
+    if isinstance(value, list) and "items" in schema:
+        return [_coerce_integers(item, schema["items"]) for item in value]
+    if isinstance(value, dict):
+        properties = schema.get("properties", {})
+        return {
+            key: _coerce_integers(item, properties[key]) if key in properties else item
+            for key, item in value.items()
+        }
+    return value
+
+
 def list_tools() -> list[dict[str, Any]]:
     """Return MCP tool descriptors (name, description, inputSchema)."""
     descriptors = []
@@ -1019,11 +1050,16 @@ def call_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
     spec = TOOLS.get(name)
     if spec is None:
         return {"ok": False, "error": f"unknown tool: {name!r}"}
-    error = _validate_schema(arguments or {}, spec["inputSchema"])
+    # Only a missing value (None) means "no arguments". Anything else, falsy
+    # non-objects such as [] or False included, is validated exactly as sent.
+    if arguments is None:
+        arguments = {}
+    error = _validate_schema(arguments, spec["inputSchema"])
     if error:
         return {"ok": False, "error": error}
+    arguments = _coerce_integers(arguments, spec["inputSchema"])
     try:
-        result = spec["handler"](**(arguments or {}))
+        result = spec["handler"](**arguments)
     except TypeError as exc:
         return {"ok": False, "error": f"invalid arguments for {name}: {exc}"}
     except Exception as exc:  # never let a tool crash the server loop

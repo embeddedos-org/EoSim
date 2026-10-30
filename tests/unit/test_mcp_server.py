@@ -14,7 +14,7 @@ import yaml
 
 from eosim.mcp import server as mcp_server
 from eosim.mcp.server import McpServer, handle_message
-from eosim.mcp.tools import call_tool, list_tools, set_platforms_dir
+from eosim.mcp.tools import _validate_schema, call_tool, list_tools, set_platforms_dir
 
 
 @pytest.fixture
@@ -77,29 +77,154 @@ def test_call_unknown_tool_is_an_error_dict_not_a_crash():
 
 
 @pytest.mark.parametrize(
-    ("tool", "arguments"),
+    ("tool", "arguments", "expected_error"),
     [
-        ("sim_launch", {"platform": "demo-arm", "timeout": 0}),
-        ("sim_launch", {"platform": "demo-arm", "timeout": 3601}),
-        ("sim_launch", {"platform": "demo-arm", "timeout": True}),
-        ("sim_launch", {"platform": "demo-arm", "headless": "yes"}),
-        ("sim_launch", {"platform": "demo-arm", "unexpected": 1}),
-        ("sim_flash", {"platform": "demo-arm", "firmware": "fw.bin", "dry_run": 1}),
-        ("list_platforms", {"limit": 0}),
-        ("list_platforms", {"limit": 501}),
-        ("list_platforms", {"limit": 1.5}),
-        ("console_tail", {"session_id": "abc123", "lines": 0}),
-        ("console_tail", {"session_id": "abc123", "lines": 1001}),
-        ("gpio_poke", {"session_id": "abc123", "pin": True, "value": 0}),
-        ("gpio_poke", {"session_id": "abc123", "pin": 1, "value": 3}),
-        ("net_capture", {"session_id": "abc123", "max_packets": 0}),
-        ("sim_status", {"unexpected": "value"}),
+        (
+            "sim_launch",
+            {"platform": "demo-arm", "timeout": 0},
+            "arguments.timeout must be at least 1",
+        ),
+        (
+            "sim_launch",
+            {"platform": "demo-arm", "timeout": 3601},
+            "arguments.timeout must be at most 3600",
+        ),
+        (
+            "sim_launch",
+            {"platform": "demo-arm", "timeout": True},
+            "arguments.timeout must be integer",
+        ),
+        (
+            "sim_launch",
+            {"platform": "demo-arm", "headless": "yes"},
+            "arguments.headless must be boolean",
+        ),
+        (
+            "sim_launch",
+            {"platform": "demo-arm", "unexpected": 1},
+            "arguments contains unknown property 'unexpected'",
+        ),
+        (
+            "sim_flash",
+            {"platform": "demo-arm", "firmware": "fw.bin", "dry_run": 1},
+            "arguments.dry_run must be boolean",
+        ),
+        ("list_platforms", {"limit": 0}, "arguments.limit must be at least 1"),
+        ("list_platforms", {"limit": 501}, "arguments.limit must be at most 500"),
+        ("list_platforms", {"limit": 1.5}, "arguments.limit must be integer"),
+        ("list_platforms", {"limit": False}, "arguments.limit must be integer"),
+        ("list_platforms", {"limit": float("inf")}, "arguments.limit must be integer"),
+        (
+            "console_tail",
+            {"session_id": "abc123", "lines": 0},
+            "arguments.lines must be at least 1",
+        ),
+        (
+            "console_tail",
+            {"session_id": "abc123", "lines": 1001},
+            "arguments.lines must be at most 1000",
+        ),
+        (
+            "gpio_poke",
+            {"session_id": "abc123", "pin": True, "value": 0},
+            "arguments.pin must be integer",
+        ),
+        (
+            "gpio_poke",
+            {"session_id": "abc123", "pin": 1, "value": 3},
+            "arguments.value must be at most 1",
+        ),
+        (
+            "net_capture",
+            {"session_id": "abc123", "max_packets": 0},
+            "arguments.max_packets must be at least 1",
+        ),
+        # session_id is present, so only the unknown property can cause the rejection.
+        (
+            "sim_status",
+            {"session_id": "abc123", "unexpected": "value"},
+            "arguments contains unknown property 'unexpected'",
+        ),
     ],
 )
-def test_call_tool_rejects_arguments_outside_published_schema(tool, arguments):
-    result = call_tool(tool, arguments)
-    assert result["ok"] is False
-    assert "error" in result
+def test_call_tool_rejects_arguments_outside_published_schema(tool, arguments, expected_error):
+    # The exact message proves schema validation rejected the call; a handler
+    # failure (TypeError, domain error) would return a different error string.
+    assert call_tool(tool, arguments) == {"ok": False, "error": expected_error}
+
+
+@pytest.mark.parametrize("arguments", [[], False, 0, ""])
+@pytest.mark.parametrize("tool", ["list_platforms", "sim_build"])
+def test_call_tool_rejects_falsy_non_object_arguments(tool, arguments):
+    # Both tools have no required arguments, so turning these into {} would
+    # run the handler. They must fail the root "type": "object" check instead.
+    assert call_tool(tool, arguments) == {"ok": False, "error": "arguments must be object"}
+
+
+def test_call_tool_treats_missing_arguments_as_empty_object(registry_dir):
+    res = call_tool("list_platforms", None)
+    assert res["count"] == 2
+
+
+@pytest.mark.parametrize(
+    ("value", "schema", "expected"),
+    [
+        (200, {"type": "integer"}, None),
+        (200.0, {"type": "integer"}, None),
+        (200.5, {"type": "integer"}, "arguments must be integer"),
+        (float("inf"), {"type": "integer"}, "arguments must be integer"),
+        (float("nan"), {"type": "integer"}, "arguments must be integer"),
+        (True, {"type": "integer"}, "arguments must be integer"),
+        (False, {"type": "integer"}, "arguments must be integer"),
+        (2.5, {"type": "number"}, None),
+        (True, {"type": "number"}, "arguments must be number"),
+        (False, {"type": "number"}, "arguments must be number"),
+    ],
+)
+def test_validate_schema_integer_and_number_types(value, schema, expected):
+    assert _validate_schema(value, schema) == expected
+
+
+def test_whole_float_integer_arguments_reach_handlers_as_int(registry_dir, tmp_path):
+    # list_platforms slices with limit; 1.0 would raise TypeError if passed on as a float.
+    res = call_tool("list_platforms", {"limit": 1.0})
+    assert res["count"] == 1
+
+    # sim_launch puts timeout on the CLI; it must read "60", not "60.0".
+    res = call_tool("sim_launch", {"platform": "demo-arm", "timeout": 60.0})
+    assert res["ok"] is True
+    assert res["timeout"] == 60 and type(res["timeout"]) is int
+    assert res["command"][res["command"].index("--timeout") + 1] == "60"
+
+    # console_tail slices with lines.
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "demo-arm-abc123.log").write_text("a\nb\nc\n", encoding="utf-8")
+    res = call_tool("console_tail", {"session_id": "abc123", "lines": 2.0, "log_dir": str(log_dir)})
+    assert res["ok"] is True
+    assert res["lines"] == ["b", "c"]
+
+    # gpio_poke checks isinstance(pin, int) before the session lookup, so
+    # reaching "no session" shows 4.0 and 1.0 arrived as int.
+    res = call_tool(
+        "gpio_poke", {"session_id": "nope99", "pin": 4.0, "value": 1.0, "log_dir": str(tmp_path)}
+    )
+    assert res["ok"] is False
+    assert "no session" in res["error"]
+
+    # The reviewer's example: net_capture with max_packets 200.0.
+    pcap = _sample_pcap(tmp_path)
+    res = call_tool(
+        "net_capture", {"session_id": "abc123", "pcap_path": str(pcap), "max_packets": 200.0}
+    )
+    assert res["ok"] is True
+    assert res["max_packets"] == 200 and type(res["max_packets"]) is int
+
+
+def test_call_tool_does_not_mutate_caller_arguments(registry_dir):
+    arguments = {"limit": 1.0}
+    call_tool("list_platforms", arguments)
+    assert arguments == {"limit": 1.0} and type(arguments["limit"]) is float
 
 
 # --- list_platforms ---------------------------------------------------------
@@ -207,12 +332,52 @@ def test_tools_call_rejects_non_object_arguments():
     assert reply["error"]["code"] == -32602
 
 
-def test_tools_call_marks_domain_errors_as_mcp_tool_errors():
+def test_tools_call_marks_domain_errors_as_mcp_tool_errors(registry_dir):
+    # A known tool whose arguments pass the schema, so its handler runs and
+    # itself returns ok: false. The error text shows it came from the handler.
     reply = handle_message(
-        {"jsonrpc": "2.0", "id": 4, "method": "tools/call",
-         "params": {"name": "unknown_tool", "arguments": {}}}
+        {
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "sim_launch", "arguments": {"platform": "nope"}},
+        }
+    )
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload == {"ok": False, "error": "unknown platform: 'nope'"}
+    assert reply["result"]["isError"] is True
+
+
+@pytest.mark.parametrize(
+    ("name", "arguments"),
+    [
+        ("unknown_tool", {}),  # unknown tool name
+        ("list_platforms", {"limit": 0}),  # rejected by the published schema
+    ],
+)
+def test_tools_call_marks_dispatch_errors_as_mcp_tool_errors(name, arguments):
+    reply = handle_message(
+        {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {"name": name, "arguments": arguments},
+        }
     )
     assert reply["result"]["isError"] is True
+
+
+def test_tools_call_success_is_not_marked_as_error(registry_dir):
+    reply = handle_message(
+        {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {"name": "list_platforms", "arguments": {}},
+        }
+    )
+    assert "isError" not in reply["result"]
+    assert json.loads(reply["result"]["content"][0]["text"])["count"] == 2
 
 
 def test_stdio_unknown_method_is_32601():
