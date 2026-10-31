@@ -734,6 +734,12 @@ def eos_test_suite(source):
     click.echo("EoSim: Testing eApps from: " + src)
     suite = run_eosuite_tests(src)
     click.echo(suite.summary())
+    if suite.failed > 0:
+        for r in suite.results:
+            if r.output and not r.passed:
+                click.echo(f"\n--- {r.name} ---")
+                click.echo(r.output[-300:])
+        sys.exit(1)
 
 
 @cli.command("ecosystem")

@@ -404,6 +404,19 @@ class TestEosCommands:
         assert f"EoSim: Testing eApps from: {tmp_path}" in res.output
         assert "EoSim Test Suite: eapps" in res.output
 
+    def test_test_suite_failure_exits_nonzero(self, invoke, monkeypatch, tmp_path):
+        # Regression: a failed/crashed pytest run printed [FAIL] but exited 0.
+        (tmp_path / "tests").mkdir()
+        suite = EosTestSuite(platform="eapps", total=1, failed=1)
+        suite.results.append(
+            EosTestResult(name="pytest", passed=False, output="No module named pytest")
+        )
+        monkeypatch.setattr(er, "run_eosuite_tests", lambda src: suite)
+        res = invoke("eos", "test-suite", "--source", str(tmp_path))
+        assert "[FAIL] pytest" in res.output
+        assert "No module named pytest" in res.output
+        assert res.exit_code == 1
+
     def test_test_suite_not_found(self, invoke, monkeypatch, tmp_path):
         real_isdir = os.path.isdir
         monkeypatch.setattr(cli_main.os.path, "isdir", lambda p: "eApps" not in p and real_isdir(p))
