@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MCP failed tool calls carry `isError`:** a `tools/call` that fails (unknown tool, arguments rejected by the schema, or a tool that returns `ok: false`) now sets `isError: true` on its result, so MCP clients can tell a failed call from a successful one. The JSON text in `content` is unchanged. (#53)
 - **MCP tool arguments are validated against the published `inputSchema`:** types, ranges, string lengths, enums, required fields and unknown fields are checked before a tool runs, and a call outside the schema returns an error naming the field. Arguments that are not a JSON object (including `[]`, `false`, `0` and `""`) are rejected; only missing arguments count as `{}`. Whole numbers such as `200.0` are accepted for integer fields, as JSON Schema allows, and reach the tool as integers. (#53)
 
+### Fixed
+- **Release Docker image builds again:** the Dockerfile still copied `platforms/` from the repository root after the registry moved into `eosim/platforms`, so the v3.0.2 release failed at the image build (`"/platforms": not found`) and the GitHub Release and PyPI jobs never ran. The registry ships inside the wheel, so the stale copies are removed. The release smoke test now overrides the `eosim` entrypoint to run `python -c`.
+
 ## [3.0.1] - 2026-05-27
 
 ### Added — Production Release & Enhancements
