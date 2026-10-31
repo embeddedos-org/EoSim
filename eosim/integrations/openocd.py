@@ -7,6 +7,7 @@ and target control via TCL commands or GDB bridge.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -37,6 +38,17 @@ TARGET_CONFIGS = {
     "imx8m": "target/imx8m.cfg",
     "k64f": "target/klx.cfg",
 }
+
+
+def _tcl_word(value: str) -> str:
+    """Quote ``value`` as one Tcl word by backslash-escaping every character
+    that is not a letter, digit or one of ``_./:-``.
+
+    Tcl replaces a backslash followed by such a character with the character
+    itself, so spaces, braces, brackets, ``$``, ``;`` and Windows backslashes
+    survive unchanged and no substitution happens.
+    """
+    return re.sub(r"([^A-Za-z0-9_./:-])", r"\\\1", value)
 
 
 class OpenOCDError(Exception):
@@ -131,19 +143,31 @@ class OpenOCDManager:
         except FileNotFoundError:
             raise OpenOCDError(f"OpenOCD binary not found: {openocd}")
 
-    def flash(self, firmware_path: str, verify: bool = True) -> bool:
-        """Flash firmware to the target via OpenOCD."""
+    def flash(
+        self,
+        firmware_path: str,
+        verify: bool = True,
+        adapter: Optional[str] = None,
+        target: Optional[str] = None,
+    ) -> bool:
+        """Flash firmware to the target via OpenOCD.
+
+        ``adapter`` and ``target`` default to the ones given to ``launch()``.
+        A manager that was never launched has neither, so callers flashing
+        without a running session must pass them.
+        """
         if not os.path.isfile(firmware_path):
             raise OpenOCDError(f"Firmware file not found: {firmware_path}")
+        adapter = adapter or self._adapter
+        target = target or self._target
+        # The path is one argv element, but OpenOCD evaluates the -c string as
+        # Tcl, which splits words on whitespace; escape it into a single word.
+        fw = _tcl_word(firmware_path)
         # verify_image step omitted for now
-        tcl_cmd = (
-            f"program {firmware_path} verify reset exit"
-            if verify
-            else f"program {firmware_path} reset exit"
-        )
+        tcl_cmd = f"program {fw} verify reset exit" if verify else f"program {fw} reset exit"
         openocd = self._openocd_path or self.find_openocd()
-        adapter_cfg = ADAPTER_CONFIGS.get(self._adapter, self._adapter)
-        target_cfg = TARGET_CONFIGS.get(self._target, self._target)
+        adapter_cfg = ADAPTER_CONFIGS.get(adapter, adapter)
+        target_cfg = TARGET_CONFIGS.get(target, target)
         cmd = [
             openocd,
             "-f",

@@ -7,6 +7,7 @@ so no emulator, network service or hardware is touched.
 """
 
 import os
+import shutil
 import subprocess
 import time
 from unittest.mock import MagicMock
@@ -587,9 +588,47 @@ class TestHIL:
             mgr.flash.return_value = flash_result
         monkeypatch.setattr(oo, "OpenOCDManager", MagicMock(return_value=mgr))
         res = invoke("hil", "flash", str(fw))
-        mgr.flash.assert_called_once_with(str(fw))
+        mgr.flash.assert_called_once_with(str(fw), adapter="stlink", target="stm32f4")
         assert text in res.output
         assert res.exit_code == code
+
+    def test_flash_passes_adapter_target_and_spaced_path_to_openocd(
+        self, invoke, monkeypatch, tmp_path
+    ):
+        # Regression: `hil flash` built a fresh OpenOCDManager and never gave
+        # it --adapter/--target, so openocd got `-f "" -f ""`; and the
+        # firmware path went unquoted into the Tcl `program` command.
+        import eosim.integrations.openocd as oo
+
+        fw_dir = tmp_path / "my builds"
+        fw_dir.mkdir()
+        fw = fw_dir / "eos fw.elf"
+        fw.write_bytes(b"\x7fELF")
+        monkeypatch.setattr(oo.OpenOCDManager, "find_openocd", staticmethod(lambda: "openocd"))
+        real_run = subprocess.run
+        run = MagicMock(return_value=subprocess.CompletedProcess([], 0, "", ""))
+        monkeypatch.setattr(oo.subprocess, "run", run)
+
+        res = invoke("hil", "flash", str(fw), "--adapter", "jlink", "--target", "nrf52")
+
+        assert res.exit_code == 0, res.output
+        assert "Flash: PASSED" in res.output
+        cmd = run.call_args.args[0]
+        assert isinstance(cmd, list)
+        assert cmd[:5] == ["openocd", "-f", "interface/jlink.cfg", "-f", "target/nrf52.cfg"]
+        assert cmd[5:7] == ["-c", "init"]
+        assert cmd[7] == "-c"
+        program = cmd[8]
+        assert program.startswith("program ") and program.endswith(" verify reset exit")
+        assert run.call_args.kwargs.get("shell", False) is False
+
+        tclsh = shutil.which("tclsh")
+        if tclsh:
+            # OpenOCD evaluates -c as Tcl: the path must come back as one word.
+            script = "proc program {args} {puts [lindex $args 0]; puts [llength $args]}\n"
+            script += program + "\n"
+            out = real_run([tclsh], input=script, capture_output=True, text=True)
+            assert out.stdout.splitlines() == [str(fw), "4"], out.stderr
 
 
 class TestBridgeCommands:
