@@ -53,3 +53,15 @@ commits. NO server behaviour was changed by the probe commit.
 - No certification or spec-compliance badge is claimed for EoSim:
   until G1–G3 close, the server is "2026-07-28-declared, gaps
   recorded", not "2026-07-28-conformant".
+
+## Follow-up (2026-10-31, after the probe commit)
+
+- Gaps G1–G4 filed as EoSim issue #66 (open). Tracker: EoSim #37
+  (`eosim mcp` server — MCP tool surface for simulations), open by
+  design; this probe Refs #37, it does not close it.
+- Version discrepancy recorded, not reconciled: `server.py` reports
+  `SERVER_VERSION = "0.1.0"` while `server.json` declares version
+  `3.1.0`. A fix commit for G1–G3 should say which version a client
+  should trust, or align the two.
+- Probe CI verdict: EoSim CI, CodeQL, Code Quality, and OSSF
+  Scorecard all SUCCESS at probe head `e402a44e`.
