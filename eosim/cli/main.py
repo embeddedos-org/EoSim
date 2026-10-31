@@ -253,6 +253,24 @@ def run(platform, headless, timeout, log_dir, firmware, dry_run):
         sys.exit(1)
 
 
+def _partial_output(exc):
+    """Return the (stdout, stderr) captured before a subprocess timeout.
+
+    subprocess.run() attaches what it read before killing the child to the
+    TimeoutExpired it raises. That is bytes even with text=True (on POSIX),
+    and None when nothing was read.
+    """
+
+    def _text(data):
+        if data is None:
+            return ""
+        if isinstance(data, bytes):
+            return data.decode("utf-8", errors="replace")
+        return data
+
+    return _text(exc.stdout), _text(exc.stderr)
+
+
 def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
     """Run using the Renode engine."""
     renode = shutil.which("renode")
@@ -277,8 +295,16 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
         else:
             click.echo("FAILED (exit %d)" % result.returncode)
             sys.exit(1)
-    except subprocess.TimeoutExpired:
-        click.echo("Timeout after %ds — saving log" % timeout)
+    except subprocess.TimeoutExpired as exc:
+        stdout, stderr = _partial_output(exc)
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(stdout)
+            f.write(stderr)
+        click.echo("Timeout after %ds — partial output:" % timeout, err=True)
+        click.echo(stdout + stderr, nl=False)
+        click.echo("Log: " + log_file)
+        click.echo("FAILED (timeout after %ds)" % timeout, err=True)
+        sys.exit(1)
     except FileNotFoundError:
         click.echo("Engine not found, falling back to EoSim native engine")
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
@@ -331,9 +357,14 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
 
     try:
         result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True)
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        stdout, stderr = _partial_output(exc)
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"TIMEOUT after {timeout}s: {' '.join(cmd)}\n")
+            f.write(stdout)
+            f.write(stderr)
+        click.echo(stdout + stderr, nl=False)
+        click.echo("Log: " + log_file)
         click.echo(f"TIMEOUT after {timeout}s — qemu did not exit.", err=True)
         sys.exit(1)
     with open(log_file, "w", encoding="utf-8") as f:

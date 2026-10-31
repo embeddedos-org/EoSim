@@ -153,12 +153,43 @@ class TestRunRenode:
         assert "FAILED (exit 4)" in res.output
         assert res.exit_code == 1
 
-    def test_timeout_is_reported(self, platforms, invoke, monkeypatch, fake_run):
+    def test_timeout_keeps_partial_output_and_fails(self, platforms, invoke, monkeypatch, fake_run):
+        # Regression: a timeout printed "saving log", saved nothing, dropped
+        # the console output captured so far and exited 0.
+        tool_paths(monkeypatch, {"renode": "/opt/renode"})
+        fake_run.side_effect = subprocess.TimeoutExpired(
+            cmd="renode", timeout=5, output=b"U-Boot 2024.01\nStarting kernel\n", stderr=b"warn\n"
+        )
+        res = invoke("run", "renode-board", "--log-dir", "logs", "--timeout", "5")
+        assert "Timeout after 5s — partial output:" in res.output
+        assert "U-Boot 2024.01\nStarting kernel\n" in res.output
+        assert "FAILED (timeout after 5s)" in res.output
+        assert "PASSED" not in res.output
+        log = (platforms.parent / "logs" / "renode-board.log").read_text(encoding="utf-8")
+        assert log == "U-Boot 2024.01\nStarting kernel\nwarn\n"
+        assert res.exit_code == 1
+
+    def test_timeout_with_no_output(self, platforms, invoke, monkeypatch, fake_run):
         tool_paths(monkeypatch, {"renode": "/opt/renode"})
         fake_run.side_effect = subprocess.TimeoutExpired(cmd="renode", timeout=5)
         res = invoke("run", "renode-board", "--log-dir", "logs", "--timeout", "5")
-        assert "Timeout after 5s — saving log" in res.output
-        assert res.exit_code == 0
+        assert "FAILED (timeout after 5s)" in res.output
+        assert (platforms.parent / "logs" / "renode-board.log").read_text() == ""
+        assert res.exit_code == 1
+
+    @pytest.mark.skipif(os.name == "nt", reason="uses a POSIX shell script as the engine")
+    def test_real_timeout_keeps_output_printed_before_kill(
+        self, platforms, invoke, monkeypatch, tmp_path
+    ):
+        fake_renode = tmp_path / "fake-renode"
+        fake_renode.write_text("#!/bin/sh\necho 'booting: stage 1'\nexec sleep 30\n")
+        fake_renode.chmod(0o755)
+        tool_paths(monkeypatch, {"renode": str(fake_renode)})
+        res = invoke("run", "renode-board", "--log-dir", "logs", "--timeout", "1")
+        assert "booting: stage 1" in res.output
+        log = (platforms.parent / "logs" / "renode-board.log").read_text(encoding="utf-8")
+        assert log == "booting: stage 1\n"
+        assert res.exit_code == 1
 
     def test_exec_failure_falls_back_to_native(self, platforms, invoke, monkeypatch, fake_run):
         tool_paths(monkeypatch, {"renode": "/opt/renode"})
@@ -204,6 +235,18 @@ class TestRunQemuAndNative:
         fake_run.assert_called_once_with(cmd.split(), timeout=60, capture_output=True, text=True)
         assert "PASSED" in res.output
         assert res.exit_code == 0
+
+    def test_qemu_timeout_keeps_partial_output(self, platforms, invoke, monkeypatch, fake_run):
+        tool_paths(monkeypatch, {"qemu-system-aarch64": "/usr/bin/qemu-system-aarch64"})
+        fake_run.side_effect = subprocess.TimeoutExpired(
+            cmd="qemu", timeout=3, output=b"Linux version 6.6\n"
+        )
+        res = invoke("run", "qemu-board", "--log-dir", "logs", "--timeout", "3")
+        assert "Linux version 6.6\n" in res.output
+        assert "TIMEOUT after 3s — qemu did not exit." in res.output
+        log = (platforms.parent / "logs" / "qemu-board.log").read_text(encoding="utf-8")
+        assert log.endswith("Linux version 6.6\n")
+        assert res.exit_code == 1
 
     def test_unknown_engine(self, platforms, invoke):
         res = invoke("run", "odd-board", "--log-dir", "logs")
