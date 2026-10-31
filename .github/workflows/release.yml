@@ -108,8 +108,8 @@ jobs:
       - name: Smoke test pushed image
         run: |
           docker pull ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }}
-          docker run --rm ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }} \
-            python -c "from eosim.engine.native.simulators import SimulatorFactory; print('OK')"
+          docker run --rm --entrypoint python ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }} \
+            -c "from eosim.engine.native.simulators import SimulatorFactory; print('OK')"
 
   release:
     name: Create Release
