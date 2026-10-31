@@ -254,6 +254,36 @@ class TestRunEosuiteTests:
         assert (suite.passed, suite.failed, suite.total) == (0, 2, 2)
         assert suite.results[0].passed is False
 
+    @pytest.mark.parametrize(
+        "code, stdout, stderr",
+        [
+            (1, "", "/usr/bin/python3: No module named pytest\n"),  # pytest missing
+            (2, "E   SyntaxError\n=== 1 error in 0.10s ===\n", ""),  # collection error
+            (3, "INTERNALERROR> boom\n", ""),  # pytest crashed
+            (5, "\nno tests ran in 0.01s\n", ""),  # nothing collected
+        ],
+    )
+    def test_nonzero_exit_without_failed_count_is_a_failure(
+        self, run, tmp_path, code, stdout, stderr
+    ):
+        # Regression: these used to report PASS because no "N failed" was parsed.
+        run.return_value = completed(code, stdout, stderr)
+        suite = er.run_eosuite_tests(str(tmp_path))
+        (res,) = suite.results
+        assert (res.passed, res.return_code) == (False, code)
+        assert (suite.failed, suite.total) == (1, 1)
+        assert "[FAIL] pytest" in suite.summary()
+
+    def test_real_pytest_collection_error_is_a_failure(self, tmp_path):
+        tests = tmp_path / "tests"
+        tests.mkdir()
+        (tests / "test_broken.py").write_text("def test_x(:\n", encoding="utf-8")
+        suite = er.run_eosuite_tests(str(tmp_path))
+        (res,) = suite.results
+        assert res.return_code == 2
+        assert res.passed is False
+        assert suite.failed == 1
+
     def test_runner_error(self, run, tmp_path):
         run.side_effect = subprocess.TimeoutExpired(cmd="pytest", timeout=120)
         suite = er.run_eosuite_tests(str(tmp_path))
