@@ -898,7 +898,7 @@ def hil_flash(firmware, adapter, target):
     click.echo(f"EoSim HIL — Flashing {firmware} to {target} via {adapter}")
     mgr = OpenOCDManager()
     try:
-        ok = mgr.flash(firmware)
+        ok = mgr.flash(firmware, adapter=adapter, target=target)
         if ok:
             click.echo("Flash: PASSED")
         else:
