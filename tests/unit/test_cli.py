@@ -257,11 +257,18 @@ class TestCLIRun:
 
 class TestCLITest:
     def test_test_command(self):
+        # `eosim test` now runs the engine and evaluates the checks, so give it
+        # a simulation result that satisfies esp32's boot_success/timeout checks.
         from eosim.cli.main import cli
+        from eosim.engine.backend import SimResult
+        engine = MagicMock()
+        engine.run.return_value = SimResult(success=True, boot_detected=True, duration_s=1.0)
         runner = CliRunner()
-        result = runner.invoke(cli, ['test', 'esp32'])
+        with patch('eosim.engine.backend.get_engine', return_value=engine):
+            result = runner.invoke(cli, ['test', 'esp32'])
         assert result.exit_code == 0
         assert 'EoSim test' in result.output
+        assert 'Result: 2/2 passed' in result.output
 
     def test_test_missing(self):
         from eosim.cli.main import cli
