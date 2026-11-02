@@ -251,6 +251,39 @@ class TestTestAndValidate:
         res = invoke("test", "qemu-board")
         assert "EoSim test: qemu-board (0 checks)" in res.output
 
+    @staticmethod
+    def _fake_engine(monkeypatch, stdout, duration_s=1.0):
+        from eosim.engine import backend
+        from eosim.engine.backend import SimResult
+
+        calls = []
+
+        class FakeEngine:
+            def run(self, platform, timeout=60, log_file=""):
+                calls.append((platform.name, timeout))
+                return SimResult(success=True, exit_code=0, stdout=stdout, duration_s=duration_s)
+
+        monkeypatch.setattr(backend, "get_engine", lambda platform: FakeEngine())
+        return calls
+
+    def test_test_fails_when_output_does_not_satisfy_checks(self, platforms, invoke, monkeypatch):
+        # Regression: `eosim test` used to report "2/2 passed" without running
+        # anything. A simulation whose output lacks the marker must fail.
+        calls = self._fake_engine(monkeypatch, "nothing useful here\n")
+        res = invoke("test", "native-board", "--timeout", "7")
+        assert calls == [("native-board", 7)]
+        assert "  [FAIL] serial_contains: Booting: not found in output" in res.output
+        assert "Result: 1/2 passed" in res.output
+        assert res.exit_code == 1
+
+    def test_test_passes_when_output_satisfies_checks(self, platforms, invoke, monkeypatch):
+        calls = self._fake_engine(monkeypatch, "Booting EoS...\n")
+        res = invoke("test", "native-board")
+        assert calls == [("native-board", 60)]
+        assert "  [PASS] serial_contains: Booting: found" in res.output
+        assert "Result: 2/2 passed" in res.output
+        assert res.exit_code == 0
+
     @pytest.fixture
     def validate_tree(self, tmp_path, monkeypatch):
         root = tmp_path / "vplatforms"
