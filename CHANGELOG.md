@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
 
+### Fixed
+- **`eosim hil flash` honours `--adapter`/`--target` and firmware paths with spaces:** the adapter and target were never passed to OpenOCD (it ran with empty `-f ""` configs), and the firmware path was placed unquoted in the Tcl `program` command, which OpenOCD splits on whitespace. `OpenOCDManager.flash()` now accepts `adapter`/`target` and escapes the path as a single Tcl word.
+
 ## [3.0.1] - 2026-05-27
 
 ### Added — Production Release & Enhancements
