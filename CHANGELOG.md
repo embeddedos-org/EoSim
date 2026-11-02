@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **`eosim eos test-suite` reports FAIL when pytest is missing or crashes:** the pytest result was PASS whenever no "N failed" count was parsed, so `No module named pytest`, collection errors, internal errors and "no tests ran" all passed, and the command always exited 0. The result now follows pytest's exit code, and the command exits 1 (printing the tail of the pytest output) when the suite fails.
 
+### Fixed
+- **`eosim run` keeps console output on timeout and fails:** on a Renode timeout it printed "saving log" but wrote no log, discarded the output captured so far and exited 0; on a QEMU timeout the log held only the command line. Both now write the partial stdout/stderr to the log, print it, and exit 1.
+
 ## [3.0.1] - 2026-05-27
 
 ### Added — Production Release & Enhancements
