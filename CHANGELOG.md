@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Release Docker image builds again:** the Dockerfile still copied `platforms/` from the repository root after the registry moved into `eosim/platforms`, so the v3.0.2 release failed at the image build (`"/platforms": not found`) and the GitHub Release and PyPI jobs never ran. The registry ships inside the wheel, so the stale copies are removed. The release smoke test now overrides the `eosim` entrypoint to run `python -c`.
 
+### Fixed
+- **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
+
 ## [3.0.1] - 2026-05-27
 
 ### Added — Production Release & Enhancements

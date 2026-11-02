@@ -15,6 +15,19 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     HTTPException = None
 
 
+def _registry():
+    """Load the platform registry the CLI uses.
+
+    PlatformRegistry has no discover() method and an empty registry without a
+    root directory; calling ``PlatformRegistry().discover()`` raised
+    AttributeError, so /api/v1/platforms and /api/v1/metrics always returned 500.
+    """
+    from eosim.cli import main as cli_main
+    from eosim.core.registry import PlatformRegistry
+
+    return PlatformRegistry(str(cli_main.PLATFORMS_DIR))
+
+
 def register_routes(app, server) -> None:
     """Register all production API routes on the FastAPI app."""
 
@@ -52,10 +65,7 @@ def register_routes(app, server) -> None:
 
     @app.get("/api/v1/platforms", tags=["Platforms"], summary="List all simulation platforms")
     def list_platforms():
-        from eosim.core.registry import PlatformRegistry
-
-        reg = PlatformRegistry()
-        reg.discover()
+        reg = _registry()
         platforms = [p.name for p in reg.all()]
         return {"platforms": platforms, "count": len(platforms)}
 
@@ -147,10 +157,7 @@ def register_routes(app, server) -> None:
 
     @app.get("/api/v1/metrics", tags=["Metrics"], summary="Platform metrics")
     def get_metrics():
-        from eosim.core.registry import PlatformRegistry
-
-        reg = PlatformRegistry()
-        reg.discover()
+        reg = _registry()
         return {
             "platform_count": len(reg.all()),
             "simulation_count": len(server.list_simulations()),
