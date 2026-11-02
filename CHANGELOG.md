@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MCP tool arguments are validated against the published `inputSchema`:** types, ranges, string lengths, enums, required fields and unknown fields are checked before a tool runs, and a call outside the schema returns an error naming the field. Arguments that are not a JSON object (including `[]`, `false`, `0` and `""`) are rejected; only missing arguments count as `{}`. Whole numbers such as `200.0` are accepted for integer fields, as JSON Schema allows, and reach the tool as integers. (#53)
 
 ### Fixed
+- **`eosim test` runs the simulation:** it previously printed every check in `tests.yml` and reported "N/N passed" without running anything. It now runs the platform engine, evaluates each check against the result, prints PASS/FAIL per check, and exits 1 if any check fails.
+
+- **Release Docker image builds again:** the Dockerfile still copied `platforms/` from the repository root after the registry moved into `eosim/platforms`, so the v3.0.2 release failed at the image build (`"/platforms": not found`) and the GitHub Release and PyPI jobs never ran. The registry ships inside the wheel, so the stale copies are removed. The release smoke test now overrides the `eosim` entrypoint to run `python -c`.
+
+### Fixed
 - **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
 
 ## [3.0.1] - 2026-05-27
