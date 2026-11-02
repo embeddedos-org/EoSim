@@ -434,12 +434,30 @@ def test(platform, timeout, junit):
             t = yaml.safe_load(f)
         checks = t.get("checks", [])
     click.echo("EoSim test: %s (%d checks)" % (platform, len(checks)))
-    passed = 0
     for c in checks:
         ctype = c.get("type", "")
         click.echo("  [CHECK] {}: {}".format(ctype, c.get("value", c.get("seconds", ""))))
-        passed += 1
-    click.echo("Result: %d/%d passed" % (passed, len(checks)))
+    if not checks:
+        click.echo("Result: 0/0 passed")
+        return
+
+    # Previously every listed check was counted as passed without the
+    # simulation ever running. Run the platform's engine and evaluate each
+    # check against the real result.
+    from eosim.core.platform import Platform
+    from eosim.engine.backend import get_engine
+    from eosim.tests.runner import run_checks
+
+    plat = Platform.from_yaml(str(cfg_path))
+    sim_result = get_engine(plat).run(plat, timeout=timeout)
+    results = run_checks(sim_result, checks)
+    passed = 0
+    for r in results:
+        click.echo("  [{}] {}: {}".format("PASS" if r.passed else "FAIL", r.name, r.message))
+        passed += r.passed
+    click.echo("Result: %d/%d passed" % (passed, len(results)))
+    if passed != len(results):
+        sys.exit(1)
 
 
 @cli.command()
@@ -765,6 +783,12 @@ def eos_test_suite(source):
     click.echo("EoSim: Testing eApps from: " + src)
     suite = run_eosuite_tests(src)
     click.echo(suite.summary())
+    if suite.failed > 0:
+        for r in suite.results:
+            if r.output and not r.passed:
+                click.echo(f"\n--- {r.name} ---")
+                click.echo(r.output[-300:])
+        sys.exit(1)
 
 
 @cli.command("ecosystem")
@@ -929,7 +953,7 @@ def hil_flash(firmware, adapter, target):
     click.echo(f"EoSim HIL — Flashing {firmware} to {target} via {adapter}")
     mgr = OpenOCDManager()
     try:
-        ok = mgr.flash(firmware)
+        ok = mgr.flash(firmware, adapter=adapter, target=target)
         if ok:
             click.echo("Flash: PASSED")
         else:

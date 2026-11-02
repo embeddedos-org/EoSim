@@ -7,6 +7,7 @@ so no emulator, network service or hardware is touched.
 """
 
 import os
+import shutil
 import subprocess
 import time
 from unittest.mock import MagicMock
@@ -294,6 +295,39 @@ class TestTestAndValidate:
         res = invoke("test", "qemu-board")
         assert "EoSim test: qemu-board (0 checks)" in res.output
 
+    @staticmethod
+    def _fake_engine(monkeypatch, stdout, duration_s=1.0):
+        from eosim.engine import backend
+        from eosim.engine.backend import SimResult
+
+        calls = []
+
+        class FakeEngine:
+            def run(self, platform, timeout=60, log_file=""):
+                calls.append((platform.name, timeout))
+                return SimResult(success=True, exit_code=0, stdout=stdout, duration_s=duration_s)
+
+        monkeypatch.setattr(backend, "get_engine", lambda platform: FakeEngine())
+        return calls
+
+    def test_test_fails_when_output_does_not_satisfy_checks(self, platforms, invoke, monkeypatch):
+        # Regression: `eosim test` used to report "2/2 passed" without running
+        # anything. A simulation whose output lacks the marker must fail.
+        calls = self._fake_engine(monkeypatch, "nothing useful here\n")
+        res = invoke("test", "native-board", "--timeout", "7")
+        assert calls == [("native-board", 7)]
+        assert "  [FAIL] serial_contains: Booting: not found in output" in res.output
+        assert "Result: 1/2 passed" in res.output
+        assert res.exit_code == 1
+
+    def test_test_passes_when_output_satisfies_checks(self, platforms, invoke, monkeypatch):
+        calls = self._fake_engine(monkeypatch, "Booting EoS...\n")
+        res = invoke("test", "native-board")
+        assert calls == [("native-board", 60)]
+        assert "  [PASS] serial_contains: Booting: found" in res.output
+        assert "Result: 2/2 passed" in res.output
+        assert res.exit_code == 0
+
     @pytest.fixture
     def validate_tree(self, tmp_path, monkeypatch):
         root = tmp_path / "vplatforms"
@@ -446,6 +480,19 @@ class TestEosCommands:
         assert seen == [str(tmp_path)]
         assert f"EoSim: Testing eApps from: {tmp_path}" in res.output
         assert "EoSim Test Suite: eapps" in res.output
+
+    def test_test_suite_failure_exits_nonzero(self, invoke, monkeypatch, tmp_path):
+        # Regression: a failed/crashed pytest run printed [FAIL] but exited 0.
+        (tmp_path / "tests").mkdir()
+        suite = EosTestSuite(platform="eapps", total=1, failed=1)
+        suite.results.append(
+            EosTestResult(name="pytest", passed=False, output="No module named pytest")
+        )
+        monkeypatch.setattr(er, "run_eosuite_tests", lambda src: suite)
+        res = invoke("eos", "test-suite", "--source", str(tmp_path))
+        assert "[FAIL] pytest" in res.output
+        assert "No module named pytest" in res.output
+        assert res.exit_code == 1
 
     def test_test_suite_not_found(self, invoke, monkeypatch, tmp_path):
         real_isdir = os.path.isdir
@@ -630,9 +677,47 @@ class TestHIL:
             mgr.flash.return_value = flash_result
         monkeypatch.setattr(oo, "OpenOCDManager", MagicMock(return_value=mgr))
         res = invoke("hil", "flash", str(fw))
-        mgr.flash.assert_called_once_with(str(fw))
+        mgr.flash.assert_called_once_with(str(fw), adapter="stlink", target="stm32f4")
         assert text in res.output
         assert res.exit_code == code
+
+    def test_flash_passes_adapter_target_and_spaced_path_to_openocd(
+        self, invoke, monkeypatch, tmp_path
+    ):
+        # Regression: `hil flash` built a fresh OpenOCDManager and never gave
+        # it --adapter/--target, so openocd got `-f "" -f ""`; and the
+        # firmware path went unquoted into the Tcl `program` command.
+        import eosim.integrations.openocd as oo
+
+        fw_dir = tmp_path / "my builds"
+        fw_dir.mkdir()
+        fw = fw_dir / "eos fw.elf"
+        fw.write_bytes(b"\x7fELF")
+        monkeypatch.setattr(oo.OpenOCDManager, "find_openocd", staticmethod(lambda: "openocd"))
+        real_run = subprocess.run
+        run = MagicMock(return_value=subprocess.CompletedProcess([], 0, "", ""))
+        monkeypatch.setattr(oo.subprocess, "run", run)
+
+        res = invoke("hil", "flash", str(fw), "--adapter", "jlink", "--target", "nrf52")
+
+        assert res.exit_code == 0, res.output
+        assert "Flash: PASSED" in res.output
+        cmd = run.call_args.args[0]
+        assert isinstance(cmd, list)
+        assert cmd[:5] == ["openocd", "-f", "interface/jlink.cfg", "-f", "target/nrf52.cfg"]
+        assert cmd[5:7] == ["-c", "init"]
+        assert cmd[7] == "-c"
+        program = cmd[8]
+        assert program.startswith("program ") and program.endswith(" verify reset exit")
+        assert run.call_args.kwargs.get("shell", False) is False
+
+        tclsh = shutil.which("tclsh")
+        if tclsh:
+            # OpenOCD evaluates -c as Tcl: the path must come back as one word.
+            script = "proc program {args} {puts [lindex $args 0]; puts [llength $args]}\n"
+            script += program + "\n"
+            out = real_run([tclsh], input=script, capture_output=True, text=True)
+            assert out.stdout.splitlines() == [str(fw), "4"], out.stderr
 
 
 class TestBridgeCommands:

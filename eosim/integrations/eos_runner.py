@@ -245,11 +245,18 @@ def run_eosuite_tests(eosuite_dir: str) -> EosTestSuite:
                 if m:
                     suite.skipped = int(m.group(1))
 
+        # pytest exits 0 only when every collected test passed. A missing
+        # pytest ("No module named pytest"), a collection error, an internal
+        # error or no tests collected all exit non-zero without a "failed"
+        # count, and used to be reported as PASS.
+        ok = r.returncode == 0
+        if not ok and suite.failed == 0:
+            suite.failed = 1
         suite.total = suite.passed + suite.failed
         suite.results.append(
             EosTestResult(
                 name="pytest",
-                passed=(suite.failed == 0),
+                passed=ok,
                 output=output,
                 duration_s=time.time() - start,
                 return_code=r.returncode,
