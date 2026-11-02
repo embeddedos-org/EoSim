@@ -3,7 +3,6 @@ FROM python:3.11-slim AS builder
 WORKDIR /build
 COPY pyproject.toml README.md LICENSE ./
 COPY eosim/ eosim/
-COPY platforms/ platforms/
 
 RUN pip install --no-cache-dir build && \
     python -m build --wheel && \
@@ -27,7 +26,6 @@ RUN groupadd --gid 1000 eosim && \
 
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin/eosim /usr/local/bin/eosim
-COPY --chown=eosim:eosim platforms/ /opt/eosim/platforms/
 COPY --chown=eosim:eosim examples/ /opt/eosim/examples/
 
 WORKDIR /opt/eosim
