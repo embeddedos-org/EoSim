@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **`eosim hil flash` honours `--adapter`/`--target` and firmware paths with spaces:** the adapter and target were never passed to OpenOCD (it ran with empty `-f ""` configs), and the firmware path was placed unquoted in the Tcl `program` command, which OpenOCD splits on whitespace. `OpenOCDManager.flash()` now accepts `adapter`/`target` and escapes the path as a single Tcl word.
 
+### Fixed
+- **`eosim eos test-suite` reports FAIL when pytest is missing or crashes:** the pytest result was PASS whenever no "N failed" count was parsed, so `No module named pytest`, collection errors, internal errors and "no tests ran" all passed, and the command always exited 0. The result now follows pytest's exit code, and the command exits 1 (printing the tail of the pytest output) when the suite fails.
+
 ## [3.0.1] - 2026-05-27
 
 ### Added — Production Release & Enhancements
