@@ -63,17 +63,22 @@ def test_tools_list_with_full_meta_succeeds():
     assert reply["result"]["tools"]
 
 
-def test_server_discover_returns_method_not_found_today():
-    """RECORDED (gap G1): server/discover is not implemented.
+def test_server_discover_returns_discover_result():
+    """FIXED (gap G1, EoSim #66): server/discover is implemented.
 
-    Spec 2026-07-28: servers MUST implement server/discover. The server
-    falls through to -32601 (method not found). Filed as an EoSim
-    issue; the implementation is a later commit, not this probe.
+    Spec 2026-07-28: servers MUST implement server/discover, returning a
+    DiscoverResult of supported versions + capabilities. This test was
+    flipped from the probe's recorded-behaviour assertion when the fix
+    landed; G2–G4 in the same file remain recorded behaviour until their
+    own fixes land.
     """
     req = {"jsonrpc": "2.0", "id": 2, "method": "server/discover"}
     req.update(FULL_META)
     reply = handle_message(req)
-    assert reply["error"]["code"] == -32601
+    assert "result" in reply
+    assert PROTOCOL_VERSION in reply["result"]["supportedVersions"]
+    assert reply["result"]["capabilities"] == {"tools": {}}
+    assert reply["result"]["serverInfo"]["name"] == "eosim-mcp"
 
 
 def test_initialize_is_answered_today():

@@ -7,10 +7,12 @@ Wire protocol (newline-delimited JSON-RPC 2.0 over stdio):
              "capabilities":{"tools":{}},"serverInfo":{...}}}
   client -> {"jsonrpc":"2.0","method":"notifications/initialized"}
   client -> {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+  client -> {"jsonrpc":"2.0","id":2,"method":"server/discover"}
   client -> {"jsonrpc":"2.0","id":3,"method":"tools/call",
              "params":{"name":"list_platforms","arguments":{...}}}
 
-Only the methods above are implemented (the scaffold surface). Unknown
+Implemented methods: initialize, server/discover, tools/list, tools/call,
+ping. Unknown
 methods return JSON-RPC -32601; bad params -32602; tool errors are returned
 as a result payload with ok:false (the call itself succeeded).
 """
@@ -51,6 +53,24 @@ def _handle_initialize(msg_id: Any, params: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _handle_server_discover(msg_id: Any) -> dict[str, Any]:
+    """MCP 2026-07-28 server/discover (gap G1, EoSim #66).
+
+    Returns a DiscoverResult: the versions this server speaks plus its
+    capabilities. serverInfo keeps the server.py constants (0.1.0); the
+    server.json 3.1.0 discrepancy recorded in the probe findings doc is
+    NOT reconciled here — that is a separate version-truth decision.
+    """
+    return _response(
+        msg_id,
+        {
+            "supportedVersions": [PROTOCOL_VERSION],
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
+        },
+    )
+
+
 def _handle_tools_list(msg_id: Any) -> dict[str, Any]:
     return _response(msg_id, {"tools": list_tools()})
 
@@ -84,6 +104,8 @@ def handle_message(msg: dict[str, Any]) -> dict[str, Any] | None:
 
     if method == "initialize":
         return _handle_initialize(msg_id, params if isinstance(params, dict) else {})
+    if method == "server/discover":
+        return _handle_server_discover(msg_id)
     if method == "tools/list":
         return _handle_tools_list(msg_id)
     if method == "tools/call":
