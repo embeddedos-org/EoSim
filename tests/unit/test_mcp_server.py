@@ -13,6 +13,13 @@ import pytest
 import yaml
 
 from eosim.mcp import server as mcp_server
+
+# Id-bearing requests in this file carry the stateless 2026-07-28 _meta
+# the server requires (gap G2, EoSim #66); notifications carry none.
+META = {
+    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+    "io.modelcontextprotocol/clientCapabilities": {},
+}
 from eosim.mcp.server import McpServer, handle_message
 from eosim.mcp.tools import _validate_schema, call_tool, list_tools, set_platforms_dir
 
@@ -294,7 +301,7 @@ def _rpc(messages):
 def test_stdio_initialize_handshake():
     replies = _rpc(
         [
-            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}, "_meta": META},
             {"jsonrpc": "2.0", "method": "notifications/initialized"},
         ]
     )
@@ -308,12 +315,12 @@ def test_stdio_initialize_handshake():
 def test_stdio_tools_list_and_call(registry_dir):
     replies = _rpc(
         [
-            {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "_meta": META},
             {
                 "jsonrpc": "2.0",
                 "id": 2,
                 "method": "tools/call",
-                "params": {"name": "list_platforms", "arguments": {"arch": "arm"}},
+                "params": {"name": "list_platforms", "arguments": {"arch": "arm"}}, "_meta": META,
             },
         ]
     )
@@ -327,7 +334,7 @@ def test_stdio_tools_list_and_call(registry_dir):
 def test_tools_call_rejects_non_object_arguments():
     reply = handle_message(
         {"jsonrpc": "2.0", "id": 3, "method": "tools/call",
-         "params": {"name": "list_platforms", "arguments": []}}
+         "params": {"name": "list_platforms", "arguments": []}, "_meta": META}
     )
     assert reply["error"]["code"] == -32602
 
@@ -340,7 +347,7 @@ def test_tools_call_marks_domain_errors_as_mcp_tool_errors(registry_dir):
             "jsonrpc": "2.0",
             "id": 4,
             "method": "tools/call",
-            "params": {"name": "sim_launch", "arguments": {"platform": "nope"}},
+            "params": {"name": "sim_launch", "arguments": {"platform": "nope"}}, "_meta": META,
         }
     )
     payload = json.loads(reply["result"]["content"][0]["text"])
@@ -361,7 +368,7 @@ def test_tools_call_marks_dispatch_errors_as_mcp_tool_errors(name, arguments):
             "jsonrpc": "2.0",
             "id": 5,
             "method": "tools/call",
-            "params": {"name": name, "arguments": arguments},
+            "params": {"name": name, "arguments": arguments}, "_meta": META,
         }
     )
     assert reply["result"]["isError"] is True
@@ -373,7 +380,7 @@ def test_tools_call_success_is_not_marked_as_error(registry_dir):
             "jsonrpc": "2.0",
             "id": 6,
             "method": "tools/call",
-            "params": {"name": "list_platforms", "arguments": {}},
+            "params": {"name": "list_platforms", "arguments": {}}, "_meta": META,
         }
     )
     assert "isError" not in reply["result"]
@@ -381,7 +388,7 @@ def test_tools_call_success_is_not_marked_as_error(registry_dir):
 
 
 def test_stdio_unknown_method_is_32601():
-    replies = _rpc([{"jsonrpc": "2.0", "id": 9, "method": "tools/nonexistent"}])
+    replies = _rpc([{"jsonrpc": "2.0", "id": 9, "method": "tools/nonexistent", "_meta": META}])
     assert replies[0]["error"]["code"] == -32601
 
 

@@ -43,17 +43,16 @@ def _tools_list(meta=True):
     return handle_message(req)
 
 
-def test_tools_list_without_meta_succeeds_today():
-    """RECORDED (gap G2): no _meta at all, yet tools/list succeeds.
+def test_tools_list_without_meta_is_rejected():
+    """FIXED (gap G2, EoSim #66): a request missing the required _meta
+    fields is rejected with -32602.
 
     Spec 2026-07-28: a request missing the required _meta fields MUST be
-    rejected with -32602. The server currently ignores _meta entirely,
-    so this returns the tool list. Filed as an EoSim issue (see the
-    findings doc); the fix is a later commit, not this probe.
+    rejected with -32602. This test was flipped from the probe's
+    recorded-behaviour assertion when the fix landed.
     """
     reply = _tools_list(meta=False)
-    assert "result" in reply
-    assert reply["result"]["tools"]
+    assert reply["error"]["code"] == -32602
 
 
 def test_tools_list_with_full_meta_succeeds():
@@ -103,16 +102,17 @@ def test_initialize_is_answered_today():
     assert reply["result"]["serverInfo"]["name"] == "eosim-mcp"
 
 
-def test_responses_carry_no_meta_today():
-    """RECORDED (gap G4, SHOULD-level): replies carry no _meta at all.
+def test_responses_carry_server_info_meta():
+    """FIXED (gap G4, EoSim #66, SHOULD-level): replies carry serverInfo
+    _meta.
 
     Spec 2026-07-28: servers SHOULD include
-    io.modelcontextprotocol/serverInfo in every result's _meta. The
-    server returns bare result envelopes. SHOULD, not MUST — lowest
-    priority of the four gaps.
+    io.modelcontextprotocol/serverInfo in every result's _meta. This
+    test was flipped from the probe's recorded-behaviour assertion
+    when the fix landed.
     """
     reply = _tools_list(meta=True)
-    assert "_meta" not in reply
+    assert reply["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "eosim-mcp"
 
 
 def test_unknown_method_still_rejected():
