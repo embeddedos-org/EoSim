@@ -15,6 +15,13 @@ Implemented methods: initialize, server/discover, tools/list, tools/call,
 ping. Unknown
 methods return JSON-RPC -32601; bad params -32602; tool errors are returned
 as a result payload with ok:false (the call itself succeeded).
+
+Stateless 2026-07-28: every id-bearing request must carry _meta with
+io.modelcontextprotocol/protocolVersion and
+io.modelcontextprotocol/clientCapabilities, else -32602 (gap G2, EoSim
+#66); every result carries _meta with io.modelcontextprotocol/serverInfo
+(gap G4, EoSim #66). Notifications (no id) get no reply and are not
+_meta-checked.
 """
 
 from __future__ import annotations
@@ -29,9 +36,19 @@ PROTOCOL_VERSION = "2026-07-28"
 SERVER_NAME = "eosim-mcp"
 SERVER_VERSION = "0.1.0"
 
+META_PROTOCOL_VERSION_KEY = "io.modelcontextprotocol/protocolVersion"
+META_CLIENT_CAPABILITIES_KEY = "io.modelcontextprotocol/clientCapabilities"
+META_SERVER_INFO_KEY = "io.modelcontextprotocol/serverInfo"
+
 
 def _response(msg_id: Any, result: Any) -> dict[str, Any]:
-    return {"jsonrpc": "2.0", "id": msg_id, "result": result}
+    """Success envelope; every result carries serverInfo _meta (G4)."""
+    return {
+        "jsonrpc": "2.0",
+        "id": msg_id,
+        "result": result,
+        "_meta": {META_SERVER_INFO_KEY: {"name": SERVER_NAME, "version": SERVER_VERSION}},
+    }
 
 
 def _error(msg_id: Any, code: int, message: str) -> dict[str, Any]:
@@ -101,6 +118,21 @@ def handle_message(msg: dict[str, Any]) -> dict[str, Any] | None:
     # Notifications (no id) get no reply.
     if msg_id is None:
         return None
+
+    # Stateless 2026-07-28 (gap G2): a request missing the required _meta
+    # fields is malformed and MUST be rejected with -32602.
+    meta = msg.get("_meta")
+    if (
+        not isinstance(meta, dict)
+        or META_PROTOCOL_VERSION_KEY not in meta
+        or META_CLIENT_CAPABILITIES_KEY not in meta
+    ):
+        return _error(
+            msg_id,
+            -32602,
+            "request _meta must carry io.modelcontextprotocol/protocolVersion "
+            "and io.modelcontextprotocol/clientCapabilities",
+        )
 
     if method == "initialize":
         return _handle_initialize(msg_id, params if isinstance(params, dict) else {})
