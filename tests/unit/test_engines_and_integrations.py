@@ -89,7 +89,7 @@ class TestQemuEngineRun:
             result = QemuEngine.run(platform)
             assert isinstance(result, SimResult)
             assert result.engine == 'qemu'
-            assert result.success is True  # dry run
+            assert result.success is False  # nothing was executed
 
     def test_run_dry_run_with_log(self, tmp_path):
         from eosim.engine.backend import QemuEngine, SimResult
@@ -99,7 +99,7 @@ class TestQemuEngineRun:
         log_file = str(tmp_path / 'test.log')
         with patch('shutil.which', return_value=None):
             result = QemuEngine.run(platform, log_file=log_file)
-            assert result.success is True
+            assert result.success is False
             assert result.log_file == log_file
 
 

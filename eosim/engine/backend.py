@@ -100,14 +100,16 @@ class QemuEngine:
         binary = QemuEngine.ARCH_MAP.get(platform.arch, "qemu-system-" + platform.arch)
         qemu = shutil.which(binary)
         if not qemu:
+            # Nothing ran, so this is not a success. Same contract as
+            # RenodeEngine.run and `eosim run` (EoSim#38).
             result.stderr = f"{binary} not installed"
             result.stdout = f"QEMU not available for {platform.arch}\n"
-            result.success = True
+            result.success = False
             result.boot_detected = False
             if log_file:
                 os.makedirs(os.path.dirname(log_file), exist_ok=True)
                 with open(log_file, "w", encoding="utf-8") as f:
-                    f.write(f"QEMU {binary} not available — dry run\nPASSED (dry run)\n")
+                    f.write(f"QEMU NOT INSTALLED: {binary} — nothing was executed\n")
                 result.log_file = log_file
                 result.artifacts.append(log_file)
             return result
@@ -146,13 +148,13 @@ class QemuEngine:
             result.exit_code = proc.returncode
             result.stdout = proc.stdout
             result.stderr = proc.stderr
-            result.success = True
+            result.success = proc.returncode == 0
         except subprocess.TimeoutExpired:
             result.stdout = "Timeout after %ds (normal for boot)" % timeout
             result.success = True
         except FileNotFoundError:
             result.stderr = "QEMU binary not found: " + binary
-            result.success = True  # dry run
+            result.success = False
         result.duration_s = time.time() - start
 
         if log_file:
@@ -407,7 +409,7 @@ def get_engine(platform: Platform):
         return RenodeEngine()
     if QemuEngine.available(platform.arch):
         return QemuEngine()
-    return QemuEngine()  # fallback — will do dry run
+    return QemuEngine()  # fallback: reports success=False if qemu is missing
 
 
 class QemuLiveEngine:
