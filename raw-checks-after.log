@@ -1,0 +1,23 @@
+# AFTER: full checks at head 5dbf733
+$ python -m pytest -p no:cacheprovider -o addopts='' -q tests/
+2217 passed, 5 skipped in 8.17s
+$ python -m pytest tests/unit/ -v --tb=short -p no:cacheprovider   # CI test-matrix command
+======================= 2183 passed, 5 skipped in 6.91s ========================
+$ python -m pytest tests/unit/ --cov=eosim --cov-fail-under=70 -q -p no:cacheprovider
+Required test coverage of 70% reached. Total coverage: 74.55%
+======================= 2183 passed, 5 skipped in 10.51s =======================
+$ ruff check eosim/ --output-format=github   # CI lint
+ruff check exit code: 0
+$ ruff format --check eosim/   # CI format
+198 files already formatted
+$ git -c core.whitespace=cr-at-eol diff --check 542288e HEAD   # backend.py is CRLF in the repo (i/crlf), kept CRLF
+no whitespace errors
+$ git diff --stat 542288e HEAD
+ docs/architecture.md                        |  2 +-
+ eosim/engine/backend.py                     | 12 +++++++-----
+ llms-full.txt                               |  2 +-
+ tests/unit/test_backend_engines.py          | 23 ++++++++++++++++++++---
+ tests/unit/test_engines_and_integrations.py |  4 ++--
+ 5 files changed, 31 insertions(+), 12 deletions(-)
+$ git status --short   (.coverage restored after the coverage run)
+?? embeddedos_eosim.egg-info/

@@ -1,0 +1,43 @@
+# BEFORE: tests from head 5dbf733, eosim/engine/backend.py at base 542288e
+$ python -m pytest -p no:cacheprovider -o addopts='' -v tests/unit/test_backend_engines.py::TestQemuEngine tests/unit/test_engines_and_integrations.py::TestQemuEngineRun
+tests/unit/test_backend_engines.py::TestQemuEngine::test_available_maps_arch_to_binary[arm64-qemu-system-aarch64] PASSED [  6%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_available_maps_arch_to_binary[x86_64-qemu-system-x86_64] PASSED [ 12%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_available_maps_arch_to_binary[sparc-qemu-system-sparc] PASSED [ 18%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_missing_binary_is_not_success FAILED [ 25%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_dry_run_without_log PASSED [ 31%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_full_command_line PASSED [ 37%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_missing_boot_images_are_not_passed PASSED [ 43%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_platform_without_extra_args PASSED [ 50%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_timeout_and_log PASSED [ 56%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_binary_vanishes_between_lookup_and_exec FAILED [ 62%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_nonzero_exit_is_failure[1] FAILED [ 68%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_nonzero_exit_is_failure[3] FAILED [ 75%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_nonzero_exit_is_failure[-11] FAILED [ 81%]
+tests/unit/test_backend_engines.py::TestQemuEngine::test_boot_detection_is_case_insensitive PASSED [ 87%]
+tests/unit/test_engines_and_integrations.py::TestQemuEngineRun::test_run_no_qemu FAILED [ 93%]
+tests/unit/test_engines_and_integrations.py::TestQemuEngineRun::test_run_dry_run_with_log FAILED [100%]
+        This asserted success is True and a log ending in "PASSED (dry run)",
+E       assert (True, False) == (False, False)
+        """qemu ran and failed: its exit code decides, as in RenodeEngine.run."""
+E       assert (True, 1) == (False, 1)
+        """qemu ran and failed: its exit code decides, as in RenodeEngine.run."""
+E       assert (True, 3) == (False, 3)
+        """qemu ran and failed: its exit code decides, as in RenodeEngine.run."""
+E       assert (True, -11) == (False, -11)
+FAILED tests/unit/test_backend_engines.py::TestQemuEngine::test_missing_binary_is_not_success
+FAILED tests/unit/test_backend_engines.py::TestQemuEngine::test_binary_vanishes_between_lookup_and_exec
+FAILED tests/unit/test_backend_engines.py::TestQemuEngine::test_nonzero_exit_is_failure[1]
+FAILED tests/unit/test_backend_engines.py::TestQemuEngine::test_nonzero_exit_is_failure[3]
+FAILED tests/unit/test_backend_engines.py::TestQemuEngine::test_nonzero_exit_is_failure[-11]
+FAILED tests/unit/test_engines_and_integrations.py::TestQemuEngineRun::test_run_no_qemu
+FAILED tests/unit/test_engines_and_integrations.py::TestQemuEngineRun::test_run_dry_run_with_log
+========================= 7 failed, 9 passed in 0.09s ==========================
+pytest exit code: 1
+
+$ python -I probe.py
+qemu: binary not installed                   success=True  exit_code=-1
+                                             log: 'PASSED (dry run)'
+renode: binary not installed                 success=False exit_code=-1
+qemu: ran, exited 1                          success=True  exit_code=1
+renode: ran, exited 1                        success=False exit_code=1
+qemu: binary vanished before exec            success=True  exit_code=-1
