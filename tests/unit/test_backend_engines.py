@@ -141,14 +141,22 @@ class TestQemuEngine:
         assert QemuEngine.available(arch) is True
         assert asked == [binary]
 
-    def test_dry_run_when_binary_missing(self, tmp_path, monkeypatch, fake_run):
+    def test_missing_binary_is_not_success(self, tmp_path, monkeypatch, fake_run):
+        """Nothing was executed, so the result must not say success.
+
+        This asserted success is True and a log ending in "PASSED (dry run)",
+        while RenodeEngine.run and `eosim run` (EoSim#38) both report a missing
+        engine as a failure.
+        """
         monkeypatch.setattr(backend.shutil, "which", which_map({}))
         log = tmp_path / "out" / "q.log"
         res = QemuEngine.run(make_platform(tmp_path), log_file=str(log))
-        assert (res.success, res.boot_detected) == (True, False)
+        assert (res.success, res.boot_detected) == (False, False)
         assert res.stderr == "qemu-system-arm not installed"
         assert res.stdout == "QEMU not available for arm\n"
-        assert "PASSED (dry run)" in log.read_text(encoding="utf-8")
+        text = log.read_text(encoding="utf-8")
+        assert "nothing was executed" in text
+        assert "PASSED" not in text
         assert res.artifacts == [str(log)]
         fake_run.assert_not_called()
 
@@ -225,7 +233,16 @@ class TestQemuEngine:
             make_platform(tmp_path, qemu=QemuConfig(extra_args=[])), log_file=str(log)
         )
         assert res.stderr == "QEMU binary not found: qemu-system-arm"
+        assert res.success is False
         assert "=== STDERR ===\nQEMU binary not found" in log.read_text(encoding="utf-8")
+
+    @pytest.mark.parametrize("rc", [1, 3, -11])
+    def test_nonzero_exit_is_failure(self, tmp_path, monkeypatch, fake_run, rc):
+        """qemu ran and failed: its exit code decides, as in RenodeEngine.run."""
+        monkeypatch.setattr(backend.shutil, "which", which_map({"qemu-system-arm": QEMU_ARM}))
+        fake_run.return_value = completed(rc, "", "qemu: could not load kernel")
+        res = QemuEngine.run(make_platform(tmp_path, qemu=QemuConfig(extra_args=[])))
+        assert (res.success, res.exit_code) == (False, rc)
 
     def test_boot_detection_is_case_insensitive(self, tmp_path, monkeypatch, fake_run):
         monkeypatch.setattr(backend.shutil, "which", which_map({"qemu-system-arm": QEMU_ARM}))

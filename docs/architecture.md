@@ -99,7 +99,7 @@ When running a simulation, EoSim selects an engine using this priority:
 2. **EoSim Native:** If no external engine is available → use the built-in Python VM
 3. **Renode fallback:** If Renode is available → use Renode
 4. **QEMU fallback:** If QEMU is available for the target arch → use QEMU
-5. **Dry run:** If nothing is available → simulate a successful run (CI-safe)
+5. **Nothing available:** `get_engine` still returns the QEMU engine; with no QEMU binary installed its `run()` executes nothing and returns `success=False` (stderr: `<binary> not installed`)
 
 The `get_engine(platform)` function implements this cascade.
 
