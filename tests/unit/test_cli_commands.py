@@ -284,6 +284,67 @@ class TestRunQemuAndNative:
         assert res.exit_code == 1
 
 
+class TestRunDryRunScope:
+    """--dry-run prints the QEMU command instead of running it. On any other
+    engine it used to be ignored, so the simulation ran anyway."""
+
+    @pytest.mark.parametrize(
+        "board, engine",
+        [("native-board", "eosim"), ("renode-board", "renode")],
+    )
+    def test_dry_run_on_a_non_qemu_platform_executes_nothing(
+        self, platforms, invoke, monkeypatch, fake_run, tmp_path, board, engine
+    ):
+        from eosim.engine.native import VirtualMachine
+
+        tool_paths(monkeypatch, {"renode": "/opt/renode"})
+        vm_runs = []
+        monkeypatch.setattr(VirtualMachine, "run", lambda self, **kw: vm_runs.append(kw))
+        fw = tmp_path / "fw.bin"
+        fw.write_bytes(b"\x00" * 8)
+        res = invoke("run", board, "--log-dir", "logs", "--firmware", str(fw), "--dry-run")
+        assert (
+            f"--dry-run only applies to QEMU platforms; {board} uses the {engine} engine. "
+            "Nothing was executed." in res.output
+        )
+        assert "launching" not in res.output
+        assert res.exit_code == 2
+        fake_run.assert_not_called()
+        assert vm_runs == []
+        assert not (platforms.parent / "logs").exists()
+
+    def test_dry_run_on_an_unknown_engine_is_still_unknown(self, platforms, invoke, fake_run):
+        res = invoke("run", "odd-board", "--log-dir", "logs", "--dry-run")
+        assert "Unknown engine: verilator" in res.output
+        assert "only applies to QEMU platforms" not in res.output
+        assert res.exit_code == 1
+        fake_run.assert_not_called()
+
+    def test_dry_run_on_a_qemu_platform_still_prints_the_command(
+        self, platforms, invoke, monkeypatch, fake_run
+    ):
+        tool_paths(monkeypatch, {})
+        res = invoke("run", "qemu-board", "--log-dir", "logs", "--dry-run")
+        assert "only applies to QEMU platforms" not in res.output
+        assert "DRY RUN — qemu was not executed." in res.output
+        assert res.exit_code == 0
+        fake_run.assert_not_called()
+
+    def test_without_dry_run_the_native_engine_still_runs(self, platforms, invoke, monkeypatch):
+        from eosim.engine.native import VirtualMachine
+
+        vm_runs = []
+
+        def fake_vm_run(self, **kw):
+            vm_runs.append(kw)
+            return {"success": True, "reason": "halt", "cycles": 1, "boot_log": ""}
+
+        monkeypatch.setattr(VirtualMachine, "run", fake_vm_run)
+        res = invoke("run", "native-board", "--log-dir", "logs")
+        assert len(vm_runs) == 1
+        assert "only applies to QEMU platforms" not in res.output
+
+
 class TestTestAndValidate:
     def test_test_lists_checks_from_tests_yml(self, platforms, invoke):
         res = invoke("test", "native-board")

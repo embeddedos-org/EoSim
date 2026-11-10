@@ -226,7 +226,8 @@ def info(platform):
     "--dry-run",
     is_flag=True,
     default=False,
-    help="Print the qemu command without executing it (explicit opt-in).",
+    help="Print the qemu command without executing it (explicit opt-in). "
+    "QEMU platforms only: on any other engine it is refused, not ignored.",
 )
 def run(platform, headless, timeout, log_dir, firmware, dry_run):
     """Run a simulation for the specified platform."""
@@ -237,6 +238,16 @@ def run(platform, headless, timeout, log_dir, firmware, dry_run):
 
     engine = p.get("engine", "renode")
     arch = p.get("arch", "unknown")
+    if dry_run and engine in ("eosim", "renode"):
+        # Only the QEMU path knows how to print its command instead of running
+        # it. The native and Renode paths used to ignore the flag and run the
+        # simulation. An unknown engine still ends at "Unknown engine" below.
+        click.echo(
+            f"--dry-run only applies to QEMU platforms; {platform} uses the "
+            f"{engine} engine. Nothing was executed.",
+            err=True,
+        )
+        sys.exit(2)
     click.echo(f"EoSim: launching {platform} ({arch}) via {engine}")
 
     os.makedirs(log_dir, exist_ok=True)
