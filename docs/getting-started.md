@@ -90,7 +90,7 @@ eosim run stm32f4
 
 EoSim will:
 1. Load `platforms/stm32f4/platform.yml`
-2. Select the best available engine (EoSim native → Renode → QEMU → dry-run)
+2. Use the engine named by the platform's `engine:` field: `eosim` (native), `qemu` or `renode`. A Renode platform falls back to the native engine when Renode is not installed. A QEMU platform without QEMU stops with exit code 2; `--dry-run` prints the QEMU command instead of running it (QEMU platforms only)
 3. Initialize the virtual machine (CPU, memory, peripherals)
 4. Run the simulation
 5. Capture serial (UART) output
@@ -123,12 +123,15 @@ Every simulation produces a `SimResult` with:
 | Field | Description |
 |-------|-------------|
 | `platform` | Platform name that was simulated |
-| `engine` | Engine used (eosim, renode, qemu, dry-run) |
+| `engine` | Engine used (eosim, renode, qemu, or a bridge engine: qemu-live, xplane, gazebo, openfoam, carla, airsim, ros2) |
 | `success` | Whether the simulation completed successfully |
 | `exit_code` | Process exit code (0 = success) |
-| `serial_output` | Captured UART serial output |
+| `stdout` | Captured serial (UART) and console output |
+| `stderr` | Captured error output |
+| `boot_detected` | Whether the output showed the platform booting |
 | `duration_s` | Simulation duration in seconds |
 | `log_file` | Path to the simulation log file |
+| `artifacts` | Files the run produced, such as the log |
 
 ## Validating Platform Configs
 

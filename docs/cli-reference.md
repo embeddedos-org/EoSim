@@ -66,6 +66,8 @@ Run a simulation for the specified platform.
 | `--headless / --interactive` | Display mode (default: headless) |
 | `--timeout INTEGER` | Simulation timeout in seconds |
 | `--log-dir TEXT` | Directory for simulation logs |
+| `--firmware FILE` | Firmware image to load and execute |
+| `--dry-run` | Print the QEMU command without executing it (QEMU platforms only; refused on other engines) |
 
 ```bash
 eosim run stm32f4
