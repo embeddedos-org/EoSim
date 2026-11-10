@@ -13,6 +13,7 @@ class FakeVM:
 
 SIMULATOR_CLASSES = [
     ('eosim.engine.native.simulators.telecom', 'TelecomSimulator'),
+    ('eosim.engine.native.simulators.thread', 'ThreadBorderRouterSimulator'),
     ('eosim.engine.native.simulators.defense', 'DefenseSimulator'),
     ('eosim.engine.native.simulators.submarine', 'SubmarineSimulator'),
     ('eosim.engine.native.simulators.network', 'NetworkSimulator'),
