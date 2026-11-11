@@ -50,6 +50,7 @@ from eosim.engine.native.simulators.speaker import SmartSpeakerSimulator
 from eosim.engine.native.simulators.sports import SportsSimulator
 from eosim.engine.native.simulators.submarine import SubmarineSimulator
 from eosim.engine.native.simulators.telecom import TelecomSimulator
+from eosim.engine.native.simulators.thread import ThreadBorderRouterSimulator
 from eosim.engine.native.simulators.traffic import TrafficSimulator
 from eosim.engine.native.simulators.v2x import AutomotiveV2XSimulator
 from eosim.engine.native.simulators.vehicle import VehicleSimulator
@@ -185,6 +186,9 @@ SIMULATOR_MAP = {
     "router": NetworkSimulator,
     "firewall": NetworkSimulator,
     "sdn_controller": NetworkSimulator,
+    # Thread border router (H4: EoSim Thread BR + Matter commissioning sim)
+    "thread_border_router": ThreadBorderRouterSimulator,
+    "thread_br": ThreadBorderRouterSimulator,
     # Smart City
     "smart_city": SmartCitySimulator,
     "traffic_light": SmartCitySimulator,
