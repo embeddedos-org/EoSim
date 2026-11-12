@@ -1005,3 +1005,22 @@ class TestScenarioLoading:
                     f"{cls.__name__}.load_scenario('{first}') "
                     f"didn't set state['scenario']"
                 )
+
+
+class TestFindProductForPlatform:
+    """Pre-selection lookup behind `eosim gui <platform>` (no display needed)."""
+
+    def test_known_platform_maps_to_a_product(self):
+        pytest.importorskip("tkinter")
+        from eosim.gui.product_templates import PRODUCT_CATALOG
+        from eosim.gui.tk_app import find_product_for_platform
+
+        product = find_product_for_platform("stm32f4")
+        assert product is not None
+        assert PRODUCT_CATALOG[product].default_platform == "stm32f4"
+
+    def test_unknown_platform_maps_to_none(self):
+        pytest.importorskip("tkinter")
+        from eosim.gui.tk_app import find_product_for_platform
+
+        assert find_product_for_platform("no-such-board") is None

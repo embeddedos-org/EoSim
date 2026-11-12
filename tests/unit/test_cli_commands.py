@@ -854,3 +854,68 @@ class TestApiCommand:
         host = args[1] if args else "0.0.0.0"
         port = int(args[3]) if args else 8080
         cls.assert_called_once_with(host=host, port=port)
+
+
+class TestGuiCommand:
+    """`eosim gui [PLATFORM]` — accepts a known platform, rejects unknown ones.
+
+    The real GUI needs a display, so tkinter.Tk and TkSimulatorApp are
+    replaced with fakes that record how they were constructed.
+    """
+
+    @pytest.fixture
+    def fake_gui(self, monkeypatch):
+        tkinter = pytest.importorskip("tkinter")
+        import eosim.gui.tk_app as tk_app
+
+        created = {}
+
+        class FakeRoot:
+            def title(self, *args, **kwargs):
+                pass
+
+            def geometry(self, *args, **kwargs):
+                pass
+
+            def minsize(self, *args, **kwargs):
+                pass
+
+            def protocol(self, *args, **kwargs):
+                pass
+
+            def destroy(self, *args, **kwargs):
+                pass
+
+            def mainloop(self, *args, **kwargs):
+                pass
+
+        class FakeApp:
+            def __init__(self, parent, platform=None):
+                created["parent"] = parent
+                created["platform"] = platform
+
+            def pack(self, *args, **kwargs):
+                pass
+
+            def on_close(self):
+                pass
+
+        monkeypatch.setattr(tkinter, "Tk", FakeRoot)
+        monkeypatch.setattr(tk_app, "TkSimulatorApp", FakeApp)
+        return created
+
+    def test_gui_with_known_platform_preselects_it(self, platforms, invoke, fake_gui):
+        res = invoke("gui", "renode-board")
+        assert res.exit_code == 0, res.output
+        assert fake_gui["platform"] == "renode-board"
+
+    def test_gui_without_platform_opens_unselected(self, platforms, invoke, fake_gui):
+        res = invoke("gui")
+        assert res.exit_code == 0, res.output
+        assert fake_gui["platform"] is None
+
+    def test_gui_with_unknown_platform_fails(self, platforms, invoke, fake_gui):
+        res = invoke("gui", "no-such-board")
+        assert res.exit_code == 1
+        assert "Platform not found: no-such-board" in res.output
+        assert "platform" not in fake_gui  # the GUI was never launched
