@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MCP tool arguments are validated against the published `inputSchema`:** types, ranges, string lengths, enums, required fields and unknown fields are checked before a tool runs, and a call outside the schema returns an error naming the field. Arguments that are not a JSON object (including `[]`, `false`, `0` and `""`) are rejected; only missing arguments count as `{}`. Whole numbers such as `200.0` are accepted for integer fields, as JSON Schema allows, and reach the tool as integers. (#53)
 
 ### Fixed
+- **Native engine `B` lands on its target:** the ARM `B` decoder added `imm24 * 4` to the address of the branch instead of the address + 8, so every branch landed 4 bytes short, and a backward branch sign-extended into a 34-bit offset, so `B .` and every loop jumped far outside memory. The target is now (the address of the `B` + 8 + `imm24 * 4`) mod 2^32, so a branch to address 0 also lands on 0.
+
 - **`eosim test` runs the simulation:** it previously printed every check in `tests.yml` and reported "N/N passed" without running anything. It now runs the platform engine, evaluates each check against the result, prints PASS/FAIL per check, and exits 1 if any check fails.
 
 - **Release Docker image builds again:** the Dockerfile still copied `platforms/` from the repository root after the registry moved into `eosim/platforms`, so the v3.0.2 release failed at the image build (`"/platforms": not found`) and the GitHub Release and PyPI jobs never ran. The registry ships inside the wheel, so the stale copies are removed. The release smoke test now overrides the `eosim` entrypoint to run `python -c`.
