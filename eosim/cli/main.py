@@ -849,8 +849,19 @@ def ecosystem(workspace, simulate, only, list_only):
 
 
 @cli.command()
-def gui():
-    """Launch the EoSim simulation UI."""
+@click.argument("platform", required=False)
+def gui(platform):
+    """Launch the EoSim simulation UI.
+
+    PLATFORM optionally pre-selects the product built for that platform
+    (e.g. `eosim gui stm32f4`); without it the UI opens unselected.
+    """
+    if platform:
+        cfg_path, data = _find_platform(platform)
+        if not data:
+            click.echo("Platform not found: " + platform, err=True)
+            sys.exit(1)
+
     import tkinter as tk
 
     from eosim.gui.tk_app import TkSimulatorApp
@@ -860,7 +871,7 @@ def gui():
     root.geometry("1200x750")
     root.minsize(900, 600)
 
-    app = TkSimulatorApp(root)
+    app = TkSimulatorApp(root, platform=platform)
     app.pack(fill=tk.BOTH, expand=True)
 
     root.protocol("WM_DELETE_WINDOW", lambda: (app.on_close(), root.destroy()))
