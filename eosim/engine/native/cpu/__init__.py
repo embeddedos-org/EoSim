@@ -121,8 +121,11 @@ class CPUSimulator:
         elif (instr & 0xFF000000) == 0xEA000000:  # B (branch)
             offset = instr & 0x00FFFFFF
             if offset & 0x800000:
-                offset |= 0xFF000000  # sign extend
-            self.state.pc += offset << 2
+                offset -= 0x1000000  # sign extend imm24
+            # Target = (address of this B + 8 + imm24 * 4) mod 2**32. step()
+            # adds 4 after every instruction, so leave pc 4 short of the
+            # target; mask first, so a target of 0 does not end at 2**32.
+            self.state.pc = ((self.state.pc + 8 + (offset << 2)) & 0xFFFFFFFF) - 4
         elif (instr & 0xFFF00000) == 0xE3A00000:  # MOV Rd, imm (ARM)
             rd = (instr >> 12) & 0xF
             imm = instr & 0xFF
