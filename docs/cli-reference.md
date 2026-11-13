@@ -104,9 +104,15 @@ Export simulation artifacts (logs, traces, JUnit XML).
 
 Check EoSim environment health (Python, engines, probes, platforms).
 
-### `eosim gui`
+### `eosim gui [PLATFORM]`
 
-Launch the EoSim simulation UI (requires display).
+Launch the EoSim simulation UI (requires display). With `PLATFORM`, the
+product built for that platform is pre-selected in the UI.
+
+```bash
+eosim gui
+eosim gui stm32f4
+```
 
 ---
 

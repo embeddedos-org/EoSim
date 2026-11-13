@@ -534,17 +534,46 @@ class TkPeripheralPanel(ttk.LabelFrame):
         self._create_generic_panel()
 
 
+def find_product_for_platform(platform):
+    """First product (by catalog key) whose default platform is `platform`.
+
+    Returns the product key, or None when no product is built for it.
+    """
+    for key in sorted(PRODUCT_CATALOG):
+        if PRODUCT_CATALOG[key].default_platform == platform:
+            return key
+    return None
+
+
 class TkSimulatorApp(ttk.Frame):
     """Main tkinter GUI shell — wraps the pure-Python SimulatorApp controller."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, platform=None):
         super().__init__(parent)
+        self._platform = platform
         self._app = SimulatorApp()
         self._running = False
         self._paused = False
         self._start_time = 0
         self._elapsed = 0
         self._build_ui()
+        if platform:
+            self._select_platform(platform)
+
+    def _select_platform(self, platform):
+        """Pre-select the product built for `platform`, if one exists.
+
+        Products are keyed by name and each carries a default platform;
+        the first match (by product key) is selected in the toolbar, which
+        also syncs the build panel. A platform with no product is left
+        unselected — the CLI has already validated the platform exists.
+        """
+        product = find_product_for_platform(platform)
+        if product is None:
+            return
+        tpl = PRODUCT_CATALOG[product]
+        self._toolbar_product_var.set(f"{tpl.icon} {tpl.display_name}")
+        self._on_toolbar_product()
 
     def _build_ui(self):
         toolbar = ttk.Frame(self)
