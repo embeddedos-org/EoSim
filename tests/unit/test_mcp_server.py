@@ -12,7 +12,6 @@ import json
 import pytest
 import yaml
 
-from eosim.mcp import server as mcp_server
 
 # Id-bearing requests in this file carry the stateless 2026-07-28 _meta
 # the server requires (gap G2, EoSim #66); notifications carry none.
