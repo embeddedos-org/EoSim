@@ -68,8 +68,8 @@ def test_server_discover_returns_discover_result():
     Spec 2026-07-28: servers MUST implement server/discover, returning a
     DiscoverResult of supported versions + capabilities. This test was
     flipped from the probe's recorded-behaviour assertion when the fix
-    landed; G2–G4 in the same file remain recorded behaviour until their
-    own fixes land.
+    landed; G2 and G4 were flipped by their own fix (#73), G3 by the
+    initialize-era fix closing #66.
     """
     req = {"jsonrpc": "2.0", "id": 2, "method": "server/discover"}
     req.update(FULL_META)
@@ -80,15 +80,18 @@ def test_server_discover_returns_discover_result():
     assert reply["result"]["serverInfo"]["name"] == "eosim-mcp"
 
 
-def test_initialize_is_answered_today():
-    """RECORDED (gap G3): the removed handshake is answered successfully.
+def test_initialize_is_rejected():
+    """FIXED (gap G3, EoSim #66): the removed handshake is rejected.
 
     Spec 2026-07-28: there is no negotiation handshake for modern
-    implementations; a dual-era server MAY answer initialize. This
-    server declares protocolVersion 2026-07-28 (modern) yet answers
-    initialize with a full InitializeResult. At minimum the server must
-    declare its era honestly (dual-era vs modern-only); whether it
-    keeps answering is a maintainer decision. Filed as an EoSim issue.
+    implementations ("There is no negotiation handshake. Every request
+    carries its protocol version, and the server accepts or rejects
+    each request independently"). This server declares
+    protocolVersion 2026-07-28 and is modern-only, not dual-era, so
+    initialize is a removed method and is rejected with JSON-RPC
+    -32601 (method not found). Clients discover via server/discover
+    instead. This test was flipped from the probe's
+    recorded-behaviour assertion when the fix landed.
     """
     req = {
         "jsonrpc": "2.0",
@@ -98,8 +101,8 @@ def test_initialize_is_answered_today():
     }
     req.update(FULL_META)
     reply = handle_message(req)
-    assert reply["result"]["protocolVersion"] == PROTOCOL_VERSION
-    assert reply["result"]["serverInfo"]["name"] == "eosim-mcp"
+    assert reply["error"]["code"] == -32601
+    assert "server/discover" in reply["error"]["message"]
 
 
 def test_responses_carry_server_info_meta():

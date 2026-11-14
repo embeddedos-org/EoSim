@@ -2,19 +2,21 @@
 """MCP stdio server for EoSim (JSON-RPC 2.0 framing, MCP spec rev 2026-07-28).
 
 Wire protocol (newline-delimited JSON-RPC 2.0 over stdio):
-  client -> {"jsonrpc":"2.0","id":1,"method":"initialize","params":{...}}
-  server -> {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":...,
+  client -> {"jsonrpc":"2.0","id":1,"method":"server/discover"}
+  server -> {"jsonrpc":"2.0","id":1,"result":{"supportedVersions":...,
              "capabilities":{"tools":{}},"serverInfo":{...}}}
-  client -> {"jsonrpc":"2.0","method":"notifications/initialized"}
   client -> {"jsonrpc":"2.0","id":2,"method":"tools/list"}
-  client -> {"jsonrpc":"2.0","id":2,"method":"server/discover"}
   client -> {"jsonrpc":"2.0","id":3,"method":"tools/call",
              "params":{"name":"list_platforms","arguments":{...}}}
 
-Implemented methods: initialize, server/discover, tools/list, tools/call,
-ping. Unknown
-methods return JSON-RPC -32601; bad params -32602; tool errors are returned
-as a result payload with ok:false (the call itself succeeded).
+Implemented methods: server/discover, tools/list, tools/call, ping.
+Unknown methods return JSON-RPC -32601; bad params -32602; tool errors are
+returned as a result payload with ok:false (the call itself succeeded).
+
+Modern-only 2026-07-28 (gap G3, EoSim #66): there is no negotiation
+handshake — "initialize" is a removed method and is rejected with -32601
+(see handle_message). Clients learn what the server supports from
+server/discover instead.
 
 Stateless 2026-07-28: every id-bearing request must carry _meta with
 io.modelcontextprotocol/protocolVersion and
@@ -57,17 +59,6 @@ def _error(msg_id: Any, code: int, message: str) -> dict[str, Any]:
         "id": msg_id,
         "error": {"code": code, "message": message},
     }
-
-
-def _handle_initialize(msg_id: Any, params: dict[str, Any]) -> dict[str, Any]:
-    return _response(
-        msg_id,
-        {
-            "protocolVersion": PROTOCOL_VERSION,
-            "capabilities": {"tools": {}},
-            "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
-        },
-    )
 
 
 def _handle_server_discover(msg_id: Any) -> dict[str, Any]:
@@ -135,7 +126,19 @@ def handle_message(msg: dict[str, Any]) -> dict[str, Any] | None:
         )
 
     if method == "initialize":
-        return _handle_initialize(msg_id, params if isinstance(params, dict) else {})
+        # Gap G3 (EoSim #66), modern-only decision: spec 2026-07-28
+        # removes the negotiation handshake ("There is no negotiation
+        # handshake. Every request carries its protocol version, and the
+        # server accepts or rejects each request independently"). The
+        # server declares 2026-07-28 and is NOT dual-era, so initialize
+        # is a removed method and is rejected as unknown (-32601), not
+        # answered. Clients discover via server/discover instead.
+        return _error(
+            msg_id,
+            -32601,
+            "initialize was removed in MCP 2026-07-28 (no negotiation "
+            "handshake); use server/discover",
+        )
     if method == "server/discover":
         return _handle_server_discover(msg_id)
     if method == "tools/list":
