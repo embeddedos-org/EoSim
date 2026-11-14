@@ -54,6 +54,30 @@ commits. NO server behaviour was changed by the probe commit.
   until G1–G3 close, the server is "2026-07-28-declared, gaps
   recorded", not "2026-07-28-conformant".
 
+## Resolution — G3 decided modern-only (2026-11-14)
+
+- **G3 — `initialize` rejected, not answered.** Maintainer decision
+  (architect-selected, loop 2026-11-14): the server is **modern-only**,
+  not dual-era. Spec 2026-07-28 removes the negotiation handshake
+  ("There is no negotiation handshake. Every request carries its
+  protocol version, and the server accepts or rejects each request
+  independently" — spec versioning page, quoted by the 2026-10-28
+  first-party read and corroborated against the published 2026-07-28
+  spec text at execution time). `initialize` is therefore a removed
+  method: `handle_message` rejects it with JSON-RPC `-32601` and a
+  message pointing at `server/discover`. The G3 characterisation test
+  is flipped to assert the rejection, the stdio handshake test in
+  `tests/unit/test_mcp_server.py` is flipped the same way, and the
+  server module docstring now documents the stateless, discover-first
+  flow. `notifications/initialized` (no id) still gets no reply, as
+  before. No dual-era declaration is added to `server.json`/docs:
+  the server answers only the 2026-07-28 stateless surface.
+- **G1–G4 all closed.** G1 landed via #72, G2+G4 via #73, G3 here,
+  so EoSim #66 closes with this PR. The "2026-07-28-declared, gaps
+  recorded" label above is retired for this server: its declared
+  revision now matches its behaviour on all four probed gaps. No
+  certification or spec-compliance badge is claimed by this change.
+
 ## Follow-up (2026-10-31, after the probe commit)
 
 - Gaps G1–G4 filed as EoSim issue #66 (open). Tracker: EoSim #37

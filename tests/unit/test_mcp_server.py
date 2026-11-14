@@ -298,7 +298,10 @@ def _rpc(messages):
     return [json.loads(line) for line in stdout.getvalue().splitlines() if line.strip()]
 
 
-def test_stdio_initialize_handshake():
+def test_stdio_initialize_is_rejected():
+    # Gap G3 (EoSim #66), modern-only 2026-07-28: initialize is a
+    # removed method, rejected with -32601; the notifications/initialized
+    # notification still gets no reply.
     replies = _rpc(
         [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}, "_meta": META},
@@ -306,10 +309,8 @@ def test_stdio_initialize_handshake():
         ]
     )
     assert len(replies) == 1  # notification gets no reply
-    result = replies[0]["result"]
-    assert result["protocolVersion"] == mcp_server.PROTOCOL_VERSION
-    assert result["serverInfo"]["name"] == "eosim-mcp"
-    assert "tools" in result["capabilities"]
+    assert replies[0]["error"]["code"] == -32601
+    assert "server/discover" in replies[0]["error"]["message"]
 
 
 def test_stdio_tools_list_and_call(registry_dir):
