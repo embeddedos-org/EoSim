@@ -6,6 +6,7 @@ Bridges real serial port data between physical hardware and
 the EoSim UART terminal / VirtualMachine UART peripheral.
 """
 
+import codecs
 import logging
 import re
 import threading
@@ -160,14 +161,19 @@ class SerialBridge:
             self._read_thread = None
 
     def _read_loop(self):
+        # One decoder for the whole stream, so a UTF-8 character whose bytes
+        # arrive in separate reads is decoded once it is complete instead of
+        # each piece becoming U+FFFD.
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         while self._running and self._port and self._port.is_open:
             try:
                 data = self._port.read(self._port.in_waiting or 1)
-                if data and self._on_receive:
-                    text = data.decode("utf-8", errors="replace")
-                    text = self.sanitize_input(text)
-                    if text:
-                        self._on_receive(text)
+                if data:
+                    text = decoder.decode(data)
+                    if text and self._on_receive:
+                        text = self.sanitize_input(text)
+                        if text:
+                            self._on_receive(text)
             except Exception:
                 time.sleep(0.01)
 

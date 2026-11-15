@@ -208,6 +208,42 @@ class TestSerialBridge:
         result = SerialBridge.available()
         assert isinstance(result, bool)
 
+    @staticmethod
+    def _read_chunks(chunks):
+        """Run the bridge's read loop over a port that returns `chunks` in turn."""
+        from eosim.integrations.serial_bridge import SerialBridge
+
+        bridge = SerialBridge()
+        received = []
+        pending = list(chunks)
+
+        class FakePort:
+            is_open = True
+            in_waiting = 0
+
+            def read(self, size):
+                data = pending.pop(0)
+                if not pending:
+                    bridge._running = False
+                return data
+
+        bridge._port = FakePort()
+        bridge.set_on_receive(received.append)
+        bridge._running = True
+        bridge._read_loop()
+        return "".join(received)
+
+    def test_multibyte_character_split_across_reads(self):
+        # A blocking read(1) after an idle line returns the first byte alone.
+        assert self._read_chunks([b"T=21.5 \xc2", b"\xb0C\n"]) == "T=21.5 °C\n"
+
+    def test_four_byte_character_one_byte_per_read(self):
+        chunks = [bytes([b]) for b in "ok \U0001f600\n".encode("utf-8")]
+        assert self._read_chunks(chunks) == "ok \U0001f600\n"
+
+    def test_invalid_bytes_are_still_replaced(self):
+        assert self._read_chunks([b"a\xff", b"b\n"]) == "a�b\n"
+
 
 class TestOpenOCDManager:
     def test_import(self):
