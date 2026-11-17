@@ -35,6 +35,9 @@ class VirtualMachine:
         # memory, which must not be reported as a boot. See run().
         self.firmware_loaded = False
         self.firmware_path: Optional[str] = None
+        # Regions created by load_firmware()/load_binary(), so that loading a
+        # new image over one of them replaces it. See _map_image().
+        self._images: list = []
 
         # Add RAM
         self.bus.add_region(MemoryRegion("ram", 0x20000000, ram_mb * 1024 * 1024))
@@ -65,21 +68,41 @@ class VirtualMachine:
             for offset in range(0, 64, 4):
                 self.bus.add_io_handler(device.base + offset, device.io_handler)
 
+    def _map_image(self, name: str, addr: int, data: bytes, readonly: bool):
+        """Place an image at ``addr`` so that the bus reads it back.
+
+        MemoryBus returns the first region, by base address, that contains an
+        address, so a new region whose base lies inside an existing one is
+        never read: an image loaded into the flash that ``flash_mb`` maps, into
+        RAM, or over an image loaded before. An image that fits inside an
+        existing RAM or flash region is written into it, and an image loaded
+        earlier that the new one overlaps is replaced.
+        """
+        end = addr + len(data)
+        for old in [r for r in self._images if r.base < end and addr < r.base + r.size]:
+            self.bus.regions.remove(old)
+            self._images.remove(old)
+        for region in self.bus.regions:
+            if region.contains(addr) and end <= region.base + region.size:
+                region.data[addr - region.base : end - region.base] = data
+                return
+        image = MemoryRegion(name, addr, len(data), bytearray(data), readonly=readonly)
+        self.bus.add_region(image)
+        self._images.append(image)
+
     def load_firmware(self, path: str, addr: int = 0x08000000) -> bool:
         if not os.path.exists(path):
             return False
         with open(path, "rb") as f:
             data = f.read()
-        flash = MemoryRegion("firmware", addr, len(data), bytearray(data), readonly=True)
-        self.bus.add_region(flash)
+        self._map_image("firmware", addr, data, readonly=True)
         self.cpu.reset(entry=addr, stack=0x20000000 + 512 * 1024)
         self.firmware_loaded = True
         self.firmware_path = path
         return True
 
     def load_binary(self, data: bytes, addr: int = 0x08000000):
-        region = MemoryRegion("binary", addr, len(data), bytearray(data))
-        self.bus.add_region(region)
+        self._map_image("binary", addr, data, readonly=False)
         self.cpu.reset(entry=addr, stack=0x20000000 + 512 * 1024)
         self.firmware_loaded = True
         self.firmware_path = "<memory>"
