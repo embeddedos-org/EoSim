@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **HIL serial bridge keeps non-ASCII text intact:** `SerialBridge` decoded every read from the port on its own, so a UTF-8 character whose bytes arrived in two reads (for example when the line was idle, the blocking `read(1)` returns only the first byte) reached the UART terminal as two or more `U+FFFD` replacement characters: `°C` became `��C`. The read loop now uses one incremental decoder for the whole stream.
 
+- **OpenOCD target scripts for `samd21` and `k64f`:** `samd21` (SAM D21, Cortex-M0+) pointed at `target/atsame5x.cfg`, the SAM D5x/E5x script, whose `atsame5` flash driver only knows Cortex-M4 parts, so `eosim hil flash --target samd21` could not probe the chip. `k64f` (Kinetis K64, Cortex-M4) pointed at `target/klx.cfg`, the Cortex-M0+ Kinetis KL script. They now use `target/at91samdXX.cfg` and `target/kx.cfg`.
+
 - **Native engine `B` lands on its target:** the ARM `B` decoder added `imm24 * 4` to the address of the branch instead of the address + 8, so every branch landed 4 bytes short, and a backward branch sign-extended into a 34-bit offset, so `B .` and every loop jumped far outside memory. The target is now (the address of the `B` + 8 + `imm24 * 4`) mod 2^32, so a branch to address 0 also lands on 0.
 
 - **`eosim test` runs the simulation:** it previously printed every check in `tests.yml` and reported "N/N passed" without running anything. It now runs the platform engine, evaluates each check against the result, prints PASS/FAIL per check, and exits 1 if any check fails.

@@ -31,12 +31,12 @@ TARGET_CONFIGS = {
     "nrf5340": "target/nrf5340.cfg",
     "nrf9160": "target/nrf9160.cfg",
     "esp32": "target/esp32.cfg",
-    "samd21": "target/atsame5x.cfg",
+    "samd21": "target/at91samdXX.cfg",
     "psoc6": "target/psoc6.cfg",
     "rp2040": "target/rp2040.cfg",
     "lpc55": "target/lpc55xx.cfg",
     "imx8m": "target/imx8m.cfg",
-    "k64f": "target/klx.cfg",
+    "k64f": "target/kx.cfg",
 }
 
 
