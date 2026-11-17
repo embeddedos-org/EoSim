@@ -257,6 +257,32 @@ class TestOpenOCDManager:
         # May or may not be installed
         assert result is None or isinstance(result, str)
 
+    def test_target_scripts_match_the_chip_family(self):
+        # samd21 is a Cortex-M0+ SAM D21 and k64f a Cortex-M4 Kinetis K64.
+        # OpenOCD's scripts for those families are at91samdXX.cfg and kx.cfg;
+        # atsame5x.cfg is SAM D5x/E5x (its flash driver cannot probe a D21)
+        # and klx.cfg is the Cortex-M0+ Kinetis KL series.
+        from eosim.integrations.openocd import TARGET_CONFIGS
+        assert TARGET_CONFIGS["samd21"] == "target/at91samdXX.cfg"
+        assert TARGET_CONFIGS["k64f"] == "target/kx.cfg"
+
+    def test_flash_samd21_loads_the_samd_script(self, tmp_path, monkeypatch):
+        import eosim.integrations.openocd as oo
+        fw = tmp_path / "fw.bin"
+        fw.write_bytes(b"\x00" * 4)
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return MagicMock(returncode=0)
+
+        monkeypatch.setattr(oo.OpenOCDManager, "find_openocd", staticmethod(lambda: "openocd"))
+        monkeypatch.setattr(oo.subprocess, "run", fake_run)
+        assert oo.OpenOCDManager().flash(str(fw), adapter="cmsis-dap", target="samd21")
+        assert calls[0][:5] == [
+            "openocd", "-f", "interface/cmsis-dap.cfg", "-f", "target/at91samdXX.cfg"
+        ]
+
 
 class TestHILSession:
     def test_import(self):
