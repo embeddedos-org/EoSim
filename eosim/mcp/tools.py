@@ -744,6 +744,12 @@ def _parse_ip(data: bytes, version: int):
         src = str(ipaddress.IPv4Address(data[12:16]))
         dst = str(ipaddress.IPv4Address(data[16:20]))
         header = data[ihl:] if ihl >= 20 else data[20:]
+        # Only the first fragment of a datagram carries the TCP/UDP header;
+        # a later fragment starts mid-payload, so it has no ports or flags.
+        frag_offset = (struct.unpack(">H", data[6:8])[0] & 0x1FFF) * 8
+        if frag_offset:
+            proto = _IP_PROTO_NAMES.get(proto_num, f"IP/{proto_num}")
+            return proto, src, dst, f"{proto} fragment offset={frag_offset}"
     else:
         if len(data) < 40:
             return "IPv6", "", "", "truncated ipv6 header"
