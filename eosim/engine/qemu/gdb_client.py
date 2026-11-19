@@ -24,6 +24,9 @@ ARM_REG_SIZE = 4  # bytes per register
 # AArch64 register layout (x0-x30 + sp + pc + cpsr)
 AARCH64_REG_NAMES = [f"x{i}" for i in range(31)] + ["sp", "pc", "cpsr"]
 AARCH64_REG_SIZE = 8
+# GDB's aarch64-core.xml declares cpsr as 32 bits, so the "g" reply carries
+# 4 bytes for it, not 8 like the general-purpose registers before it.
+AARCH64_REG_SIZES = [AARCH64_REG_SIZE] * 33 + [4]
 
 
 class GDBRemoteClient:
@@ -39,6 +42,11 @@ class GDBRemoteClient:
         self._arch = arch
         self._reg_names = ARM_REG_NAMES if arch in ("arm", "arm32") else AARCH64_REG_NAMES
         self._reg_size = ARM_REG_SIZE if arch in ("arm", "arm32") else AARCH64_REG_SIZE
+        self._reg_sizes = (
+            [ARM_REG_SIZE] * len(ARM_REG_NAMES)
+            if arch in ("arm", "arm32")
+            else list(AARCH64_REG_SIZES)
+        )
         self._no_ack_mode = False
 
     def connect(self, host: str = "localhost", port: int = 1234, timeout: float = 5.0):
@@ -100,14 +108,15 @@ class GDBRemoteClient:
         if not resp or resp.startswith("E"):
             raise GDBError(f"Register read failed: {resp}")
         regs = {}
-        hex_per_reg = self._reg_size * 2
-        for i, name in enumerate(self._reg_names):
-            offset = i * hex_per_reg
+        offset = 0
+        for name, size in zip(self._reg_names, self._reg_sizes):
+            hex_per_reg = size * 2
             if offset + hex_per_reg > len(resp):
                 break
             hex_val = resp[offset : offset + hex_per_reg]
             val = int.from_bytes(bytes.fromhex(hex_val), "little")
             regs[name] = val
+            offset += hex_per_reg
         return regs
 
     def read_register(self, index: int) -> int:
@@ -119,7 +128,8 @@ class GDBRemoteClient:
 
     def write_register(self, index: int, value: int):
         """Write a single register by index."""
-        hex_val = value.to_bytes(self._reg_size, "little").hex()
+        size = self._reg_sizes[index] if index < len(self._reg_sizes) else self._reg_size
+        hex_val = value.to_bytes(size, "little").hex()
         resp = self._command(f"P{index:x}={hex_val}")
         if resp != "OK":
             raise GDBError(f"Register write failed: {resp}")
