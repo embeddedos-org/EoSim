@@ -272,8 +272,9 @@ class ADCChannel(SensorBase):
             self.values[ch] = max(0, min(self.max_val, raw_value))
 
     def set_voltage(self, ch: int, mv: float):
-        if 0 <= ch < self.channels:
-            self.values[ch] = int(mv / self.reference_mv * self.max_val)
+        # Clamp like set_channel(): a real converter saturates at 0 and at
+        # full scale, so below 0 mV or above the reference it reads 0 or max.
+        self.set_channel(ch, int(mv / self.reference_mv * self.max_val))
 
     def read_reg(self, offset: int) -> int:
         ch = offset // 4

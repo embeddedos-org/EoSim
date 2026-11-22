@@ -397,6 +397,17 @@ class TestProximityLightADC:
         assert adc.read_reg(0x00) == 2047
         assert adc.values[1:] == [0] * 7
 
+    def test_adc_voltage_outside_reference_saturates(self):
+        # A 12-bit converter reads 0..4095: a voltage below 0 mV or above
+        # the 3300 mV reference must not produce a negative or >12-bit code.
+        adc = sens.ADCChannel(resolution=12)
+        adc.set_voltage(0, -5)
+        adc.set_voltage(1, 5000)
+        adc.set_voltage(2, 3300)
+        assert adc.read_reg(0x00) == 0
+        assert adc.read_reg(0x04) == 4095
+        assert adc.read_reg(0x08) == 4095
+
 
 class TestPowerAndMedicalSensors:
     def test_current_sensor_registers(self):
