@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Release Docker image builds again:** the Dockerfile still copied `platforms/` from the repository root after the registry moved into `eosim/platforms`, so the v3.0.2 release failed at the image build (`"/platforms": not found`) and the GitHub Release and PyPI jobs never ran. The registry ships inside the wheel, so the stale copies are removed. The release smoke test now overrides the `eosim` entrypoint to run `python -c`.
 
+- **Native ADC saturates at 0 and full scale:** `ADCChannel.set_voltage()` stored the converted code without the clamp that `set_channel()` applies, so a voltage below 0 mV gave a negative register value and one above the reference gave a code wider than the converter's resolution (5000 mV read 6204 on a 12-bit, 3300 mV channel). The energy simulator feeds its `solar_adc` noisy solar power, so at night it often read a negative code. Out-of-range voltages now read 0 or the maximum code.
+
 ### Fixed
 - **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
 
