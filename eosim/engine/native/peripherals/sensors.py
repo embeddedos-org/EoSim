@@ -378,8 +378,9 @@ class PulseOximeter(SensorBase):
         super().simulate_tick()
         self.spo2_percent += random.gauss(0, 0.1)
         self.spo2_percent = max(70, min(100, self.spo2_percent))
-        self.pulse_rate += random.gauss(0, 0.3)
-        self.pulse_rate = max(40, min(200, int(self.pulse_rate)))
+        # round(), not int(): int() truncates toward zero, so every negative
+        # noise sample cost a beat and the rate sank to the 40 bpm floor.
+        self.pulse_rate = max(40, min(200, round(self.pulse_rate + random.gauss(0, 0.3))))
 
     def set_value(self, spo2: float, pulse: int = -1):
         self.spo2_percent = spo2
