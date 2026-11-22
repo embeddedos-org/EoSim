@@ -451,6 +451,23 @@ class TestPowerAndMedicalSensors:
             assert 70 <= ox.spo2_percent <= 100
             assert 40 <= ox.pulse_rate <= 200
 
+    def test_pulse_oximeter_rate_does_not_drift_on_symmetric_noise(self, monkeypatch):
+        # Zero-mean noise must not move the pulse rate on average. With
+        # int() truncation every negative sample dropped a beat, so 72 bpm
+        # sank to the 40 bpm floor within about a second of ticks.
+        pulse_noise = iter([-0.2, 0.2] * 50)
+
+        def gauss(mu, sigma):
+            # sigma 0.3 is the pulse-rate draw; keep SpO2 still.
+            return next(pulse_noise) if sigma == 0.3 else 0.0
+
+        monkeypatch.setattr(sens.random, "gauss", gauss)
+        ox = sens.PulseOximeter()
+        for _ in range(100):
+            ox.simulate_tick()
+        assert ox.pulse_rate == 72
+        assert isinstance(ox.pulse_rate, int)
+
 
 # --- Actuators --------------------------------------------------------------
 
