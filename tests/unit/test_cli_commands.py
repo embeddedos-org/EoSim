@@ -214,9 +214,7 @@ class TestRunQemuAndNative:
         assert res.exit_code == 2
         fake_run.assert_not_called()
 
-    def test_qemu_dry_run_is_logged_and_not_executed(
-        self, platforms, invoke, monkeypatch, fake_run
-    ):
+    def test_qemu_dry_run_is_logged_and_not_executed(self, platforms, invoke, monkeypatch, fake_run):
         tool_paths(monkeypatch, {})
         res = invoke("run", "qemu-board", "--log-dir", "logs", "--dry-run")
         assert "DRY RUN — qemu was not executed." in res.output
