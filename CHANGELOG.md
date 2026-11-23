@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Native ADC saturates at 0 and full scale:** `ADCChannel.set_voltage()` stored the converted code without the clamp that `set_channel()` applies, so a voltage below 0 mV gave a negative register value and one above the reference gave a code wider than the converter's resolution (5000 mV read 6204 on a 12-bit, 3300 mV channel). The energy simulator feeds its `solar_adc` noisy solar power, so at night it often read a negative code. Out-of-range voltages now read 0 or the maximum code.
 
+- **Wearable workout scenario marks the workout active:** `WearableSimulator.load_scenario("workout_detection")` matched the first branch (`step_counting` or `workout_detection`), so the later `workout_detection` branch that sets `workout_active` and `workout_type` never ran: the scenario drove the IMU and heart rate like a workout but `get_state()` kept `workout_active: False` and an empty `workout_type`. Both are now set to `True` and `"running"`.
+
 ### Fixed
 - **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
 
