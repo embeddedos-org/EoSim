@@ -1,0 +1,6 @@
+name: esp32-qemu-test
+platform: esp32-qemu
+checks:
+  - type: boot_success
+  - type: timeout
+    seconds: 30

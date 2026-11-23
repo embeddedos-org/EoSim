@@ -229,7 +229,14 @@ def info(platform):
     help="Print the qemu command without executing it (explicit opt-in). "
     "QEMU platforms only: on any other engine it is refused, not ignored.",
 )
-def run(platform, headless, timeout, log_dir, firmware, dry_run):
+@click.option(
+    "--expect",
+    default=None,
+    help="QEMU platforms: text the guest must print for the run to pass. For "
+    "firmware that never exits (an RTOS image) the run then passes on timeout "
+    "only if the text was printed; without it a timeout is a failure.",
+)
+def run(platform, headless, timeout, log_dir, firmware, dry_run, expect):
     """Run a simulation for the specified platform."""
     cfg_path, p = _find_platform(platform)
     if not p:
@@ -256,7 +263,9 @@ def run(platform, headless, timeout, log_dir, firmware, dry_run):
     if engine == "renode":
         _run_renode(p, platform, headless, timeout, log_file, firmware)
     elif engine == "qemu":
-        _run_qemu(p, platform, headless, timeout, log_file, firmware, dry_run=dry_run)
+        _run_qemu(
+            p, platform, headless, timeout, log_file, firmware, dry_run=dry_run, expect=expect
+        )
     elif engine == "eosim":
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
     else:
@@ -321,7 +330,22 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
 
 
-def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False):
+def _qemu_firmware_args(p, firmware):
+    """Return the qemu arguments that load ``firmware``.
+
+    By default the image is a ``-kernel``. A platform whose machine boots from
+    flash through its ROM (Espressif's ``esp32``) sets ``qemu.firmware_drive``
+    to a ``-drive`` value containing ``{firmware}``. QEMU separates drive
+    options with commas and reads ``,,`` as a literal comma, so commas in the
+    path are doubled: a path cannot add options of its own.
+    """
+    drive = p.get("qemu", {}).get("firmware_drive")
+    if not drive:
+        return ["-kernel", firmware]
+    return ["-drive", drive.replace("{firmware}", firmware.replace(",", ",,"))]
+
+
+def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False, expect=None):
     """Run using the QEMU engine.
 
     Honest execution contract (EoSim#38): the engine never reports PASSED
@@ -330,6 +354,8 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
     - qemu installed -> the constructed command is actually executed with the
       timeout; output streams to the log file; qemu's exit code propagates.
     - dry_run=True -> print-only behavior, exit 0 (explicit opt-in only).
+    - expect="text" -> the guest must print the text. A timeout passes only
+      if it did (firmware that never exits); a clean exit without it fails.
     """
     arch = p.get("arch", "x86_64")
     qemu_map = {
@@ -349,7 +375,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
     if cpu:
         cmd += ["-cpu", cpu]
     if firmware:
-        cmd += ["-kernel", firmware]
+        cmd += _qemu_firmware_args(p, firmware)
     click.echo("Running: " + " ".join(cmd))
 
     if dry_run:
@@ -376,6 +402,11 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
             f.write(stderr)
         click.echo(stdout + stderr, nl=False)
         click.echo("Log: " + log_file)
+        if expect and expect in stdout + stderr:
+            click.echo(f'PASSED (guest printed "{expect}"; stopped after {timeout}s)')
+            return
+        if expect:
+            click.echo(f'Expected text not printed: "{expect}"', err=True)
         click.echo(f"TIMEOUT after {timeout}s — qemu did not exit.", err=True)
         sys.exit(1)
     with open(log_file, "w", encoding="utf-8") as f:
@@ -384,6 +415,13 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         f.write(result.stdout or "")
         f.write(result.stderr or "")
     click.echo("Log: " + log_file)
+    if (
+        result.returncode == 0
+        and expect
+        and expect not in (result.stdout or "") + (result.stderr or "")
+    ):
+        click.echo(f'FAILED (qemu exited without printing "{expect}")', err=True)
+        sys.exit(1)
     if result.returncode == 0:
         click.echo("PASSED")
     else:
