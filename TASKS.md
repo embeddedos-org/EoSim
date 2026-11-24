@@ -11,19 +11,19 @@ Status is one of: `todo`, `in-progress`, `blocked`, `review`, `done`.
 
 | ID | Task | Owner | Mode | Status | Depends on |
 |----|------|-------|------|--------|------------|
-| T-001 | Remove tracked `eosim.egg-info/` from git index | Developer | — | todo | — |
+| T-001 | Remove tracked `eosim.egg-info/` from git index | Developer | — | done | — |
 
 ### T-001 — Remove tracked eosim.egg-info/ from git index
 
 Owner: Developer
 Mode: —
-Status: todo
+Status: done
 Depends on: none
 
 Goal
 : `eosim.egg-info/` is currently committed to the repository. It is a generated
   build artefact that must not be tracked. `*.egg-info/` has been added to
-  `.gitignore` (commit 046ef4c). The index entry still needs to be removed.
+  `.gitignore` (commit fb0b513). The index entry still needs to be removed.
 
 Acceptance criteria
 : - `git ls-files eosim.egg-info/` returns nothing.
@@ -43,9 +43,9 @@ Risks
 Verification
 : | Check | Command | Result |
   |-------|---------|--------|
-  | Index clear | `git ls-files eosim.egg-info/` | `NOT RUN` |
-  | Lint | `python3 -m ruff check eosim` | `NOT RUN` |
-  | Unit tests | `python3 -m pytest tests/unit -v --tb=short` | `NOT RUN` |
+  | Index clear | `git ls-files eosim.egg-info/` | `PASS` — empty |
+  | Lint | `python3 -m ruff check eosim` | `PASS` — All checks passed |
+  | Unit tests | `python3 -m pytest tests/unit -v --tb=short` | `PASS` — 2288 passed, 2 skipped |
 
 ## Completed
 
