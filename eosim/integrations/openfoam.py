@@ -4,6 +4,7 @@
 
 Case management, solver execution, result parsing.
 """
+
 import os
 import re
 import shutil
@@ -18,20 +19,19 @@ class OpenFOAMRunner:
     and parses field results.
     """
 
-    SOLVERS = ['simpleFoam', 'icoFoam', 'pisoFoam', 'pimpleFoam',
-               'potentialFoam', 'rhoSimpleFoam']
+    SOLVERS = ["simpleFoam", "icoFoam", "pisoFoam", "pimpleFoam", "potentialFoam", "rhoSimpleFoam"]
 
-    def __init__(self, case_dir: str = ''):
+    def __init__(self, case_dir: str = ""):
         self.case_dir = case_dir
-        self.solver = 'simpleFoam'
+        self.solver = "simpleFoam"
         self._process: Optional[subprocess.Popen] = None
         self._results: dict[str, list] = {}
-        self._log: str = ''
+        self._log: str = ""
         self._converged = False
 
     @staticmethod
     def available() -> bool:
-        for solver in ['simpleFoam', 'icoFoam']:
+        for solver in ["simpleFoam", "icoFoam"]:
             if shutil.which(solver) is not None:
                 return True
         return False
@@ -46,63 +46,66 @@ class OpenFOAMRunner:
     def validate_case(self) -> list[str]:
         errors = []
         if not self.case_dir or not os.path.isdir(self.case_dir):
-            errors.append(f'Case directory does not exist: {self.case_dir}')
+            errors.append(f"Case directory does not exist: {self.case_dir}")
             return errors
-        required = ['system/controlDict', 'system/fvSchemes',
-                    'system/fvSolution', 'constant']
+        required = ["system/controlDict", "system/fvSchemes", "system/fvSolution", "constant"]
         for req in required:
             path = os.path.join(self.case_dir, req)
             if not os.path.exists(path):
-                errors.append(f'Missing: {req}')
+                errors.append(f"Missing: {req}")
         return errors
 
     def run(self, timeout: int = 300) -> dict:
         result = {
-            'success': False, 'solver': self.solver,
-            'case_dir': self.case_dir, 'log': '', 'converged': False,
+            "success": False,
+            "solver": self.solver,
+            "case_dir": self.case_dir,
+            "log": "",
+            "converged": False,
         }
         if not self.available():
-            result['log'] = 'OpenFOAM not installed'
+            result["log"] = "OpenFOAM not installed"
             return result
 
         errors = self.validate_case()
         if errors:
-            result['log'] = 'Case validation failed:\n' + '\n'.join(errors)
+            result["log"] = "Case validation failed:\n" + "\n".join(errors)
             return result
 
         solver_path = shutil.which(self.solver)
         if not solver_path:
-            result['log'] = f'Solver not found: {self.solver}'
+            result["log"] = f"Solver not found: {self.solver}"
             return result
 
         try:
             proc = subprocess.run(
-                [solver_path, '-case', self.case_dir],
-                capture_output=True, text=True, timeout=timeout,
+                [solver_path, "-case", self.case_dir],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
                 cwd=self.case_dir,
             )
             self._log = proc.stdout + proc.stderr
-            result['log'] = self._log[-2000:]
-            result['success'] = proc.returncode == 0
+            result["log"] = self._log[-2000:]
+            result["success"] = proc.returncode == 0
 
-            if 'FOAM FATAL ERROR' in self._log:
-                result['success'] = False
-            if 'End' in self._log or 'Finalising' in self._log:
-                result['converged'] = True
+            if "FOAM FATAL ERROR" in self._log:
+                result["success"] = False
+            if "End" in self._log or "Finalising" in self._log:
+                result["converged"] = True
                 self._converged = True
 
         except subprocess.TimeoutExpired:
-            result['log'] = 'Solver timed out after %ds' % timeout
+            result["log"] = "Solver timed out after %ds" % timeout
         except FileNotFoundError:
-            result['log'] = 'Solver binary not found'
+            result["log"] = "Solver binary not found"
 
         return result
 
     def parse_residuals(self) -> dict[str, list[float]]:
         residuals: dict[str, list[float]] = {}
-        pattern = re.compile(
-            r'Solving for (\w+),.*Initial residual = ([0-9.e+-]+)')
-        for line in self._log.split('\n'):
+        pattern = re.compile(r"Solving for (\w+),.*Initial residual = ([0-9.e+-]+)")
+        for line in self._log.split("\n"):
             m = pattern.search(line)
             if m:
                 field = m.group(1)
@@ -111,10 +114,10 @@ class OpenFOAMRunner:
         self._results = residuals
         return residuals
 
-    def get_field_data(self, field: str, time_step: str = 'latest') -> dict:
+    def get_field_data(self, field: str, time_step: str = "latest") -> dict:
         if not self.case_dir:
             return {}
-        if time_step == 'latest':
+        if time_step == "latest":
             time_dirs = []
             for d in os.listdir(self.case_dir):
                 try:
@@ -128,20 +131,20 @@ class OpenFOAMRunner:
 
         field_path = os.path.join(self.case_dir, time_step, field)
         if not os.path.exists(field_path):
-            return {'error': f'Field file not found: {field_path}'}
+            return {"error": f"Field file not found: {field_path}"}
 
         return {
-            'field': field,
-            'time_step': time_step,
-            'path': field_path,
-            'size_bytes': os.path.getsize(field_path),
+            "field": field,
+            "time_step": time_step,
+            "path": field_path,
+            "size_bytes": os.path.getsize(field_path),
         }
 
     def get_status(self) -> dict:
         return {
-            'available': self.available(),
-            'case_dir': self.case_dir,
-            'solver': self.solver,
-            'converged': self._converged,
-            'results_fields': list(self._results.keys()),
+            "available": self.available(),
+            "case_dir": self.case_dir,
+            "solver": self.solver,
+            "converged": self._converged,
+            "results_fields": list(self._results.keys()),
         }

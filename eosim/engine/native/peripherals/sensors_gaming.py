@@ -6,7 +6,7 @@ from eosim.engine.native.peripherals.sensors import SensorBase
 
 
 class PhysicsEngine(SensorBase):
-    def __init__(self, name='physics0', base_addr=0x40150000):
+    def __init__(self, name="physics0", base_addr=0x40150000):
         super().__init__(name, base_addr)
         self.position = [0.0, 0.0, 0.0]
         self.velocity = [0.0, 0.0, 0.0]
@@ -34,14 +34,17 @@ class PhysicsEngine(SensorBase):
 
     def read_reg(self, offset):
         idx = offset // 4
-        if idx < 3: return int(self.position[idx] * 1000) & 0xFFFFFFFF
-        if idx < 6: return int(self.velocity[idx - 3] * 1000) & 0xFFFFFFFF
-        if idx == 6: return self.collision_count & 0xFFFFFFFF
+        if idx < 3:
+            return int(self.position[idx] * 1000) & 0xFFFFFFFF
+        if idx < 6:
+            return int(self.velocity[idx - 3] * 1000) & 0xFFFFFFFF
+        if idx == 6:
+            return self.collision_count & 0xFFFFFFFF
         return 0
 
 
 class TerrainSensor(SensorBase):
-    def __init__(self, name='terrain0', base_addr=0x40150100):
+    def __init__(self, name="terrain0", base_addr=0x40150100):
         super().__init__(name, base_addr)
         self.height_at_pos = 0.0
         self.surface_type = 0
@@ -57,13 +60,15 @@ class TerrainSensor(SensorBase):
         self.slope_deg = slope
 
     def read_reg(self, offset):
-        if offset == 0x00: return int(self.height_at_pos * 1000) & 0xFFFFFFFF
-        if offset == 0x04: return self.surface_type & 0xFFFFFFFF
+        if offset == 0x00:
+            return int(self.height_at_pos * 1000) & 0xFFFFFFFF
+        if offset == 0x04:
+            return self.surface_type & 0xFFFFFFFF
         return 0
 
 
 class EntityManager(SensorBase):
-    def __init__(self, name='entities0', base_addr=0x40150200):
+    def __init__(self, name="entities0", base_addr=0x40150200):
         super().__init__(name, base_addr)
         self.entity_count = 0
         self.active_entities = 0
@@ -74,14 +79,18 @@ class EntityManager(SensorBase):
         super().simulate_tick()
         for ent in self.entities:
             for i in range(3):
-                ent['position'][i] += ent.get('velocity', [0, 0, 0])[i] * 0.01
-        self.active_entities = len([e for e in self.entities if e.get('active', True)])
+                ent["position"][i] += ent.get("velocity", [0, 0, 0])[i] * 0.01
+        self.active_entities = len([e for e in self.entities if e.get("active", True)])
 
     def spawn_entity(self, entity_id, x, y, z):
-        self.entities.append({'id': entity_id, 'position': [x, y, z], 'velocity': [0, 0, 0], 'active': True})
+        self.entities.append(
+            {"id": entity_id, "position": [x, y, z], "velocity": [0, 0, 0], "active": True}
+        )
         self.entity_count = len(self.entities)
 
     def read_reg(self, offset):
-        if offset == 0x00: return self.entity_count & 0xFFFFFFFF
-        if offset == 0x04: return self.active_entities & 0xFFFFFFFF
+        if offset == 0x00:
+            return self.entity_count & 0xFFFFFFFF
+        if offset == 0x04:
+            return self.active_entities & 0xFFFFFFFF
         return 0

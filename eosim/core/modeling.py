@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Modeling method catalog for simulation approaches."""
+
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -195,7 +196,8 @@ def validate_modeling_for_engine(method: str, engine: str) -> list[str]:
         return warnings
     if engine not in m.engine_support:
         warnings.append(
-            "Modeling method '{}' is not supported by engine '{}'. "
-            "Supported engines: {}".format(method, engine, ", ".join(m.engine_support))
+            "Modeling method '{}' is not supported by engine '{}'. Supported engines: {}".format(
+                method, engine, ", ".join(m.engine_support)
+            )
         )
     return warnings

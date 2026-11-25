@@ -92,6 +92,7 @@ eosim gui stm32f4                 # open GUI dashboard
 | Platform | SoC | Description |
 |---|---|---|
 | `esp32` | ESP32 | Xtensa LX6, Wi-Fi/BLE, Dual-core |
+| `esp32-qemu` | ESP32 | Espressif's QEMU `esp32` machine: boots a flash image through the ESP32 ROM (`--firmware img.flash.bin --expect TEXT`) |
 | `esp32s3` | ESP32-S3 | Xtensa LX7, AI acceleration |
 | `xtensa-esp` | Generic | Xtensa ESP reference |
 
@@ -144,6 +145,62 @@ eosim gui stm32f4                 # open GUI dashboard
 | `eosim search <query>` | Fuzzy search platforms |
 | `eosim gui [platform]` | Open GUI dashboard |
 
+## MCP Server
+
+Registry metadata: the repo root's `server.json` describes this
+server for the MCP Registry and the org's Agent fabric discovery
+(name `io.github.embeddedos-org/eosim`, version matching
+`pyproject.toml`). The `server.json validation` workflow runs the
+org's reusable validator on every change to either file, so the
+registry metadata cannot drift from the package version. The
+server itself is stdio-only — there is no remote endpoint to
+advertise; clients launch it as shown below.
+
+EoSim exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP, spec rev 2026-07-28)
+server so AI coding agents can drive simulations directly — list platforms, launch a sim, and verify
+against ground truth instead of hallucinating. JSON-RPC 2.0 over stdio, no extra dependencies.
+
+```bash
+# Start the server (e.g. from an MCP client config)
+python -m eosim.mcp
+```
+
+| Tool | Description |
+|---|---|
+| `list_platforms` | List simulation platforms; filters: `arch`, `vendor`, `engine`, `domain`, `limit` |
+| `sim_launch` | Launch a simulation; `platform` (required), `headless`, `timeout`, `firmware`. Dry-run by default — set `dry_run: false` to actually start the simulator detached |
+| `sim_build` | Build EoS from source; `source` (optional, resolved via `EOS_SOURCE` / `./eos`). Dry-run by default — set `dry_run: false` to run the build and get a bounded log tail |
+| `sim_flash` | Stage a firmware image into a platform's simulated flash; `platform` and `firmware` (required). Dry-run by default — set `dry_run: false` to copy it to `out/firmware/<platform>/` with a `.meta.json` sidecar |
+| `console_tail` | Return the tail of a running session's console log; `session_id` (required, from `sim_launch` with `dry_run: false`), `lines` (default 50), `log_dir` (default `out/logs`) |
+| `sim_status` | Report a session's state (running/exited from the persisted session record + pid liveness), pid, platform, uptime, log size; `session_id` (required), `log_dir` (default `out/logs`) |
+| `gpio_poke` | Queue a GPIO pin change for a running session — appends one event to the session's `<platform>-<session_id>.gpio.jsonl` control file for the simulator to consume; `session_id`, `pin` (0-255), `value` (0/1) required. Dry-run by default; fails closed for exited or unknown sessions |
+| `net_capture` | Summarize a recorded pcap for a session (offline only: packet count, protocol histogram, top talkers, bounded packet summaries; no payloads); `session_id` (required), `pcap_path`, `max_packets` (default 200), `log_dir` |
+
+Roadmap: `i2c_poke`, `spi_poke` (see issue #37).
+
+### Connecting a client
+
+Give the client the Python interpreter EoSim is installed in, not a bare `python`, which may
+resolve to one without it. This `mcpServers` entry is the shape Claude Desktop
+(`claude_desktop_config.json`) and other stdio MCP clients read:
+
+```json
+{
+  "mcpServers": {
+    "eosim": {
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "eosim.mcp"]
+    }
+  }
+}
+```
+
+Claude Code:
+
+```bash
+claude mcp add eosim -- /path/to/venv/bin/python -m eosim.mcp
+```
+
 ## Architecture
 
 ```
@@ -155,14 +212,13 @@ eosim/
 │   ├── gui/              Tkinter GUI dashboard
 │   ├── integrations/     External tool integrations
 │   ├── artifacts/        Simulation artifact management
-│   └── platforms/        Platform abstraction
-├── platforms/            52+ platform definitions (YAML + Renode .repl/.resc)
-│   ├── stm32f4/          STM32F4 Discovery
-│   ├── raspi4/           Raspberry Pi 4
-│   ├── esp32/            ESP32
-│   ├── riscv64/          RISC-V 64-bit
-│   ├── jetson-orin/      NVIDIA Jetson Orin
-│   └── ...               + 47 more
+│   └── platforms/        153 platform definitions (YAML + Renode .repl/.resc)
+│       ├── stm32f4/      STM32F4 Discovery
+│       ├── raspi4/       Raspberry Pi 4
+│       ├── esp32/        ESP32
+│       ├── riscv64/      RISC-V 64-bit
+│       ├── jetson-orin/  NVIDIA Jetson Orin
+│       └── ...           + 144 more
 ├── tests/                Unit + integration + scenario tests
 ├── examples/             Demo scenarios (cluster-demo)
 ├── pyproject.toml        Python package configuration
@@ -212,14 +268,62 @@ The optional Tkinter GUI provides:
 | Repo | Description |
 |---|---|
 | [eos](https://github.com/embeddedos-org/eos) | Embedded OS — HAL, RTOS kernel, drivers, services |
-| [eboot](https://github.com/embeddedos-org/eboot) | Bootloader — 24 board ports, secure boot, A/B slots |
+| [eBoot](https://github.com/embeddedos-org/eBoot) | Bootloader — secure boot, A/B slots, recovery |
 | [ebuild](https://github.com/embeddedos-org/ebuild) | Build system — SDK generator, packaging |
-| [eipc](https://github.com/embeddedos-org/eipc) | IPC framework — Go + C SDK, HMAC auth |
-| [eai](https://github.com/embeddedos-org/eai) | AI layer — LLM inference, agent loop |
-| [eni](https://github.com/embeddedos-org/eni) | Neural interface — BCI, Neuralink adapter |
-| [eApps](https://github.com/embeddedos-org/eApps) | Cross-platform apps — 38 C + LVGL apps |
-| [EoStudio](https://github.com/embeddedos-org/EoStudio) | Design suite — 10 editors with LLM integration |
+| [eFirmware](https://github.com/embeddedos-org/eFirmware) | `.efw` image format and `efwtool` |
+| [eIPC](https://github.com/embeddedos-org/eIPC) | IPC framework — Go + C SDK, HMAC auth |
+| [eAI](https://github.com/embeddedos-org/eAI) | AI layer — LLM inference, agent loop |
+| [eNI](https://github.com/embeddedos-org/eNI) | Neural interface — BCI adapters |
+| [eDB](https://github.com/embeddedos-org/eDB) | Embedded data and storage service |
+| [eApps](https://github.com/embeddedos-org/eApps) | Cross-platform apps — C + LVGL |
+| [EoStudio](https://github.com/embeddedos-org/EoStudio) | Design suite — editors with LLM integration |
 | **EoSim** | **Simulation platform (this repo)** |
+
+Repository names are case-sensitive on Linux filesystems. They are written here
+exactly as they are on disk, because getting that wrong is not a cosmetic
+mistake: the ecosystem runner once held a hardcoded list of lowercase names
+(`eboot`, `eipc`, `eni`) and consequently discovered 2 of the 19 repositories,
+silently skipping the rest.
+
+### Testing the whole organisation
+
+`eosim.integrations.ecosystem` builds and tests every repository in the
+workspace, so one command covers the platform rather than each repo separately.
+
+```python
+from eosim.integrations.ecosystem import find_repos, test_repo_all
+
+for name, path in sorted(find_repos("/path/to/workspace").items()):
+    for result in test_repo_all(name, path):
+        print(result.repo, result.kind, result.status,
+              result.tests_passed, result.tests_failed)
+```
+
+Repositories are found by inspecting the workspace, not from a list, and each
+one's build systems are detected from the files it actually contains —
+including below the root, so a repo whose firmware lives in
+`firmware/build-system/` is built rather than skipped. A repo with more than one
+build system is exercised through all of them; reporting only the primary is how
+a broken CMake build stays invisible behind a green Python suite.
+
+Statuses are deliberately distinct, because they call for different responses:
+
+| Status | Meaning |
+|---|---|
+| `PASS` | Built and its tests passed |
+| `FAIL` | Built and its tests failed, or the repo's own build is broken |
+| `DEPS` | The suite would run, but a dependency is absent from this environment — an unset `*_SDK_PATH`, a failed `find_package`, an uninstalled Python module, `npm ci` not run |
+| `SKIP` | Nothing to test |
+| `ERROR` | The runner itself could not complete |
+
+`DEPS` is separated from `FAIL` on purpose. "Install the nRF5 SDK" and "this
+CMakeLists references a source file that does not exist" are opposite problems,
+and a single red status would hide which one you have.
+
+Counts are whatever the underlying runner printed. They are never derived from
+an exit status — an earlier version inferred `tests_passed` from a successful
+build, which made every repo that compiled report a passing suite whether or not
+it had run a single test.
 
 ## Security
 

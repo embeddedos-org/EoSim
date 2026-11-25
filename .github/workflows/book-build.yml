@@ -37,7 +37,7 @@ jobs:
       images: ${{ steps.check.outputs.images }}
       tables: ${{ steps.check.outputs.tables }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check book source
         id: check
@@ -74,7 +74,7 @@ jobs:
       pdf_size: ${{ steps.verify.outputs.pdf_size }}
       pdf_pages: ${{ steps.verify.outputs.pdf_pages }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install pandoc 3.x & LaTeX
         run: |
@@ -237,7 +237,7 @@ jobs:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Download PDF artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build-pdf.outputs.pdf_name }}
           path: ./pdf-output
@@ -281,7 +281,7 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     steps:
       - name: Download PDF artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build-pdf.outputs.pdf_name }}
           path: ./pdf-output

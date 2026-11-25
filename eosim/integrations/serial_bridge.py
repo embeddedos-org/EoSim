@@ -5,6 +5,8 @@
 Bridges real serial port data between physical hardware and
 the EoSim UART terminal / VirtualMachine UART peripheral.
 """
+
+import codecs
 import logging
 import re
 import threading
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 try:
     import serial
     import serial.tools.list_ports
+
     HAS_SERIAL = True
 except ImportError:
     HAS_SERIAL = False
@@ -31,7 +34,7 @@ class SerialBridge:
 
     # Characters that could be used for shell/command injection via serial input.
     # Null bytes, escape sequences, and shell metacharacters are stripped.
-    _DANGEROUS_PATTERN = re.compile(r'[\x00-\x08\x0e-\x1f\x7f]')
+    _DANGEROUS_PATTERN = re.compile(r"[\x00-\x08\x0e-\x1f\x7f]")
     _MAX_LINE_LENGTH = 4096
 
     @staticmethod
@@ -42,14 +45,15 @@ class SerialBridge:
         line length to prevent buffer-based attacks.
         """
         # Remove dangerous control characters (keep \\t, \\n, \\r)
-        cleaned = SerialBridge._DANGEROUS_PATTERN.sub('', text)
+        cleaned = SerialBridge._DANGEROUS_PATTERN.sub("", text)
         # Enforce max line length
         if len(cleaned) > SerialBridge._MAX_LINE_LENGTH:
             logger.warning(
                 "Serial input truncated from %d to %d bytes",
-                len(cleaned), SerialBridge._MAX_LINE_LENGTH,
+                len(cleaned),
+                SerialBridge._MAX_LINE_LENGTH,
             )
-            cleaned = cleaned[:SerialBridge._MAX_LINE_LENGTH]
+            cleaned = cleaned[: SerialBridge._MAX_LINE_LENGTH]
         return cleaned
 
     def __init__(self):
@@ -57,7 +61,7 @@ class SerialBridge:
         self._read_thread: Optional[threading.Thread] = None
         self._running = False
         self._on_receive: Optional[Callable[[str], None]] = None
-        self._port_name = ''
+        self._port_name = ""
         self._baudrate = 115200
 
     @staticmethod
@@ -71,14 +75,16 @@ class SerialBridge:
             return []
         ports = []
         for p in serial.tools.list_ports.comports():
-            ports.append({
-                'device': p.device,
-                'description': p.description,
-                'hwid': p.hwid,
-                'vid': p.vid,
-                'pid': p.pid,
-                'manufacturer': p.manufacturer or '',
-            })
+            ports.append(
+                {
+                    "device": p.device,
+                    "description": p.description,
+                    "hwid": p.hwid,
+                    "vid": p.vid,
+                    "pid": p.pid,
+                    "manufacturer": p.manufacturer or "",
+                }
+            )
         return ports
 
     @staticmethod
@@ -88,16 +94,16 @@ class SerialBridge:
             return []
         boards = []
         known = {
-            (0x0483, 0x374B): 'ST-Link V2-1 (STM32)',
-            (0x0483, 0x3748): 'ST-Link V2 (STM32)',
-            (0x0483, 0x3752): 'ST-Link V3 (STM32)',
-            (0x1366, 0x0105): 'J-Link (Segger)',
-            (0x1366, 0x1015): 'J-Link (Segger)',
-            (0x10C4, 0xEA60): 'CP2102 USB-UART',
-            (0x0403, 0x6001): 'FTDI FT232R',
-            (0x0403, 0x6010): 'FTDI FT2232',
-            (0x2E8A, 0x0005): 'Raspberry Pi Pico',
-            (0x239A, None): 'Adafruit (CircuitPython)',
+            (0x0483, 0x374B): "ST-Link V2-1 (STM32)",
+            (0x0483, 0x3748): "ST-Link V2 (STM32)",
+            (0x0483, 0x3752): "ST-Link V3 (STM32)",
+            (0x1366, 0x0105): "J-Link (Segger)",
+            (0x1366, 0x1015): "J-Link (Segger)",
+            (0x10C4, 0xEA60): "CP2102 USB-UART",
+            (0x0403, 0x6001): "FTDI FT232R",
+            (0x0403, 0x6010): "FTDI FT2232",
+            (0x2E8A, 0x0005): "Raspberry Pi Pico",
+            (0x239A, None): "Adafruit (CircuitPython)",
         }
         for p in serial.tools.list_ports.comports():
             vid, pid = p.vid, p.pid
@@ -106,18 +112,19 @@ class SerialBridge:
                 if not name:
                     name = known.get((vid, None))
                 if name:
-                    boards.append({
-                        'device': p.device,
-                        'board': name,
-                        'description': p.description,
-                    })
+                    boards.append(
+                        {
+                            "device": p.device,
+                            "board": name,
+                            "description": p.description,
+                        }
+                    )
         return boards
 
     def connect(self, port: str, baudrate: int = 115200, timeout: float = 1.0):
         """Open serial connection."""
         if not HAS_SERIAL:
-            raise RuntimeError(
-                "pyserial not installed. Run: pip install pyserial")
+            raise RuntimeError("pyserial not installed. Run: pip install pyserial")
         self._port = serial.Serial(port, baudrate, timeout=timeout)
         self._port_name = port
         self._baudrate = baudrate
@@ -129,7 +136,7 @@ class SerialBridge:
     def write(self, data: str):
         """Send data to the hardware serial port."""
         if self._port and self._port.is_open:
-            self._port.write(data.encode('utf-8', errors='replace'))
+            self._port.write(data.encode("utf-8", errors="replace"))
 
     def write_bytes(self, data: bytes):
         """Send raw bytes to the hardware serial port."""
@@ -142,7 +149,8 @@ class SerialBridge:
             return
         self._running = True
         self._read_thread = threading.Thread(
-            target=self._read_loop, daemon=True, name='serial-bridge')
+            target=self._read_loop, daemon=True, name="serial-bridge"
+        )
         self._read_thread.start()
 
     def stop_reading(self):
@@ -153,21 +161,26 @@ class SerialBridge:
             self._read_thread = None
 
     def _read_loop(self):
+        # One decoder for the whole stream, so a UTF-8 character whose bytes
+        # arrive in separate reads is decoded once it is complete instead of
+        # each piece becoming U+FFFD.
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         while self._running and self._port and self._port.is_open:
             try:
                 data = self._port.read(self._port.in_waiting or 1)
-                if data and self._on_receive:
-                    text = data.decode('utf-8', errors='replace')
-                    text = self.sanitize_input(text)
-                    if text:
-                        self._on_receive(text)
+                if data:
+                    text = decoder.decode(data)
+                    if text and self._on_receive:
+                        text = self.sanitize_input(text)
+                        if text:
+                            self._on_receive(text)
             except Exception:
                 time.sleep(0.01)
 
     def inject_into_vm(self, vm):
         """Bridge serial data into VirtualMachine's UART peripheral."""
-        uart = vm.peripherals.get('uart0')
-        if uart and hasattr(uart, 'inject_input'):
+        uart = vm.peripherals.get("uart0")
+        if uart and hasattr(uart, "inject_input"):
             self.set_on_receive(lambda text: uart.inject_input(text))
 
     @property

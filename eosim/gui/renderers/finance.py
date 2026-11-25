@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """3D renderer for financial markets (domain: finance)."""
+
 from eosim.gui.renderers import BaseRenderer, register_renderer
 
 

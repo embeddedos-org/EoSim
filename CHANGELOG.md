@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`esp32-qemu` platform: run an ESP32 flash image in Espressif's QEMU.** The `esp32` machine (from Espressif's QEMU fork; upstream QEMU has none) runs the ESP32 boot ROM, which loads the image from flash as a board does. Two additions to `eosim run` make that usable. A platform's `qemu.firmware_drive` is a `-drive` template; with it `--firmware` is attached as that drive instead of `-kernel`, and commas in the path are doubled (QEMU's escape), so a path cannot add drive options. `--expect TEXT` requires the guest to print TEXT: firmware that never exits, such as an RTOS image, passes on timeout only if it did, and a clean exit without it fails. Without `--expect` a timeout is still a failure. Checked end to end with the EoS ESP32 scheduler image (eos `sim/qemu_esp32`): `eosim run esp32-qemu --firmware sched.flash.bin --expect "SCHEDULER TEST PASSED"` passed, and the same command on an image that prints `SCHEDULER TEST FAILED` exited 1. The machine fixes its CPU and supports at most 4 MB of RAM, so the platform sets neither `cpu` nor more memory.
+
+### Changed
+- **MCP failed tool calls carry `isError`:** a `tools/call` that fails (unknown tool, arguments rejected by the schema, or a tool that returns `ok: false`) now sets `isError: true` on its result, so MCP clients can tell a failed call from a successful one. The JSON text in `content` is unchanged. (#53)
+- **MCP tool arguments are validated against the published `inputSchema`:** types, ranges, string lengths, enums, required fields and unknown fields are checked before a tool runs, and a call outside the schema returns an error naming the field. Arguments that are not a JSON object (including `[]`, `false`, `0` and `""`) are rejected; only missing arguments count as `{}`. Whole numbers such as `200.0` are accepted for integer fields, as JSON Schema allows, and reach the tool as integers. (#53)
+
+### Fixed
+- **Medical monitor reports its highest-priority alarm:** `MedicalSimulator._evaluate_alarms()` gave each alarm a priority but stopped at the first condition in a fixed order, so a lower-priority alarm hid a higher one: a heart rate of 130 bpm (`HR_ABNORMAL`, priority 2) masked an SpO2 of 80 % (`SPO2_CRITICAL`, priority 3), and a disconnected SpO2 probe (`SENSOR_DISCONNECT`, 2) masked an occluded IV pump (`PUMP_OCCLUSION`, 3). Every active condition is now collected and the one with the highest priority is reported; equal priorities keep the old order.
+
+- **Native pulse oximeter keeps its pulse rate:** `PulseOximeter.simulate_tick()` added zero-mean noise to the pulse rate and then truncated it with `int()`, which rounds toward zero, so every negative sample cost a whole beat while small positive ones were dropped. The rate sank from 72 bpm to the 40 bpm floor within about 100 ticks, and the wearable simulator showed that falling heart rate. The rate is now rounded to the nearest beat.
+
+- **GDB client reads the AArch64 `cpsr`:** the `g` reply gives `x0`-`x30`, `sp` and `pc` 8 bytes each but `cpsr` only 4 (it is 32-bit in `aarch64-core.xml`), while `GDBRemoteClient` took 8 bytes for every register, so `read_all_registers()` stopped before `cpsr` and the live CPU view never updated it. Registers now carry their own sizes, and `write_register()` sends `cpsr` as 4 bytes.
+
+- **HIL serial bridge keeps non-ASCII text intact:** `SerialBridge` decoded every read from the port on its own, so a UTF-8 character whose bytes arrived in two reads (for example when the line was idle, the blocking `read(1)` returns only the first byte) reached the UART terminal as two or more `U+FFFD` replacement characters: `°C` became `��C`. The read loop now uses one incremental decoder for the whole stream.
+
+- **OpenOCD target scripts for `samd21` and `k64f`:** `samd21` (SAM D21, Cortex-M0+) pointed at `target/atsame5x.cfg`, the SAM D5x/E5x script, whose `atsame5` flash driver only knows Cortex-M4 parts, so `eosim hil flash --target samd21` could not probe the chip. `k64f` (Kinetis K64, Cortex-M4) pointed at `target/klx.cfg`, the Cortex-M0+ Kinetis KL script. They now use `target/at91samdXX.cfg` and `target/kx.cfg`.
+
+- **Native engine `B` lands on its target:** the ARM `B` decoder added `imm24 * 4` to the address of the branch instead of the address + 8, so every branch landed 4 bytes short, and a backward branch sign-extended into a 34-bit offset, so `B .` and every loop jumped far outside memory. The target is now (the address of the `B` + 8 + `imm24 * 4`) mod 2^32, so a branch to address 0 also lands on 0.
+
+- **Native engine runs the image it was given:** `VirtualMachine.load_firmware()` and `load_binary()` added the image as a new memory region, but the memory bus reads the first region by base address that contains an address, so the image was never read when its base lay inside an existing region: in the flash that `flash_mb` maps at `0x08000000`, anywhere in RAM, or over an image loaded earlier. The CPU then executed blank memory as NOPs (or the old image). An image that fits in an existing RAM or flash region is now written into it, and an earlier image that the new one overlaps is replaced.
+
+- **`eosim test` runs the simulation:** it previously printed every check in `tests.yml` and reported "N/N passed" without running anything. It now runs the platform engine, evaluates each check against the result, prints PASS/FAIL per check, and exits 1 if any check fails.
+
+- **Release Docker image builds again:** the Dockerfile still copied `platforms/` from the repository root after the registry moved into `eosim/platforms`, so the v3.0.2 release failed at the image build (`"/platforms": not found`) and the GitHub Release and PyPI jobs never ran. The registry ships inside the wheel, so the stale copies are removed. The release smoke test now overrides the `eosim` entrypoint to run `python -c`.
+
+- **Native ADC saturates at 0 and full scale:** `ADCChannel.set_voltage()` stored the converted code without the clamp that `set_channel()` applies, so a voltage below 0 mV gave a negative register value and one above the reference gave a code wider than the converter's resolution (5000 mV read 6204 on a 12-bit, 3300 mV channel). The energy simulator feeds its `solar_adc` noisy solar power, so at night it often read a negative code. Out-of-range voltages now read 0 or the maximum code.
+
+- **Wearable workout scenario marks the workout active:** `WearableSimulator.load_scenario("workout_detection")` matched the first branch (`step_counting` or `workout_detection`), so the later `workout_detection` branch that sets `workout_active` and `workout_type` never ran: the scenario drove the IMU and heart rate like a workout but `get_state()` kept `workout_active: False` and an empty `workout_type`. Both are now set to `True` and `"running"`.
+
+### Fixed
+- **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
+
+### Fixed
+- **`eosim hil flash` honours `--adapter`/`--target` and firmware paths with spaces:** the adapter and target were never passed to OpenOCD (it ran with empty `-f ""` configs), and the firmware path was placed unquoted in the Tcl `program` command, which OpenOCD splits on whitespace. `OpenOCDManager.flash()` now accepts `adapter`/`target` and escapes the path as a single Tcl word.
+
+### Fixed
+- **`eosim eos test-suite` reports FAIL when pytest is missing or crashes:** the pytest result was PASS whenever no "N failed" count was parsed, so `No module named pytest`, collection errors, internal errors and "no tests ran" all passed, and the command always exited 0. The result now follows pytest's exit code, and the command exits 1 (printing the tail of the pytest output) when the suite fails.
+
+### Fixed
+- **`eosim run` keeps console output on timeout and fails:** on a Renode timeout it printed "saving log" but wrote no log, discarded the output captured so far and exited 0; on a QEMU timeout the log held only the command line. Both now write the partial stdout/stderr to the log, print it, and exit 1.
+
 ## [3.0.1] - 2026-05-27
 
 ### Added — Production Release & Enhancements

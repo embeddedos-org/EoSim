@@ -13,6 +13,7 @@ class MATLABBridge:
     def connect(self, timeout=30.0):
         try:
             import matlab.engine
+
             self._engine = matlab.engine.start_matlab()
             self._connected = True
         except (ImportError, Exception):
@@ -38,5 +39,5 @@ class MATLABBridge:
 
     def run_simulation(self, model_name, stop_time=10.0):
         if self._engine:
-            self._engine.set_param(model_name, 'StopTime', str(stop_time))
+            self._engine.set_param(model_name, "StopTime", str(stop_time))
             self._engine.sim(model_name)

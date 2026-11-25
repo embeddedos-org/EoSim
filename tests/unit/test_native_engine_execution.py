@@ -82,6 +82,53 @@ class TestExecution:
         assert vm.cpu.state.regs[0] == 3      # last write wins
 
 
+def b(from_addr: int, to_addr: int) -> int:
+    """B <to_addr> placed at from_addr. ARM: target = address of the B + 8 + imm24 * 4."""
+    imm24 = ((to_addr - (from_addr + 8)) >> 2) & 0x00FFFFFF
+    return 0xEA000000 | imm24
+
+
+class TestBranch:
+    def test_forward_branch_lands_on_its_target(self):
+        """B at 0 to 8 skips the MOV at 4."""
+        vm = _vm(arm(b(0, 8), mov_imm(0, 1), UDF))
+        r = vm.run(max_cycles=64, timeout_s=5)
+
+        assert vm.cpu.state.regs[0] == 0  # the skipped MOV did not run
+        assert r["reason"] == "halted"
+        assert r["cycles"] == 2  # B + UDF
+
+    def test_backward_branch_lands_on_its_target(self):
+        """0: B 8 / 4: UDF / 8: MOV r1,#7 / 12: B 4."""
+        vm = _vm(arm(b(0, 8), UDF, mov_imm(1, 7), b(12, 4)))
+        r = vm.run(max_cycles=64, timeout_s=5)
+
+        assert vm.cpu.state.regs[1] == 7
+        assert r["reason"] == "halted"
+        assert r["cycles"] == 4  # B, MOV, B, UDF
+        assert vm.cpu.state.pc == FLASH + 8  # one past the UDF at 4
+
+    def test_branch_to_itself_stays_put(self):
+        """B . (0xEAFFFFFE) is the usual idle loop."""
+        vm = _vm(arm(NOP, b(4, 4)))
+        assert b(4, 4) == 0xEAFFFFFE
+        r = vm.run(max_cycles=10, timeout_s=5)
+
+        assert r["reason"] == "cycle-limit"
+        assert vm.cpu.state.pc == FLASH + 4
+
+    def test_branch_to_address_zero_stays_in_32_bits(self):
+        """0: NOP / 4: UDF / 8: B 0, entered at 8: B, NOP, UDF."""
+        vm = VirtualMachine(name="test-vm", arch="arm", ram_mb=1)
+        vm.load_binary(arm(NOP, UDF, b(8, 0)), addr=0)
+        vm.cpu.state.pc = 8
+        r = vm.run(max_cycles=10, timeout_s=5)
+
+        assert r["reason"] == "halted"
+        assert r["cycles"] == 3  # B, NOP, UDF
+        assert vm.cpu.state.pc == 8  # one past the UDF at 4
+
+
 class TestReportingContract:
     def test_no_firmware_is_a_failure_not_a_boot(self):
         """The regression this suite exists for."""
@@ -111,6 +158,55 @@ class TestReportingContract:
         r = vm.run(max_cycles=64, timeout_s=5)
         assert r["success"] is True
         assert vm.cpu.state.regs[2] == 0x5A
+
+    def test_load_firmware_into_flash_mb_region(self, tmp_path):
+        """With flash_mb the VM already maps a blank flash at 0x08000000.
+        The image used to go into a second region at the same base, which
+        sorted after the blank one, so the CPU fetched zeros (NOPs)."""
+        img = tmp_path / "fw.bin"
+        img.write_bytes(arm(mov_imm(2, 0x5A), UDF))
+
+        vm = VirtualMachine(name="v", arch="arm", ram_mb=1, flash_mb=1)
+        assert vm.load_firmware(str(img)) is True
+        assert vm.bus.read32(FLASH) == mov_imm(2, 0x5A)
+
+        r = vm.run(max_cycles=64, timeout_s=5)
+        assert r["success"] is True
+        assert r["reason"] == "halted"
+        assert vm.cpu.state.regs[2] == 0x5A
+
+    def test_load_binary_into_flash_mb_region(self):
+        vm = VirtualMachine(name="v", arch="arm", ram_mb=1, flash_mb=1)
+        vm.load_binary(arm(mov_imm(3, 0x11), UDF), addr=FLASH + 0x100)
+
+        r = vm.run(max_cycles=64, timeout_s=5)
+        assert r["reason"] == "halted"
+        assert vm.cpu.state.regs[3] == 0x11
+        # Still the one 1 MB flash region; the rest of it stays blank.
+        assert [region.name for region in vm.bus.regions] == ["flash", "ram"]
+        assert vm.bus.read32(FLASH) == 0
+
+    def test_load_binary_into_ram(self):
+        ram = 0x20000000
+        vm = VirtualMachine(name="v", arch="arm", ram_mb=1)
+        vm.load_binary(arm(mov_imm(4, 0x22), UDF), addr=ram + 0x100)
+
+        r = vm.run(max_cycles=64, timeout_s=5)
+        assert r["reason"] == "halted"
+        assert vm.cpu.state.regs[4] == 0x22
+
+    def test_second_image_replaces_the_first(self):
+        vm = _vm(arm(mov_imm(0, 0x01), UDF))
+        vm.run(max_cycles=64, timeout_s=5)
+        assert vm.cpu.state.regs[0] == 0x01
+
+        # Same address, one word longer than the first image.
+        vm.load_binary(arm(mov_imm(0, 0x02), mov_imm(1, 0x03), UDF), addr=FLASH)
+        r = vm.run(max_cycles=64, timeout_s=5)
+        assert r["reason"] == "halted"
+        assert vm.cpu.state.regs[0] == 0x02
+        assert vm.cpu.state.regs[1] == 0x03
+        assert [region.name for region in vm.bus.regions] == ["binary", "ram"]
 
     def test_missing_firmware_file_is_rejected(self):
         vm = VirtualMachine(name="v", arch="arm", ram_mb=1)

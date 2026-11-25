@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Plugin base class for EoSim extensions."""
+
 from abc import ABC, abstractmethod
 
 
@@ -33,4 +34,9 @@ class PluginBase(ABC):
         pass
 
     def get_info(self):
-        return {"name": self.NAME, "version": self.VERSION, "description": self.DESCRIPTION, "enabled": self.enabled}
+        return {
+            "name": self.NAME,
+            "version": self.VERSION,
+            "description": self.DESCRIPTION,
+            "enabled": self.enabled,
+        }

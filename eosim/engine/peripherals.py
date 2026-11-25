@@ -45,6 +45,7 @@ PERIPHERAL_MODELS = {
     },
 }
 
+
 def generate_repl_peripherals(peripherals: list) -> str:
     lines = []
     for pname in peripherals:
@@ -54,6 +55,7 @@ def generate_repl_peripherals(peripherals: list) -> str:
             lines.append("{}: {} @ sysbus".format(pname, model["renode_type"]))
             lines.append("")
     return "\n".join(lines)
+
 
 def list_peripherals() -> list:
     return list(PERIPHERAL_MODELS.keys())

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Domain profiles catalog for simulation contexts."""
+
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -126,8 +127,12 @@ DOMAIN_CATALOG: dict[str, DomainProfile] = {
         typical_arches=["x86_64", "arm64"],
         typical_classes=["sbc", "devboard"],
         test_scenarios=[
-            "laminar_flow", "turbulent_flow", "shock_wave",
-            "boundary_layer", "drag_analysis", "lift_curve",
+            "laminar_flow",
+            "turbulent_flow",
+            "shock_wave",
+            "boundary_layer",
+            "drag_analysis",
+            "lift_curve",
         ],
     ),
     "physiology": DomainProfile(
@@ -158,7 +163,13 @@ DOMAIN_CATALOG: dict[str, DomainProfile] = {
         safety_levels=["Advisory", "Watch", "Warning"],
         typical_arches=["x86_64", "arm64"],
         typical_classes=["sbc", "devboard"],
-        test_scenarios=["hurricane", "forecast_48h", "precipitation", "wind_model", "temperature_grid"],
+        test_scenarios=[
+            "hurricane",
+            "forecast_48h",
+            "precipitation",
+            "wind_model",
+            "temperature_grid",
+        ],
     ),
     "gaming": DomainProfile(
         name="gaming",
@@ -229,7 +240,12 @@ DOMAIN_CATALOG: dict[str, DomainProfile] = {
         safety_levels=[],
         typical_arches=["arm", "riscv32", "avr"],
         typical_classes=["mcu", "devboard"],
-        test_scenarios=["lab_experiment", "sensor_calibration", "coding_exercise", "data_collection"],
+        test_scenarios=[
+            "lab_experiment",
+            "sensor_calibration",
+            "coding_exercise",
+            "data_collection",
+        ],
     ),
     "sports": DomainProfile(
         name="sports",
@@ -259,7 +275,12 @@ DOMAIN_CATALOG: dict[str, DomainProfile] = {
         safety_levels=["SIL-3", "SIL-4"],
         typical_arches=["arm64", "x86_64"],
         typical_classes=["sbc", "safety"],
-        test_scenarios=["departure_sequence", "emergency_brake", "signal_change", "crossing_activation"],
+        test_scenarios=[
+            "departure_sequence",
+            "emergency_brake",
+            "signal_change",
+            "crossing_activation",
+        ],
     ),
     "smart-city": DomainProfile(
         name="smart-city",
@@ -349,7 +370,12 @@ DOMAIN_CATALOG: dict[str, DomainProfile] = {
         safety_levels=["SIL-1", "SIL-2"],
         typical_arches=["arm", "arm64"],
         typical_classes=["mcu", "plc", "rtu"],
-        test_scenarios=["signal_cycle", "emergency_preempt", "pedestrian_crossing", "adaptive_timing"],
+        test_scenarios=[
+            "signal_cycle",
+            "emergency_preempt",
+            "pedestrian_crossing",
+            "adaptive_timing",
+        ],
     ),
     "water": DomainProfile(
         name="water",
@@ -438,7 +464,9 @@ def suggest_platforms(domain: str, registry) -> list:
         return []
     results = registry.filter(domain=domain)
     if not results:
-        results = [p for p in registry.all()
-                    if p.arch in profile.typical_arches
-                    or p.platform_class in profile.typical_classes]
+        results = [
+            p
+            for p in registry.all()
+            if p.arch in profile.typical_arches or p.platform_class in profile.typical_classes
+        ]
     return results

@@ -1,0 +1,15 @@
+name: arduino-ventuno-q
+display_name: Arduino VENTUNO Q (Qualcomm Dragonwing IQ-8275 + STM32H5F5 dual-brain, ROS 2)
+arch: arm64
+engine: qemu
+class: sbc
+vendor: Arduino
+soc: Qualcomm Dragonwing IQ-8275 + STM32H5F5
+domain: robotics
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a72
+runtime:
+  memory_mb: 16384
+  headless: true

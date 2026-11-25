@@ -89,7 +89,7 @@ class TestQemuEngineRun:
             result = QemuEngine.run(platform)
             assert isinstance(result, SimResult)
             assert result.engine == 'qemu'
-            assert result.success is True  # dry run
+            assert result.success is False  # nothing was executed
 
     def test_run_dry_run_with_log(self, tmp_path):
         from eosim.engine.backend import QemuEngine, SimResult
@@ -99,7 +99,7 @@ class TestQemuEngineRun:
         log_file = str(tmp_path / 'test.log')
         with patch('shutil.which', return_value=None):
             result = QemuEngine.run(platform, log_file=log_file)
-            assert result.success is True
+            assert result.success is False
             assert result.log_file == log_file
 
 
@@ -208,6 +208,42 @@ class TestSerialBridge:
         result = SerialBridge.available()
         assert isinstance(result, bool)
 
+    @staticmethod
+    def _read_chunks(chunks):
+        """Run the bridge's read loop over a port that returns `chunks` in turn."""
+        from eosim.integrations.serial_bridge import SerialBridge
+
+        bridge = SerialBridge()
+        received = []
+        pending = list(chunks)
+
+        class FakePort:
+            is_open = True
+            in_waiting = 0
+
+            def read(self, size):
+                data = pending.pop(0)
+                if not pending:
+                    bridge._running = False
+                return data
+
+        bridge._port = FakePort()
+        bridge.set_on_receive(received.append)
+        bridge._running = True
+        bridge._read_loop()
+        return "".join(received)
+
+    def test_multibyte_character_split_across_reads(self):
+        # A blocking read(1) after an idle line returns the first byte alone.
+        assert self._read_chunks([b"T=21.5 \xc2", b"\xb0C\n"]) == "T=21.5 °C\n"
+
+    def test_four_byte_character_one_byte_per_read(self):
+        chunks = [bytes([b]) for b in "ok \U0001f600\n".encode("utf-8")]
+        assert self._read_chunks(chunks) == "ok \U0001f600\n"
+
+    def test_invalid_bytes_are_still_replaced(self):
+        assert self._read_chunks([b"a\xff", b"b\n"]) == "a�b\n"
+
 
 class TestOpenOCDManager:
     def test_import(self):
@@ -220,6 +256,32 @@ class TestOpenOCDManager:
         result = OpenOCDManager.find_openocd()
         # May or may not be installed
         assert result is None or isinstance(result, str)
+
+    def test_target_scripts_match_the_chip_family(self):
+        # samd21 is a Cortex-M0+ SAM D21 and k64f a Cortex-M4 Kinetis K64.
+        # OpenOCD's scripts for those families are at91samdXX.cfg and kx.cfg;
+        # atsame5x.cfg is SAM D5x/E5x (its flash driver cannot probe a D21)
+        # and klx.cfg is the Cortex-M0+ Kinetis KL series.
+        from eosim.integrations.openocd import TARGET_CONFIGS
+        assert TARGET_CONFIGS["samd21"] == "target/at91samdXX.cfg"
+        assert TARGET_CONFIGS["k64f"] == "target/kx.cfg"
+
+    def test_flash_samd21_loads_the_samd_script(self, tmp_path, monkeypatch):
+        import eosim.integrations.openocd as oo
+        fw = tmp_path / "fw.bin"
+        fw.write_bytes(b"\x00" * 4)
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return MagicMock(returncode=0)
+
+        monkeypatch.setattr(oo.OpenOCDManager, "find_openocd", staticmethod(lambda: "openocd"))
+        monkeypatch.setattr(oo.subprocess, "run", fake_run)
+        assert oo.OpenOCDManager().flash(str(fw), adapter="cmsis-dap", target="samd21")
+        assert calls[0][:5] == [
+            "openocd", "-f", "interface/cmsis-dap.cfg", "-f", "target/at91samdXX.cfg"
+        ]
 
 
 class TestHILSession:

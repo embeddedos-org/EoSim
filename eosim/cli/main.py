@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """EoSim CLI - primary entry point."""
+
 import json
 import os
 import shutil
@@ -10,9 +11,11 @@ from pathlib import Path
 
 import click
 import yaml
+
 from eosim import __version__
 
 EOSIM_ROOT = Path(__file__).parent.parent.parent
+
 
 def _resolve_platforms_dir() -> Path:
     """Locate the platform registry.
@@ -40,7 +43,7 @@ def _find_platform(name):
     for sub in PLATFORMS_DIR.iterdir():
         for yml in sub.glob("*.yml"):
             try:
-                with open(yml) as f:
+                with open(yml, encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 if data and data.get("name") == name:
                     return yml, data
@@ -50,7 +53,7 @@ def _find_platform(name):
     candidate = PLATFORMS_DIR / name / "platform.yml"
     if candidate.exists():
         try:
-            with open(candidate) as f:
+            with open(candidate, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             if data:
                 return candidate, data
@@ -62,6 +65,7 @@ def _find_platform(name):
 def _load_registry():
     """Load the full platform registry."""
     from eosim.core.registry import PlatformRegistry
+
     return PlatformRegistry(str(PLATFORMS_DIR))
 
 
@@ -78,16 +82,28 @@ def cli():
 @click.option("--class", "platform_class", default="", help="Filter by platform class")
 @click.option("--engine", default="", help="Filter by engine")
 @click.option("--domain", default="", help="Filter by domain")
-@click.option("--group-by", "group_by_field", default="",
-              help="Group results by field (arch, vendor, class, engine, domain)")
-@click.option("--format", "fmt", default="table",
-              type=click.Choice(["table", "json", "csv"]), help="Output format")
+@click.option(
+    "--group-by",
+    "group_by_field",
+    default="",
+    help="Group results by field (arch, vendor, class, engine, domain)",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="table",
+    type=click.Choice(["table", "json", "csv"]),
+    help="Output format",
+)
 def list_platforms(arch, vendor, platform_class, engine, domain, group_by_field, fmt):
     """List available simulation platforms."""
     reg = _load_registry()
     platforms = reg.filter(
-        arch=arch, vendor=vendor, platform_class=platform_class,
-        engine=engine, domain=domain,
+        arch=arch,
+        vendor=vendor,
+        platform_class=platform_class,
+        engine=engine,
+        domain=domain,
     )
 
     if group_by_field:
@@ -98,20 +114,32 @@ def list_platforms(arch, vendor, platform_class, engine, domain, group_by_field,
             key = getattr(p, actual_field, "") or "(unset)"
             groups.setdefault(key, []).append(p)
         for group_name in sorted(groups.keys()):
-            click.echo("\n[%s: %s] (%d platforms)" % (
-                group_by_field, group_name, len(groups[group_name])))
+            click.echo(
+                "\n[%s: %s] (%d platforms)" % (group_by_field, group_name, len(groups[group_name]))
+            )
             _print_platforms(groups[group_name])
         return
 
     if fmt == "json":
-        data = [{"name": p.name, "arch": p.arch, "engine": p.engine,
-                 "vendor": p.vendor, "class": p.platform_class,
-                 "soc": p.soc, "domain": p.domain} for p in platforms]
+        data = [
+            {
+                "name": p.name,
+                "arch": p.arch,
+                "engine": p.engine,
+                "vendor": p.vendor,
+                "class": p.platform_class,
+                "soc": p.soc,
+                "domain": p.domain,
+            }
+            for p in platforms
+        ]
         click.echo(json.dumps(data, indent=2))
     elif fmt == "csv":
         click.echo("name,arch,engine,vendor,class,soc,domain")
         for p in platforms:
-            click.echo(f"{p.name},{p.arch},{p.engine},{p.vendor},{p.platform_class},{p.soc},{p.domain}")
+            click.echo(
+                f"{p.name},{p.arch},{p.engine},{p.vendor},{p.platform_class},{p.soc},{p.domain}"
+            )
     else:
         click.echo("Available platforms (%d):\n" % len(platforms))
         _print_platforms(platforms)
@@ -119,14 +147,23 @@ def list_platforms(arch, vendor, platform_class, engine, domain, group_by_field,
 
 def _print_platforms(platforms):
     """Print platform list in table format."""
-    click.echo("  %-25s %-10s %-10s %-12s %-10s %s" % (
-        "NAME", "ARCH", "ENGINE", "VENDOR", "CLASS", "DESCRIPTION"))
+    click.echo(
+        "  %-25s %-10s %-10s %-12s %-10s %s"
+        % ("NAME", "ARCH", "ENGINE", "VENDOR", "CLASS", "DESCRIPTION")
+    )
     click.echo("  " + "-" * 90)
     for p in sorted(platforms, key=lambda x: x.name):
-        click.echo("  %-25s %-10s %-10s %-12s %-10s %s" % (
-            p.name, p.arch, p.engine,
-            p.vendor or "-", p.platform_class or "-",
-            p.display_name or ""))
+        click.echo(
+            "  %-25s %-10s %-10s %-12s %-10s %s"
+            % (
+                p.name,
+                p.arch,
+                p.engine,
+                p.vendor or "-",
+                p.platform_class or "-",
+                p.display_name or "",
+            )
+        )
 
 
 @cli.command()
@@ -140,8 +177,10 @@ def search(query):
         return
     click.echo("Search results for '%s' (%d matches):\n" % (query, len(results)))
     for p in results:
-        click.echo("  %-25s %-10s %-10s %-12s %s" % (
-            p.name, p.arch, p.engine, p.vendor or "-", p.soc or "-"))
+        click.echo(
+            "  %-25s %-10s %-10s %-12s %s"
+            % (p.name, p.arch, p.engine, p.vendor or "-", p.soc or "-")
+        )
 
 
 @cli.command()
@@ -171,13 +210,33 @@ def info(platform):
 
 @cli.command()
 @click.argument("platform")
-@click.option("--headless/--interactive", default=True, help="Run headless (default) or interactive")
+@click.option(
+    "--headless/--interactive", default=True, help="Run headless (default) or interactive"
+)
 @click.option("--timeout", default=60, help="Timeout in seconds")
 @click.option("--log-dir", default="out/logs", help="Log output directory")
-@click.option("--firmware", type=click.Path(exists=True, dir_okay=False), default=None,
-              help="Firmware image to load and execute (e.g. an EoS build). Without "
-                   "it the native engine has nothing to run.")
-def run(platform, headless, timeout, log_dir, firmware):
+@click.option(
+    "--firmware",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Firmware image to load and execute (e.g. an EoS build). Without "
+    "it the native engine has nothing to run.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Print the qemu command without executing it (explicit opt-in). "
+    "QEMU platforms only: on any other engine it is refused, not ignored.",
+)
+@click.option(
+    "--expect",
+    default=None,
+    help="QEMU platforms: text the guest must print for the run to pass. For "
+    "firmware that never exits (an RTOS image) the run then passes on timeout "
+    "only if the text was printed; without it a timeout is a failure.",
+)
+def run(platform, headless, timeout, log_dir, firmware, dry_run, expect):
     """Run a simulation for the specified platform."""
     cfg_path, p = _find_platform(platform)
     if not p:
@@ -186,6 +245,16 @@ def run(platform, headless, timeout, log_dir, firmware):
 
     engine = p.get("engine", "renode")
     arch = p.get("arch", "unknown")
+    if dry_run and engine in ("eosim", "renode"):
+        # Only the QEMU path knows how to print its command instead of running
+        # it. The native and Renode paths used to ignore the flag and run the
+        # simulation. An unknown engine still ends at "Unknown engine" below.
+        click.echo(
+            f"--dry-run only applies to QEMU platforms; {platform} uses the "
+            f"{engine} engine. Nothing was executed.",
+            err=True,
+        )
+        sys.exit(2)
     click.echo(f"EoSim: launching {platform} ({arch}) via {engine}")
 
     os.makedirs(log_dir, exist_ok=True)
@@ -194,12 +263,32 @@ def run(platform, headless, timeout, log_dir, firmware):
     if engine == "renode":
         _run_renode(p, platform, headless, timeout, log_file, firmware)
     elif engine == "qemu":
-        _run_qemu(p, platform, headless, timeout, log_file, firmware)
+        _run_qemu(
+            p, platform, headless, timeout, log_file, firmware, dry_run=dry_run, expect=expect
+        )
     elif engine == "eosim":
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
     else:
         click.echo("Unknown engine: " + engine, err=True)
         sys.exit(1)
+
+
+def _partial_output(exc):
+    """Return the (stdout, stderr) captured before a subprocess timeout.
+
+    subprocess.run() attaches what it read before killing the child to the
+    TimeoutExpired it raises. That is bytes even with text=True (on POSIX),
+    and None when nothing was read.
+    """
+
+    def _text(data):
+        if data is None:
+            return ""
+        if isinstance(data, bytes):
+            return data.decode("utf-8", errors="replace")
+        return data
+
+    return _text(exc.stdout), _text(exc.stderr)
 
 
 def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
@@ -217,7 +306,7 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
     click.echo("Running: " + " ".join(cmd))
     try:
         result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True)
-        with open(log_file, "w") as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             f.write(result.stdout)
             f.write(result.stderr)
         click.echo("Log: " + log_file)
@@ -226,15 +315,48 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
         else:
             click.echo("FAILED (exit %d)" % result.returncode)
             sys.exit(1)
-    except subprocess.TimeoutExpired:
-        click.echo("Timeout after %ds — saving log" % timeout)
+    except subprocess.TimeoutExpired as exc:
+        stdout, stderr = _partial_output(exc)
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(stdout)
+            f.write(stderr)
+        click.echo("Timeout after %ds — partial output:" % timeout, err=True)
+        click.echo(stdout + stderr, nl=False)
+        click.echo("Log: " + log_file)
+        click.echo("FAILED (timeout after %ds)" % timeout, err=True)
+        sys.exit(1)
     except FileNotFoundError:
         click.echo("Engine not found, falling back to EoSim native engine")
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
 
 
-def _run_qemu(p, platform, headless, timeout, log_file, firmware=None):
-    """Run using the QEMU engine."""
+def _qemu_firmware_args(p, firmware):
+    """Return the qemu arguments that load ``firmware``.
+
+    By default the image is a ``-kernel``. A platform whose machine boots from
+    flash through its ROM (Espressif's ``esp32``) sets ``qemu.firmware_drive``
+    to a ``-drive`` value containing ``{firmware}``. QEMU separates drive
+    options with commas and reads ``,,`` as a literal comma, so commas in the
+    path are doubled: a path cannot add options of its own.
+    """
+    drive = p.get("qemu", {}).get("firmware_drive")
+    if not drive:
+        return ["-kernel", firmware]
+    return ["-drive", drive.replace("{firmware}", firmware.replace(",", ",,"))]
+
+
+def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False, expect=None):
+    """Run using the QEMU engine.
+
+    Honest execution contract (EoSim#38): the engine never reports PASSED
+    without executing qemu.
+    - qemu not installed -> exit 2, "QEMU NOT INSTALLED" (nothing executed).
+    - qemu installed -> the constructed command is actually executed with the
+      timeout; output streams to the log file; qemu's exit code propagates.
+    - dry_run=True -> print-only behavior, exit 0 (explicit opt-in only).
+    - expect="text" -> the guest must print the text. A timeout passes only
+      if it did (firmware that never exits); a clean exit without it fails.
+    """
     arch = p.get("arch", "x86_64")
     qemu_map = {
         "arm64": "qemu-system-aarch64",
@@ -244,27 +366,73 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None):
         "x86_64": "qemu-system-x86_64",
         "mipsel": "qemu-system-mipsel",
     }
-    qemu = shutil.which(qemu_map.get(arch, "qemu-system-" + arch))
-    if not qemu:
-        click.echo(f"QEMU not found for {arch} — simulation skipped")
-        click.echo(f"Install: sudo apt install qemu-system-{arch}")
-        with open(log_file, "w") as f:
-            f.write(f"QEMU not available for {arch}\nPASSED (dry run)\n")
-        click.echo("PASSED (dry run)")
-        return
+    qemu_bin = qemu_map.get(arch, "qemu-system-" + arch)
+    qemu = shutil.which(qemu_bin)
     machine = p.get("qemu", {}).get("machine", "virt")
     cpu = p.get("qemu", {}).get("cpu", "")
     memory = p.get("runtime", {}).get("memory_mb", 512)
-    cmd = [qemu, "-machine", machine, "-m", str(memory), "-nographic", "-no-reboot"]
+    cmd = [qemu or qemu_bin, "-machine", machine, "-m", str(memory), "-nographic", "-no-reboot"]
     if cpu:
         cmd += ["-cpu", cpu]
+    if firmware:
+        cmd += _qemu_firmware_args(p, firmware)
     click.echo("Running: " + " ".join(cmd))
-    click.echo("PASSED (QEMU fallback)")
+
+    if dry_run:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write("DRY RUN — qemu was not executed (explicit --dry-run).\n")
+            f.write(" ".join(cmd) + "\n")
+        click.echo("DRY RUN — qemu was not executed.")
+        return
+
+    if not qemu:
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(f"QEMU NOT INSTALLED for {arch} — nothing was executed.\n")
+        click.echo(f"QEMU NOT INSTALLED for {arch} — nothing was executed.", err=True)
+        click.echo(f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.", err=True)
+        sys.exit(2)
+
+    try:
+        result = subprocess.run(cmd, timeout=timeout, capture_output=True, text=True)
+    except subprocess.TimeoutExpired as exc:
+        stdout, stderr = _partial_output(exc)
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(f"TIMEOUT after {timeout}s: {' '.join(cmd)}\n")
+            f.write(stdout)
+            f.write(stderr)
+        click.echo(stdout + stderr, nl=False)
+        click.echo("Log: " + log_file)
+        if expect and expect in stdout + stderr:
+            click.echo(f'PASSED (guest printed "{expect}"; stopped after {timeout}s)')
+            return
+        if expect:
+            click.echo(f'Expected text not printed: "{expect}"', err=True)
+        click.echo(f"TIMEOUT after {timeout}s — qemu did not exit.", err=True)
+        sys.exit(1)
+    with open(log_file, "w", encoding="utf-8") as f:
+        f.write("=== QEMU Log ===\n")
+        f.write("Command: " + " ".join(cmd) + "\n\n")
+        f.write(result.stdout or "")
+        f.write(result.stderr or "")
+    click.echo("Log: " + log_file)
+    if (
+        result.returncode == 0
+        and expect
+        and expect not in (result.stdout or "") + (result.stderr or "")
+    ):
+        click.echo(f'FAILED (qemu exited without printing "{expect}")', err=True)
+        sys.exit(1)
+    if result.returncode == 0:
+        click.echo("PASSED")
+    else:
+        click.echo("FAILED (qemu exit %d)" % result.returncode, err=True)
+        sys.exit(1)
 
 
 def _run_eosim(p, platform, headless, timeout, log_file, firmware=None):
     """Run using the EoSim native engine."""
     from eosim.engine.native import VirtualMachine
+
     arch = p.get("arch", "arm")
     memory = p.get("runtime", {}).get("memory_mb", 128)
     click.echo("EoSim native engine: %s (%s, %dMB)" % (platform, arch, memory))
@@ -278,7 +446,7 @@ def _run_eosim(p, platform, headless, timeout, log_file, firmware=None):
 
     result = vm.run(max_cycles=10000, timeout_s=float(timeout))
 
-    with open(log_file, "w") as f:
+    with open(log_file, "w", encoding="utf-8") as f:
         f.write("=== EoSim Native Log ===\n")
         f.write("Platform: %s\nArch: %s\n" % (platform, arch))
         f.write("Firmware: %s\n\n" % (firmware or "(none)"))
@@ -311,16 +479,34 @@ def test(platform, timeout, junit):
     test_cfg = cfg_path.parent / "tests.yml" if cfg_path else None
     checks = []
     if test_cfg and test_cfg.exists():
-        with open(test_cfg) as f:
+        with open(test_cfg, encoding="utf-8") as f:
             t = yaml.safe_load(f)
         checks = t.get("checks", [])
     click.echo("EoSim test: %s (%d checks)" % (platform, len(checks)))
-    passed = 0
     for c in checks:
         ctype = c.get("type", "")
         click.echo("  [CHECK] {}: {}".format(ctype, c.get("value", c.get("seconds", ""))))
-        passed += 1
-    click.echo("Result: %d/%d passed" % (passed, len(checks)))
+    if not checks:
+        click.echo("Result: 0/0 passed")
+        return
+
+    # Previously every listed check was counted as passed without the
+    # simulation ever running. Run the platform's engine and evaluate each
+    # check against the real result.
+    from eosim.core.platform import Platform
+    from eosim.engine.backend import get_engine
+    from eosim.tests.runner import run_checks
+
+    plat = Platform.from_yaml(str(cfg_path))
+    sim_result = get_engine(plat).run(plat, timeout=timeout)
+    results = run_checks(sim_result, checks)
+    passed = 0
+    for r in results:
+        click.echo("  [{}] {}: {}".format("PASS" if r.passed else "FAIL", r.name, r.message))
+        passed += r.passed
+    click.echo("Result: %d/%d passed" % (passed, len(results)))
+    if passed != len(results):
+        sys.exit(1)
 
 
 @cli.command()
@@ -337,7 +523,7 @@ def validate(platform_config, validate_all):
             cfg = sub / "platform.yml"
             if not cfg.exists() or sub.name == "templates":
                 continue
-            with open(cfg) as f:
+            with open(cfg, encoding="utf-8") as f:
                 p = yaml.safe_load(f)
             errors = validate_platform(p)
             if errors:
@@ -360,7 +546,7 @@ def validate(platform_config, validate_all):
         click.echo("File not found: " + platform_config, err=True)
         sys.exit(1)
 
-    with open(platform_config) as f:
+    with open(platform_config, encoding="utf-8") as f:
         p = yaml.safe_load(f)
     errors = validate_platform(p)
     if errors:
@@ -425,7 +611,7 @@ def artifact(platform, output):
         "artifacts": ["logs", "traces", "reports"],
     }
     manifest_path = os.path.join(output, platform + "-manifest.json")
-    with open(manifest_path, "w") as f:
+    with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
     click.echo("Artifacts exported to: " + output)
 
@@ -434,6 +620,7 @@ def artifact(platform, output):
 def doctor():
     """Check EoSim environment health."""
     from eosim.core.host import HostEnvironment
+
     env = HostEnvironment.detect()
 
     click.echo("EoSim Doctor\n")
@@ -476,6 +663,7 @@ def doctor():
 
 # --- Domain subcommands ---
 
+
 @cli.group()
 def domain():
     """Simulation domain categories and profiles."""
@@ -486,6 +674,7 @@ def domain():
 def domain_list():
     """List all simulation domain categories."""
     from eosim.core.domains import DOMAIN_CATALOG
+
     click.echo("Simulation Domains (%d):\n" % len(DOMAIN_CATALOG))
     for name, profile in sorted(DOMAIN_CATALOG.items()):
         click.echo("  %-15s %s" % (name, profile.display_name))
@@ -498,6 +687,7 @@ def domain_list():
 def domain_info(name):
     """Show detailed domain profile."""
     from eosim.core.domains import get_domain
+
     d = get_domain(name)
     if not d:
         click.echo(f"Unknown domain: {name}", err=True)
@@ -515,6 +705,7 @@ def domain_info(name):
 
 # --- Modeling subcommands ---
 
+
 @cli.group()
 def modeling():
     """Simulation modeling methods and parameters."""
@@ -525,6 +716,7 @@ def modeling():
 def modeling_list():
     """List all modeling methods."""
     from eosim.core.modeling import MODELING_CATALOG
+
     click.echo("Modeling Methods (%d):\n" % len(MODELING_CATALOG))
     for name, method in sorted(MODELING_CATALOG.items()):
         engines = ", ".join(method.engine_support)
@@ -536,6 +728,7 @@ def modeling_list():
 def modeling_info(name):
     """Show detailed modeling method info."""
     from eosim.core.modeling import get_modeling
+
     m = get_modeling(name)
     if not m:
         click.echo(f"Unknown modeling method: {name}", err=True)
@@ -552,6 +745,7 @@ def modeling_info(name):
 
 # --- EoS integration subcommands ---
 
+
 @cli.group()
 def eos():
     """EoS integration — build, test, and validate EoS through EoSim."""
@@ -562,6 +756,7 @@ def eos():
 def eos_find():
     """Find EoS source code on this system."""
     from eosim.integrations.eos_runner import find_eos_source
+
     src = find_eos_source()
     if src:
         click.echo("EoS source found: " + src)
@@ -574,6 +769,7 @@ def eos_find():
 def eos_build(source):
     """Build EoS from source."""
     from eosim.integrations.eos_runner import build_eos, find_eos_source
+
     src = source or find_eos_source()
     if not src:
         click.echo("EoS source not found", err=True)
@@ -594,6 +790,7 @@ def eos_build(source):
 def eos_test(source, verbose):
     """Build and run all EoS unit tests."""
     from eosim.integrations.eos_runner import find_eos_source, run_eos_tests
+
     src = source or find_eos_source()
     if not src:
         click.echo("EoS source not found", err=True)
@@ -616,6 +813,7 @@ def eos_test(source, verbose):
 def eos_test_suite(source):
     """Run eApps Python tests."""
     from eosim.integrations.eos_runner import run_eosuite_tests
+
     candidates = [
         source,
         os.path.join(os.getcwd(), "..", "eApps"),
@@ -634,19 +832,32 @@ def eos_test_suite(source):
     click.echo("EoSim: Testing eApps from: " + src)
     suite = run_eosuite_tests(src)
     click.echo(suite.summary())
+    if suite.failed > 0:
+        for r in suite.results:
+            if r.output and not r.passed:
+                click.echo(f"\n--- {r.name} ---")
+                click.echo(r.output[-300:])
+        sys.exit(1)
 
 
 @cli.command("ecosystem")
 @click.option("--workspace", default=None, help="EoS workspace root")
 @click.option("--simulate/--no-simulate", default=True, help="Run simulations")
-@click.option("--only", multiple=True,
-              help="Test only these repos (repeatable, e.g. --only eos --only ebuild)")
-@click.option("--list", "list_only", is_flag=True,
-              help="List the repos that would be tested, and how, then exit")
+@click.option(
+    "--only",
+    multiple=True,
+    help="Test only these repos (repeatable, e.g. --only eos --only ebuild)",
+)
+@click.option(
+    "--list",
+    "list_only",
+    is_flag=True,
+    help="List the repos that would be tested, and how, then exit",
+)
 def ecosystem(workspace, simulate, only, list_only):
     """Test ALL EoS repos — build, test, simulate, validate."""
-    from eosim.integrations.ecosystem import (
-        detect_kind, find_repos, run_ecosystem_tests)
+    from eosim.integrations.ecosystem import detect_kind, find_repos, run_ecosystem_tests
+
     click.echo("EoSim Ecosystem Validation")
     click.echo("")
     repos = find_repos(workspace)
@@ -669,16 +880,26 @@ def ecosystem(workspace, simulate, only, list_only):
     if list_only:
         return
 
-    report = run_ecosystem_tests(workspace, simulate=simulate,
-                                 only=list(only) or None)
+    report = run_ecosystem_tests(workspace, simulate=simulate, only=list(only) or None)
     click.echo(report.summary())
     if report.repos_failed > 0:
         sys.exit(1)
 
 
 @cli.command()
-def gui():
-    """Launch the EoSim simulation UI."""
+@click.argument("platform", required=False)
+def gui(platform):
+    """Launch the EoSim simulation UI.
+
+    PLATFORM optionally pre-selects the product built for that platform
+    (e.g. `eosim gui stm32f4`); without it the UI opens unselected.
+    """
+    if platform:
+        cfg_path, data = _find_platform(platform)
+        if not data:
+            click.echo("Platform not found: " + platform, err=True)
+            sys.exit(1)
+
     import tkinter as tk
 
     from eosim.gui.tk_app import TkSimulatorApp
@@ -688,7 +909,7 @@ def gui():
     root.geometry("1200x750")
     root.minsize(900, 600)
 
-    app = TkSimulatorApp(root)
+    app = TkSimulatorApp(root, platform=platform)
     app.pack(fill=tk.BOTH, expand=True)
 
     root.protocol("WM_DELETE_WINDOW", lambda: (app.on_close(), root.destroy()))
@@ -696,6 +917,7 @@ def gui():
 
 
 # --- HIL subcommands ---
+
 
 @cli.group()
 def hil():
@@ -722,7 +944,7 @@ def hil_detect():
         ports = SerialBridge.list_ports()
         if ports:
             for p in ports:
-                click.echo("  %-15s %s" % (p['device'], p['description']))
+                click.echo("  %-15s %s" % (p["device"], p["description"]))
         else:
             click.echo("  (none found)")
 
@@ -730,7 +952,7 @@ def hil_detect():
         if boards:
             click.echo("\nDetected Dev Boards:")
             for b in boards:
-                click.echo("  %-15s %s" % (b['device'], b['board']))
+                click.echo("  %-15s %s" % (b["device"], b["board"]))
     else:
         click.echo("  pyserial not installed — run: pip install pyserial")
 
@@ -749,8 +971,10 @@ def hil_connect(adapter, target, serial_port, baudrate, gdb_port):
     session = HILSession()
     try:
         session.start(
-            adapter=adapter, target=target,
-            serial_port=serial_port, baudrate=baudrate,
+            adapter=adapter,
+            target=target,
+            serial_port=serial_port,
+            baudrate=baudrate,
             gdb_port=gdb_port,
         )
         click.echo("Connected! GDB on port %d" % gdb_port)
@@ -765,6 +989,7 @@ def hil_connect(adapter, target, serial_port, baudrate, gdb_port):
         click.echo("\nPress Ctrl+C to disconnect...")
         try:
             import time
+
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -788,7 +1013,7 @@ def hil_flash(firmware, adapter, target):
     click.echo(f"EoSim HIL — Flashing {firmware} to {target} via {adapter}")
     mgr = OpenOCDManager()
     try:
-        ok = mgr.flash(firmware)
+        ok = mgr.flash(firmware, adapter=adapter, target=target)
         if ok:
             click.echo("Flash: PASSED")
         else:
@@ -813,6 +1038,7 @@ def hil_monitor(adapter, target, gdb_port):
         session.start(adapter=adapter, target=target, gdb_port=gdb_port)
         session.halt()
         import time
+
         while True:
             regs = session.read_registers()
             if regs:
@@ -829,6 +1055,7 @@ def hil_monitor(adapter, target, gdb_port):
 
 # --- Bridge subcommands (external tool integrations) ---
 
+
 @cli.group()
 def bridge():
     """External tool bridges — X-Plane, Gazebo, OpenFOAM."""
@@ -839,15 +1066,30 @@ def bridge():
 def bridge_status():
     """Show status of all external tool bridges."""
     from eosim.engine.backend import (
-        AirSimEngine, CARLAEngine, GazeboEngine, OpenFOAMEngine,
-        ROS2Engine, XPlaneEngine,
+        AirSimEngine,
+        CARLAEngine,
+        GazeboEngine,
+        OpenFOAMEngine,
+        ROS2Engine,
+        XPlaneEngine,
     )
+
     click.echo("EoSim Bridge Status\n")
-    click.echo("  %-15s %s" % ("X-Plane", "available" if XPlaneEngine.available() else "not connected"))
-    click.echo("  %-15s %s" % ("Gazebo", "available" if GazeboEngine.available() else "not installed"))
-    click.echo("  %-15s %s" % ("OpenFOAM", "available" if OpenFOAMEngine.available() else "not installed"))
-    click.echo("  %-15s %s" % ("CARLA", "available" if CARLAEngine.available() else "not connected"))
-    click.echo("  %-15s %s" % ("AirSim", "available" if AirSimEngine.available() else "not connected"))
+    click.echo(
+        "  %-15s %s" % ("X-Plane", "available" if XPlaneEngine.available() else "not connected")
+    )
+    click.echo(
+        "  %-15s %s" % ("Gazebo", "available" if GazeboEngine.available() else "not installed")
+    )
+    click.echo(
+        "  %-15s %s" % ("OpenFOAM", "available" if OpenFOAMEngine.available() else "not installed")
+    )
+    click.echo(
+        "  %-15s %s" % ("CARLA", "available" if CARLAEngine.available() else "not connected")
+    )
+    click.echo(
+        "  %-15s %s" % ("AirSim", "available" if AirSimEngine.available() else "not connected")
+    )
     click.echo("  %-15s %s" % ("ROS 2", "available" if ROS2Engine.available() else "not installed"))
 
 
@@ -863,6 +1105,7 @@ def bridge_xplane():
 def xplane_connect(host, port):
     """Connect to X-Plane simulator."""
     from eosim.integrations.xplane import XPlaneConnection
+
     click.echo("Connecting to X-Plane at %s:%d..." % (host, port))
     conn = XPlaneConnection(host=host, port=port)
     if conn.connect():
@@ -888,6 +1131,7 @@ def bridge_gazebo():
 def gazebo_connect(host, port):
     """Connect to Gazebo simulator."""
     from eosim.integrations.gazebo import GazeboConnection
+
     click.echo("Connecting to Gazebo at %s:%d..." % (host, port))
     conn = GazeboConnection(host=host, port=port)
     if conn.connect():
@@ -913,17 +1157,18 @@ def bridge_openfoam():
 def openfoam_run(case_dir, solver):
     """Run an OpenFOAM simulation."""
     from eosim.integrations.openfoam import OpenFOAMRunner
+
     click.echo(f"Running OpenFOAM solver '{solver}' on case: {case_dir}")
     runner = OpenFOAMRunner(case_dir=case_dir)
     runner.set_solver(solver)
     result = runner.run()
-    if result['success']:
+    if result["success"]:
         click.echo("Solver completed successfully")
-        if result.get('converged'):
+        if result.get("converged"):
             click.echo("Solution converged")
     else:
         click.echo("Solver failed")
-        click.echo(result.get('log', '')[-500:])
+        click.echo(result.get("log", "")[-500:])
         sys.exit(1)
 
 
@@ -933,6 +1178,7 @@ if __name__ == "__main__":
 
 # --- API Server command ---
 
+
 @cli.command("api")
 @click.option("--host", default="0.0.0.0", help="API server host")
 @click.option("--port", default=8080, help="API server port")
@@ -941,11 +1187,13 @@ def api_server(host, port):
     click.echo(f"EoSim API Server starting on {host}:{port}")
     click.echo("Swagger UI: http://%s:%d/docs" % (host if host != "0.0.0.0" else "localhost", port))
     from eosim.api.server import EoSimAPIServer
+
     server = EoSimAPIServer(host=host, port=port)
     server.run()
 
 
 # --- Simulators command ---
+
 
 @cli.group("simulator")
 def simulator_group():
@@ -957,6 +1205,7 @@ def simulator_group():
 def simulator_list():
     """List all available simulator types."""
     from eosim.engine.native.simulators import SimulatorFactory
+
     sims = SimulatorFactory.list_simulators()
     click.echo("Available Simulators (%d):\n" % len(sims))
     for s in sims:
@@ -967,12 +1216,12 @@ def simulator_list():
 def simulator_products():
     """List all product templates."""
     from eosim.gui.product_templates import PRODUCT_CATALOG
+
     click.echo("Product Templates (%d):\n" % len(PRODUCT_CATALOG))
     click.echo("  %-25s %-25s %-15s %s" % ("NAME", "DISPLAY", "DOMAIN", "SIMULATOR"))
     click.echo("  " + "-" * 90)
     for name, t in sorted(PRODUCT_CATALOG.items()):
-        click.echo("  %-25s %-25s %-15s %s" % (
-            name, t.display_name, t.domain, t.simulator_class))
+        click.echo("  %-25s %-25s %-15s %s" % (name, t.display_name, t.domain, t.simulator_class))
 
 
 @simulator_group.command("run")
@@ -981,7 +1230,8 @@ def simulator_products():
 @click.option("--scenario", default="", help="Load a named scenario")
 def simulator_run(product_type, ticks, scenario):
     """Run a product simulator interactively."""
-    from eosim.engine.native.simulators import SimulatorFactory, SIMULATOR_MAP
+    from eosim.engine.native.simulators import SIMULATOR_MAP, SimulatorFactory
+
     if product_type not in SIMULATOR_MAP:
         click.echo(f"Unknown product type: {product_type}", err=True)
         click.echo("Available: " + ", ".join(sorted(SIMULATOR_MAP.keys())[:20]) + " ...")
@@ -989,6 +1239,7 @@ def simulator_run(product_type, ticks, scenario):
 
     class VM:
         peripherals = {}
+
         def add_peripheral(self, name, dev):
             self.peripherals[name] = dev
 
@@ -1005,9 +1256,9 @@ def simulator_run(product_type, ticks, scenario):
     for i in range(ticks):
         sim.tick()
         if (i + 1) % (ticks // 5 or 1) == 0:
-            click.echo(f"  Tick {i+1}: {sim.get_status_text()}")
+            click.echo(f"  Tick {i + 1}: {sim.get_status_text()}")
 
-    click.echo(f"\nFinal state:")
+    click.echo("\nFinal state:")
     for k, v in sim.get_state().items():
-        if k != 'scenario':
+        if k != "scenario":
             click.echo(f"  {k}: {v}")

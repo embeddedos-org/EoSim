@@ -31,7 +31,10 @@ from eosim.integrations.ecosystem import (
     DEPS, ERROR, FAIL, PASS, SKIP,
     EcosystemReport, RepoTestResult,
     _parse_ctest, _parse_pytest,
-    detect_kind, detect_kinds, find_repos,
+    _external_missing_modules,
+    _missing_modules,
+    _unmet_toolchain,
+    detect_components, detect_kind, detect_kinds, find_repos,
     test_repo as run_one_repo,
 )
 
@@ -291,3 +294,200 @@ class TestMakeRunner:
         r = run_one_repo("m", str(d))
         assert r.tests_run == 0
         assert "exit 0" in r.reason
+
+
+class TestNestedComponents:
+    """A build system below the repo root must still be found.
+
+    detect_kinds looked only at the root, so eos-health (CMake firmware under
+    firmware/build-system, a web app under apps/web), eos-aero (a web app four
+    levels down) and eCAD-Hardware-Products (pytest tests, no packaging file)
+    all reported "unknown". The runner found no runner for that, skipped them,
+    and the summary counted the skip alongside the passes. Three of nineteen
+    repos were never tested by the tool whose job is to test them.
+    """
+
+    def test_root_detection_is_returned_unchanged(self, tmp_path):
+        # The guarantee that makes this change safe: a repo detected at the
+        # root must keep taking exactly the path it takes today, so the scan
+        # cannot regress the repos that already work.
+        d = _repo(tmp_path, "eos", "CMakeLists.txt")
+        assert detect_components(str(d)) == [("cmake", str(d))]
+
+    def test_root_detection_wins_over_anything_nested(self, tmp_path):
+        d = _repo(tmp_path, "ebuild", "CMakeLists.txt", "pyproject.toml")
+        (d / "vendored").mkdir()
+        (d / "vendored" / "package.json").write_text("{}", encoding="utf-8")
+        kinds = [k for k, _ in detect_components(str(d))]
+        assert kinds == ["cmake", "python"]
+        assert "node" not in kinds
+
+    def test_nested_component_carries_its_own_directory(self, tmp_path):
+        # The runners build from the directory handed to them. Reporting
+        # "cmake" without the location would send cmake -S at the repo root,
+        # which has no CMakeLists.txt — a spurious failure in place of a
+        # silent skip is not an improvement.
+        d = _repo(tmp_path, "eos-health")
+        nested = d / "firmware" / "build-system"
+        nested.mkdir(parents=True)
+        (nested / "CMakeLists.txt").write_text("", encoding="utf-8")
+        assert detect_components(str(d)) == [("cmake", str(nested))]
+
+    def test_several_nested_components_are_all_reported(self, tmp_path):
+        d = _repo(tmp_path, "eos-health")
+        for sub, marker in (("firmware/build-system", "CMakeLists.txt"),
+                            ("apps/web", "package.json")):
+            p = d / sub
+            p.mkdir(parents=True)
+            (p / marker).write_text("", encoding="utf-8")
+        assert sorted(k for k, _ in detect_components(str(d))) == ["cmake", "node"]
+
+    def test_vendored_directories_are_not_components(self, tmp_path):
+        # A package.json under node_modules belongs to a dependency, not to
+        # the repo. Reporting it would have the runner test someone else's code.
+        d = _repo(tmp_path, "eOffice")
+        vendored = d / "node_modules" / "left-pad"
+        vendored.mkdir(parents=True)
+        (vendored / "package.json").write_text("{}", encoding="utf-8")
+        assert detect_components(str(d)) == [("unknown", str(d))]
+
+    def test_scan_depth_is_bounded(self, tmp_path):
+        d = _repo(tmp_path, "deep")
+        buried = d / "a" / "b" / "c" / "d" / "e"
+        buried.mkdir(parents=True)
+        (buried / "package.json").write_text("{}", encoding="utf-8")
+        assert detect_components(str(d)) == [("unknown", str(d))]
+
+    def test_a_repo_with_nothing_still_reports_unknown(self, tmp_path):
+        d = _repo(tmp_path, "docs-only", "README.md")
+        assert detect_components(str(d)) == [("unknown", str(d))]
+
+
+class TestPythonTestsWithoutPackaging:
+    """pytest projects with no pyproject.toml are still pytest projects."""
+
+    def test_tests_directory_alone_identifies_python(self, tmp_path):
+        # test_python_repo only ever required a tests/ directory. Demanding
+        # pyproject.toml to reach it was the detector asking for something the
+        # runner does not use.
+        d = _repo(tmp_path, "eCAD-Hardware-Products")
+        (d / "tests").mkdir()
+        (d / "tests" / "test_rtl_models.py").write_text("", encoding="utf-8")
+        assert detect_kinds(str(d)) == ["python"]
+
+    def test_a_tests_directory_without_python_does_not_count(self, tmp_path):
+        d = _repo(tmp_path, "thing")
+        (d / "tests").mkdir()
+        (d / "tests" / "test_main.c").write_text("", encoding="utf-8")
+        assert detect_kinds(str(d)) == ["unknown"]
+
+    def test_c_repo_with_c_tests_does_not_also_become_python(self, tmp_path):
+        # eBoot has a CMakeLists.txt and a tests/ directory full of C. Pointing
+        # pytest at it would report a failure that means nothing.
+        d = _repo(tmp_path, "eBoot", "CMakeLists.txt")
+        (d / "tests").mkdir()
+        (d / "tests" / "helper.py").write_text("", encoding="utf-8")
+        assert detect_kinds(str(d)) == ["cmake"]
+
+
+class TestUnmetToolchainIsNotABrokenBuild:
+    """An absent vendor SDK and a missing source file need opposite responses.
+
+    eos-health produced both at once. firmware/build-system stops on
+    "NRF5_SDK_PATH not set", which means install something; two other trees stop
+    on "Cannot find source file", which means the CMakeLists and the tree
+    disagree and no installation will help. Reporting both as FAIL puts them in
+    the same column.
+    """
+
+    def test_an_unset_sdk_path_is_named(self):
+        assert _unmet_toolchain(
+            "NRF5_SDK_PATH not set.  Download nRF5 SDK 17.1.0"
+        ) == "NRF5_SDK_PATH"
+
+    def test_an_unset_toolchain_root_is_named(self):
+        assert _unmet_toolchain("ARM_TOOLCHAIN_ROOT not set") == "ARM_TOOLCHAIN_ROOT"
+
+    def test_a_find_package_failure_is_named(self):
+        assert _unmet_toolchain("Could NOT find OpenSSL") == "OpenSSL"
+
+    def test_a_missing_source_file_stays_a_failure(self):
+        # The repository is referencing code it does not contain. Classifying
+        # that as a dependency problem would hide a real defect behind a status
+        # that reads as "not our fault".
+        assert _unmet_toolchain(
+            "CMake Error at CMakeLists.txt:65 (add_executable):\n"
+            "  Cannot find source file:\n    src/main.c") is None
+
+    def test_a_target_with_no_sources_stays_a_failure(self):
+        assert _unmet_toolchain(
+            "No SOURCES given to target: health_band_neuro.elf") is None
+
+    def test_a_repo_defect_wins_when_both_appear(self):
+        # eos-health emits both in one configure run. The repo defect is the
+        # one that must survive the classification.
+        assert _unmet_toolchain(
+            "NRF5_SDK_PATH not set\nCannot find source file: a.c") is None
+
+    def test_an_unrecognised_failure_stays_a_failure(self):
+        assert _unmet_toolchain("CMake Error: something else entirely") is None
+
+
+class TestAbsentThirdPartyModulesAreNotFailures:
+    """pytest aborting on an uninstalled dependency is a DEPS, not a FAIL.
+
+    When collection fails, pytest prints no summary at all, so the counts are
+    never parsed and the DEPS branch further down is never reached. Five repos
+    in a full ecosystem run were reported FAIL for "No module named 'click'".
+    """
+
+    def test_a_third_party_module_is_reported(self, tmp_path):
+        out = "E   ModuleNotFoundError: No module named 'click'"
+        assert _external_missing_modules(out, str(tmp_path)) == ["click"]
+
+    def test_the_repos_own_package_is_not(self, tmp_path):
+        # The runner puts the checkout on PYTHONPATH, so a repo failing to
+        # import its own package is a real defect and must stay a FAIL.
+        (tmp_path / "eostudio").mkdir()
+        out = "E   ModuleNotFoundError: No module named 'eostudio'"
+        assert _external_missing_modules(out, str(tmp_path)) == []
+
+    def test_a_src_layout_package_is_recognised_as_the_repos_own(self, tmp_path):
+        (tmp_path / "src" / "mypkg").mkdir(parents=True)
+        out = "No module named 'mypkg'"
+        assert _external_missing_modules(out, str(tmp_path)) == []
+
+    def test_a_single_module_file_counts_as_the_repos_own(self, tmp_path):
+        (tmp_path / "helper.py").write_text("", encoding="utf-8")
+        out = "No module named 'helper'"
+        assert _external_missing_modules(out, str(tmp_path)) == []
+
+    def test_the_repos_own_absence_does_not_mask_a_third_party_one(self, tmp_path):
+        (tmp_path / "eostudio").mkdir()
+        out = ("No module named 'eostudio'\n"
+               "No module named 'click'")
+        assert _external_missing_modules(out, str(tmp_path)) == ["click"]
+
+    def test_nothing_missing_yields_nothing(self, tmp_path):
+        assert _external_missing_modules("all fine", str(tmp_path)) == []
+
+
+class TestMissingModuleSpellings:
+    """Both forms of Python's message, including the one that matters most."""
+
+    def test_the_quoted_form(self):
+        assert _missing_modules("No module named 'click'") == ["click"]
+
+    def test_the_bare_form(self):
+        # `python -m pytest` on an interpreter without pytest prints no quotes.
+        # This is the case where the test runner itself is absent — exactly
+        # when nothing else in the output explains the failure — and missing it
+        # reported five repos as FAIL for an environment problem.
+        assert _missing_modules("No module named pytest") == ["pytest"]
+
+    def test_a_dotted_name_reduces_to_its_top_level(self):
+        assert _missing_modules("No module named 'a.b.c'") == ["a"]
+
+    def test_both_forms_together_and_deduplicated(self):
+        out = "No module named pytest\nNo module named 'click'\nNo module named 'click'"
+        assert _missing_modules(out) == ["pytest", "click"]

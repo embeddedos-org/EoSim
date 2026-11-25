@@ -433,6 +433,13 @@ class TestRegistry:
         reg = self._make_registry()
         assert reg.get("nonexistent") is None
 
+    def test_filter_empty_strings_mean_unset(self):
+        """CLI defaults are "" — they must behave like no filter."""
+        reg = self._make_registry()
+        assert len(reg.all()) > 0
+        assert len(reg.filter(arch="", vendor="", platform_class="",
+                              engine="", domain="")) == len(reg.all())
+
     def test_filter_by_arch(self):
         reg = self._make_registry()
         results = reg.filter(arch="arm")

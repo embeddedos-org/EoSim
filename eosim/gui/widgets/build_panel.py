@@ -9,29 +9,79 @@ grouped by category. Auto-checks peripherals from product template.
 from eosim.gui.product_templates import PRODUCT_CATALOG, get_template
 
 PERIPHERAL_CATEGORIES = {
-    'Core': ['uart', 'gpio', 'timer', 'spi', 'i2c', 'nvic'],
-    'Sensors': [
-        'temp', 'barometer', 'imu', 'gps', 'proximity',
-        'light', 'adc', 'current', 'ecg', 'spo2', 'mag',
-        'airspeed', 'wind_tunnel', 'pitot', 'force_balance',
-        'heart_model', 'bp_sensor', 'market_feed', 'order_book',
-        'anemometer', 'radar', 'physics_engine', 'terrain', 'entities',
+    "Core": ["uart", "gpio", "timer", "spi", "i2c", "nvic"],
+    "Sensors": [
+        "temp",
+        "barometer",
+        "imu",
+        "gps",
+        "proximity",
+        "light",
+        "adc",
+        "current",
+        "ecg",
+        "spo2",
+        "mag",
+        "airspeed",
+        "wind_tunnel",
+        "pitot",
+        "force_balance",
+        "heart_model",
+        "bp_sensor",
+        "market_feed",
+        "order_book",
+        "anemometer",
+        "radar",
+        "physics_engine",
+        "terrain",
+        "entities",
     ],
-    'Actuators': [
-        'motor', 'servo', 'esc', 'valve', 'pump', 'relay',
-        'display', 'haptic', 'steering', 'throttle', 'brake',
+    "Actuators": [
+        "motor",
+        "servo",
+        "esc",
+        "valve",
+        "pump",
+        "relay",
+        "display",
+        "haptic",
+        "steering",
+        "throttle",
+        "brake",
     ],
-    'Buses': [
-        'can', 'lin', 'modbus', 'ethernet', 'arinc429', 'mil1553',
+    "Buses": [
+        "can",
+        "lin",
+        "modbus",
+        "ethernet",
+        "arinc429",
+        "mil1553",
     ],
-    'Wireless': [
-        'wifi', 'ble', 'lora', 'zigbee', 'rf', 'nfc', 'uwb',
+    "Wireless": [
+        "wifi",
+        "ble",
+        "lora",
+        "zigbee",
+        "rf",
+        "nfc",
+        "uwb",
     ],
-    'Composite': [
-        'bms', 'psu', 'watchdog', 'crypto', 'rtc',
+    "Composite": [
+        "bms",
+        "psu",
+        "watchdog",
+        "crypto",
+        "rtc",
     ],
-    'Media & Display': [
-        'hdmi', 'audio', 'camera', 'ir', 'usb', 'gpu', 'touch', 'pcie',
+    "Media & Display": [
+        "hdmi",
+        "audio",
+        "camera",
+        "ir",
+        "usb",
+        "gpu",
+        "touch",
+        "pcie",
     ],
 }
 
@@ -44,11 +94,11 @@ class BuildConfig:
     """Configuration for a simulation build."""
 
     def __init__(self):
-        self.product_type: str = ''
-        self.arch: str = 'arm'
+        self.product_type: str = ""
+        self.arch: str = "arm"
         self.ram_mb: int = 128
         self.selected_peripherals: set[str] = set()
-        self.simulator_class: str = ''
+        self.simulator_class: str = ""
 
     def load_from_template(self, product_name: str):
         """Load config from a product template, auto-checking peripherals."""
@@ -73,11 +123,11 @@ class BuildConfig:
 
     def to_dict(self) -> dict:
         return {
-            'product': self.product_type,
-            'arch': self.arch,
-            'ram_mb': self.ram_mb,
-            'peripherals': sorted(self.selected_peripherals),
-            'simulator_class': self.simulator_class,
+            "product": self.product_type,
+            "arch": self.arch,
+            "ram_mb": self.ram_mb,
+            "peripherals": sorted(self.selected_peripherals),
+            "simulator_class": self.simulator_class,
         }
 
 
@@ -102,11 +152,13 @@ class BuildPanel:
         for category, periphs in self.categories.items():
             items = []
             for p in periphs:
-                items.append({
-                    'name': p,
-                    'checked': p in self.config.selected_peripherals,
-                    'category': category,
-                })
+                items.append(
+                    {
+                        "name": p,
+                        "checked": p in self.config.selected_peripherals,
+                        "category": category,
+                    }
+                )
             groups[category] = items
         return groups
 
@@ -123,12 +175,14 @@ class BuildPanel:
         products = []
         for key in sorted(PRODUCT_CATALOG.keys()):
             tpl = PRODUCT_CATALOG[key]
-            products.append({
-                'name': tpl.name,
-                'display_name': tpl.display_name,
-                'icon': tpl.icon,
-                'domain': tpl.domain,
-                'arch': tpl.arch,
-                'description': tpl.description,
-            })
+            products.append(
+                {
+                    "name": tpl.name,
+                    "display_name": tpl.display_name,
+                    "icon": tpl.icon,
+                    "domain": tpl.domain,
+                    "arch": tpl.arch,
+                    "description": tpl.description,
+                }
+            )
         return products

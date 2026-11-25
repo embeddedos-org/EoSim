@@ -5,10 +5,11 @@ populates CPUState and MemoryBus models for GUI display.
 
 Works with both QEMU GDB stub and OpenOCD GDB server.
 """
+
+import logging
 import threading
 import time
 from typing import Callable, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +55,11 @@ class TargetStateBridge:
     def read_memory(self, addr: int, length: int) -> bytes:
         """Read memory from target."""
         if not self._gdb or not self._gdb.connected:
-            return b''
+            return b""
         try:
             return self._gdb.read_memory(addr, length)
         except Exception:
-            return b''
+            return b""
 
     def update_cpu_state(self):
         """Read registers from target and populate CPUState."""
@@ -67,25 +68,25 @@ class TargetStateBridge:
             return
 
         state = self._cpu_state
-        arch = self._gdb.arch if self._gdb else 'arm'
+        arch = self._gdb.arch if self._gdb else "arm"
 
-        if arch in ('arm', 'arm32'):
+        if arch in ("arm", "arm32"):
             for i in range(16):
-                key = f'r{i}'
+                key = f"r{i}"
                 if key in regs and i < len(state.regs):
                     state.regs[i] = regs[key]
-            state.pc = regs.get('r15', regs.get('pc', state.pc))
-            state.sp = regs.get('r13', regs.get('sp', state.sp))
-            state.lr = regs.get('r14', regs.get('lr', state.lr))
-            state.cpsr = regs.get('cpsr', state.cpsr)
+            state.pc = regs.get("r15", regs.get("pc", state.pc))
+            state.sp = regs.get("r13", regs.get("sp", state.sp))
+            state.lr = regs.get("r14", regs.get("lr", state.lr))
+            state.cpsr = regs.get("cpsr", state.cpsr)
         else:
             for i in range(min(31, len(state.regs))):
-                key = f'x{i}'
+                key = f"x{i}"
                 if key in regs:
                     state.regs[i] = regs[key]
-            state.pc = regs.get('pc', state.pc)
-            state.sp = regs.get('sp', state.sp)
-            state.cpsr = regs.get('cpsr', state.cpsr)
+            state.pc = regs.get("pc", state.pc)
+            state.sp = regs.get("sp", state.sp)
+            state.cpsr = regs.get("cpsr", state.cpsr)
 
         self._last_regs = regs
         self._last_pc = state.pc
@@ -115,8 +116,7 @@ class TargetStateBridge:
         if self._running:
             return
         self._running = True
-        self._thread = threading.Thread(
-            target=self._poll_loop, daemon=True, name='state-bridge')
+        self._thread = threading.Thread(target=self._poll_loop, daemon=True, name="state-bridge")
         self._thread.start()
 
     def stop_polling(self):

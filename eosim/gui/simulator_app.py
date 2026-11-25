@@ -6,6 +6,7 @@ Uses SimulatorFactory to instantiate the correct product simulator
 based on the selected product template. Manages VM lifecycle,
 simulation ticking, and panel updates.
 """
+
 from eosim.engine.native import VirtualMachine
 from eosim.engine.native.simulators import BaseSimulator, SimulatorFactory
 from eosim.gui.product_templates import get_template
@@ -20,13 +21,14 @@ class SimulatorApp:
     def __init__(self):
         self.vm = None
         self.simulator: BaseSimulator = None
-        self.product_type = ''
+        self.product_type = ""
         self.running = False
         self.tick_count = 0
         self.build_config = {}
 
-    def build_and_run(self, product_type: str, peripherals: list = None,
-                      arch: str = '', ram_mb: int = 0):
+    def build_and_run(
+        self, product_type: str, peripherals: list = None, arch: str = "", ram_mb: int = 0
+    ):
         """Build a VM from a product template and start simulation.
 
         Uses SimulatorFactory.create() to instantiate the right simulator,
@@ -37,19 +39,19 @@ class SimulatorApp:
             arch = arch or template.arch
             ram_mb = ram_mb or template.ram_mb
         else:
-            arch = arch or 'arm'
+            arch = arch or "arm"
             ram_mb = ram_mb or 128
 
         self.product_type = product_type
         self.build_config = {
-            'product': product_type,
-            'arch': arch,
-            'ram_mb': ram_mb,
-            'peripherals': peripherals or (template.peripherals if template else []),
+            "product": product_type,
+            "arch": arch,
+            "ram_mb": ram_mb,
+            "peripherals": peripherals or (template.peripherals if template else []),
         }
 
         self.vm = VirtualMachine(
-            name=f'eosim-{product_type}',
+            name=f"eosim-{product_type}",
             arch=arch,
             ram_mb=ram_mb,
         )
@@ -92,7 +94,7 @@ class SimulatorApp:
     def get_status_text(self) -> str:
         """Get status line for display."""
         if not self.simulator:
-            return 'No simulation active'
+            return "No simulation active"
         return self.simulator.get_status_text()
 
     def get_peripheral_names(self) -> list:
@@ -116,16 +118,16 @@ class SimulatorApp:
             return {}
 
         panels = {
-            'simulator': self.simulator.get_state(),
-            'cpu': self.vm.cpu.state.dump() if self.vm.cpu else '',
-            'uart': self.vm.get_uart_output(),
-            'peripherals': {},
+            "simulator": self.simulator.get_state(),
+            "cpu": self.vm.cpu.state.dump() if self.vm.cpu else "",
+            "uart": self.vm.get_uart_output(),
+            "peripherals": {},
         }
 
         for name, dev in self.vm.peripherals.items():
-            info = {'type': type(dev).__name__, 'enabled': getattr(dev, 'enabled', False)}
-            if hasattr(dev, 'get_state'):
-                info['state'] = dev.get_state()
-            panels['peripherals'][name] = info
+            info = {"type": type(dev).__name__, "enabled": getattr(dev, "enabled", False)}
+            if hasattr(dev, "get_state"):
+                info["state"] = dev.get_state()
+            panels["peripherals"][name] = info
 
         return panels

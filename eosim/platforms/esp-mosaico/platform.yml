@@ -1,0 +1,21 @@
+name: esp-mosaico
+display_name: Espressif ESP-Mosaico (ESP32-S31 dev kit, 2.16" AMOLED touch, Wi-Fi 6)
+arch: xtensa
+engine: eosim
+class: devboard
+vendor: Espressif
+soc: ESP32-S31
+domain: iot
+modeling: deterministic
+notes: >
+  Reference ESP32-S31 development kit (shipping since Sept 2026): 320 MHz
+  S31, 2.16-inch AMOLED touch display (480x480), 16 MB PSRAM + 128 MB SPI
+  NAND flash, Wi-Fi 6 + Bluetooth 5.4, BMI270 IMU + BMM150 magnetometer.
+  engine=eosim because no QEMU machine target exists for the S31 yet.
+  Pairs with the eos boards/generic-esp32s31.yaml definition; see the
+  ESP-IDF v6.1.0 dual-core cache-fault errata there (Espressif #18948)
+  before running dual-core workloads.
+runtime:
+  memory_mb: 16
+  headless: true
+  uart: sysbus.uart0

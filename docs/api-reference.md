@@ -166,7 +166,7 @@ result = SimResult(
     engine="eosim",
     success=True,
     exit_code=0,
-    serial_output="Booting EoS...\nReady.\n",
+    stdout="Booting EoS...\nReady.\n",
     duration_s=2.5,
     log_file="out/logs/stm32f4.log",
 )
@@ -185,7 +185,7 @@ engine = get_engine(platform)
 
 result = engine.run(platform)
 print(result.success)
-print(result.serial_output)
+print(result.stdout)
 ```
 
 ### Engine Classes

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Functional safety analysis (ISO 26262, IEC 61508)."""
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 
 
 @dataclass
@@ -37,9 +38,12 @@ class SafetyAnalyzer:
 
     def report(self):
         return {
-            'total': len(self.requirements),
-            'verified': sum(1 for r in self.requirements if r.verified),
-            'unverified': sum(1 for r in self.requirements if not r.verified),
-            'coverage_pct': self.coverage(),
-            'requirements': [{'id': r.req_id, 'desc': r.description, 'verified': r.verified} for r in self.requirements],
+            "total": len(self.requirements),
+            "verified": sum(1 for r in self.requirements if r.verified),
+            "unverified": sum(1 for r in self.requirements if not r.verified),
+            "coverage_pct": self.coverage(),
+            "requirements": [
+                {"id": r.req_id, "desc": r.description, "verified": r.verified}
+                for r in self.requirements
+            ],
         }

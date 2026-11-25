@@ -1,0 +1,24 @@
+name: esp32-qemu
+display_name: Espressif ESP32 on Espressif QEMU (boots a flash image)
+arch: xtensa
+engine: qemu
+class: mcu
+vendor: Espressif
+soc: ESP32
+domain: iot
+modeling: deterministic
+# Espressif's QEMU fork (github.com/espressif/qemu): upstream QEMU has no esp32
+# machine. The machine runs the ESP32 boot ROM, which loads the image from
+# flash at 0x1000 as a real board does, so --firmware is a whole flash image
+# (EoS: sim/qemu_esp32/build.sh writes OUT.flash.bin). The machine fixes its
+# CPU, so no cpu is given, and it supports at most 4 MB of RAM.
+#
+#   eosim run esp32-qemu --firmware sched.flash.bin --timeout 20 \
+#       --expect "SCHEDULER TEST PASSED"
+qemu:
+  machine: esp32
+  firmware_drive: "file={firmware},if=mtd,format=raw"
+runtime:
+  memory_mb: 4
+  headless: true
+  uart: uart0

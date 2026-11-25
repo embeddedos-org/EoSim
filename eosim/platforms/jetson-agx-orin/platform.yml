@@ -1,0 +1,16 @@
+name: jetson-agx-orin
+display_name: NVIDIA Jetson AGX Orin Developer Kit
+arch: arm64
+engine: qemu
+class: soc
+vendor: NVIDIA
+soc: AGX Orin
+domain: robotics
+modeling: deterministic
+qemu:
+  machine: virt
+  cpu: cortex-a78ae
+runtime:
+  memory_mb: 65536
+  headless: true
+  uart: sysbus.uart0

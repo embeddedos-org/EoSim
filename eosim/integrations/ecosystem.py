@@ -11,6 +11,7 @@ Nothing in this module infers a pass. A repo that could not be tested reports
 SKIP with the reason, never PASS -- an unrunnable suite and a green suite are
 different facts and the report keeps them apart.
 """
+
 import os
 import re
 import shutil
@@ -72,11 +73,15 @@ class EcosystemReport:
         lines.append("  EoSim Ecosystem Validation Report")
         lines.append("=" * 72)
         lines.append("")
-        lines.append("  Repos:  %d discovered | %d passed | %d failed | %d skipped" % (
-            self.repos_tested, self.repos_passed,
-            self.repos_failed, self.repos_skipped))
+        lines.append(
+            "  Repos:  %d discovered | %d passed | %d failed | %d skipped"
+            % (self.repos_tested, self.repos_passed, self.repos_failed, self.repos_skipped)
+        )
         counts = "  Tests:  %d run | %d passed | %d failed" % (
-            self.total_tests, self.total_passed, self.total_failed)
+            self.total_tests,
+            self.total_passed,
+            self.total_failed,
+        )
         if self.total_blocked:
             # Blocked tests never ran; folding them into "failed" would read
             # as broken code when the cause is an absent dependency.
@@ -95,17 +100,23 @@ class EcosystemReport:
                 detail = r.reason[:44]
             elif r.reason:
                 detail = r.reason[:44]
-            lines.append("  [%-5s] %-26s %-9s %-46s (%.1fs)" % (
-                r.status, r.repo, r.kind, detail, r.duration_s))
+            lines.append(
+                "  [%-5s] %-26s %-9s %-46s (%.1fs)"
+                % (r.status, r.repo, r.kind, detail, r.duration_s)
+            )
         if self.simulations:
             lines.append("")
             lines.append("  Simulations:")
             for s in self.simulations:
-                lines.append("    [%-5s] %-20s %d cycles  %.1fs" % (
-                    PASS if s.get("success") else FAIL,
-                    s.get("platform", "?"),
-                    s.get("cycles", 0),
-                    s.get("duration_s", 0)))
+                lines.append(
+                    "    [%-5s] %-20s %d cycles  %.1fs"
+                    % (
+                        PASS if s.get("success") else FAIL,
+                        s.get("platform", "?"),
+                        s.get("cycles", 0),
+                        s.get("duration_s", 0),
+                    )
+                )
         lines.append("")
         lines.append("=" * 72)
         if self.repos_failed:
@@ -169,7 +180,10 @@ def detect_kinds(path: str) -> list:
     leave the other untested, which is how a broken CMake build stayed
     invisible while the Python suite was green.
     """
-    has = lambda *n: any(os.path.exists(os.path.join(path, x)) for x in n)
+
+    def has(*names):
+        return any(os.path.exists(os.path.join(path, x)) for x in names)
+
     kinds = []
     if has("CMakeLists.txt"):
         kinds.append("cmake")
@@ -181,11 +195,95 @@ def detect_kinds(path: str) -> list:
         kinds.append("cargo")
     if has("package.json"):
         kinds.append("node")
+    if not kinds and _has_python_tests(path):
+        # A repo can be a perfectly good pytest project with no packaging file.
+        # eCAD-Hardware-Products carries tests/test_rtl_models.py and no
+        # pyproject.toml, and test_python_repo() only ever needed a tests/
+        # directory. Requiring pyproject.toml to notice that was the detector
+        # asking for something the runner does not use.
+        #
+        # Guarded on `not kinds` so a repo whose real build system is already
+        # identified does not also get pytest pointed at it: eBoot has both a
+        # CMakeLists.txt and a tests/ directory full of C.
+        kinds.append("python")
     if not kinds and has("Makefile", "makefile"):
         kinds.append("make")
     if not kinds and has("mkdocs.yml", "_config.yml", "index.html"):
         kinds.append("docs")
     return kinds or ["unknown"]
+
+
+def _has_python_tests(path: str) -> bool:
+    """True when tests/ or test/ holds at least one Python file."""
+    for d in ("tests", "test"):
+        tdir = os.path.join(path, d)
+        if not os.path.isdir(tdir):
+            continue
+        for _root, _dirs, files in os.walk(tdir):
+            if any(f.endswith(".py") for f in files):
+                return True
+    return False
+
+
+# Directories that never contain a component of the repo itself. node_modules
+# is the one that matters: a vendored package.json would otherwise be reported
+# as a build system belonging to the repo.
+_NOT_A_COMPONENT_DIR = {
+    ".git",
+    "node_modules",
+    "build",
+    "dist",
+    "venv",
+    ".venv",
+    "__pycache__",
+    ".tox",
+    "target",
+    "vendor",
+    "third_party",
+    ".mypy_cache",
+    ".pytest_cache",
+}
+
+_NESTED_MAX_DEPTH = 4
+
+
+def detect_components(path: str) -> list:
+    """(kind, directory) for every build system in the repo, root or nested.
+
+    The runners build from the directory they are handed, so a nested component
+    has to carry its own location. Returning just the kind would send
+    test_c_repo at eos-health's root, which has no CMakeLists.txt, turning a
+    silent skip into a spurious failure.
+
+    Root detection runs first and is returned unchanged when it finds anything,
+    so every repo that is detected today keeps taking exactly the path it takes
+    today. The scan below only ever runs for a repo that would otherwise have
+    been reported "unknown" and skipped.
+    """
+    kinds = detect_kinds(path)
+    if kinds != ["unknown"]:
+        return [(k, path) for k in kinds]
+
+    found = []
+    seen = set()
+    base_depth = os.path.abspath(path).count(os.sep)
+
+    for root, dirs, _files in os.walk(path):
+        dirs[:] = sorted(d for d in dirs if d not in _NOT_A_COMPONENT_DIR and not d.startswith("."))
+        if os.path.abspath(root).count(os.sep) - base_depth >= _NESTED_MAX_DEPTH:
+            dirs[:] = []
+            continue
+        if root == path:
+            continue
+        for kind in detect_kinds(root):
+            if kind in ("unknown", "docs"):
+                continue
+            key = (kind, root)
+            if key not in seen:
+                seen.add(key)
+                found.append(key)
+
+    return found or [("unknown", path)]
 
 
 def detect_kind(path: str) -> str:
@@ -227,27 +325,45 @@ def test_c_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "cmake not installed", start)
 
     build_dir = _build_dir_for(path)
-    cfg = [cmake, "-S", path, "-B", build_dir,
-           "-DEOS_BUILD_TESTS=ON", "-DEBLDR_BUILD_TESTS=ON",
-           "-DEAI_BUILD_TESTS=ON", "-DENI_BUILD_TESTS=ON"]
+    cfg = [
+        cmake,
+        "-S",
+        path,
+        "-B",
+        build_dir,
+        "-DEOS_BUILD_TESTS=ON",
+        "-DEBLDR_BUILD_TESTS=ON",
+        "-DEAI_BUILD_TESTS=ON",
+        "-DENI_BUILD_TESTS=ON",
+    ]
     try:
-        r = subprocess.run(cfg, capture_output=True, text=True,
-                           timeout=_BUILD_TIMEOUT_S)
+        r = subprocess.run(cfg, capture_output=True, text=True, timeout=_BUILD_TIMEOUT_S)
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "configure: %s" % e
         result.duration_s = time.time() - start
         return result
     if r.returncode != 0:
-        result.status, result.reason = FAIL, "cmake configure failed"
-        result.output = (r.stderr or r.stdout)[-2000:]
+        output = (r.stderr or "") + (r.stdout or "")
+        unmet = _unmet_toolchain(output)
+        if unmet:
+            # An absent vendor SDK is not a broken build. Reporting it as FAIL
+            # puts it in the same column as a CMakeLists that references
+            # sources which do not exist, and the two need opposite responses:
+            # one is "install something", the other is "fix the repo".
+            result.status, result.reason = DEPS, "needs %s" % unmet
+        else:
+            result.status, result.reason = FAIL, "cmake configure failed"
+        result.output = output[-2000:]
         result.duration_s = time.time() - start
         return result
 
     try:
-        r = subprocess.run([cmake, "--build", build_dir, "-j",
-                            str(os.cpu_count() or 1)],
-                           capture_output=True, text=True,
-                           timeout=_BUILD_TIMEOUT_S)
+        r = subprocess.run(
+            [cmake, "--build", build_dir, "-j", str(os.cpu_count() or 1)],
+            capture_output=True,
+            text=True,
+            timeout=_BUILD_TIMEOUT_S,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "build: %s" % e
         result.duration_s = time.time() - start
@@ -264,10 +380,13 @@ def test_c_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "built OK; ctest not installed", start)
 
     try:
-        r = subprocess.run([ctest, "--output-on-failure", "-j",
-                            str(os.cpu_count() or 1)],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=build_dir)
+        r = subprocess.run(
+            [ctest, "--output-on-failure", "-j", str(os.cpu_count() or 1)],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=build_dir,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "ctest: %s" % e
         result.duration_s = time.time() - start
@@ -317,11 +436,17 @@ def test_python_repo(name: str, path: str) -> RepoTestResult:
         roots.insert(0, src)
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(
-        roots + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+        roots + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
+    )
     try:
-        r = subprocess.run([sys.executable, "-m", "pytest", "--tb=line"],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=path, env=env)
+        r = subprocess.run(
+            [sys.executable, "-m", "pytest", "--tb=line"],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=path,
+            env=env,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "pytest: %s" % e
         result.duration_s = time.time() - start
@@ -334,11 +459,25 @@ def test_python_repo(name: str, path: str) -> RepoTestResult:
     if counted is None:
         # Exit 5 is pytest's "no tests collected"; anything else with no
         # summary line is a collection error, which must not read as a pass.
-        reason = ("no tests collected" if r.returncode == 5
-                  else "pytest produced no summary (exit %d)" % r.returncode)
+        reason = (
+            "no tests collected"
+            if r.returncode == 5
+            else "pytest produced no summary (exit %d)" % r.returncode
+        )
         if r.returncode in (0, 5):
             return _skip(result, reason, start)
-        result.status, result.reason = FAIL, reason
+
+        # A collection error caused by absent third-party modules is the same
+        # condition DEPS already covers further down, reached earlier: pytest
+        # aborts before printing any summary, so the counts never get parsed.
+        # Calling it FAIL puts "pip install click" in the same column as a
+        # suite that genuinely fails.
+        external = _external_missing_modules(result.output, path)
+        if external:
+            result.status = DEPS
+            result.reason = "needs %s" % ", ".join(external)
+        else:
+            result.status, result.reason = FAIL, reason
         result.duration_s = time.time() - start
         return result
 
@@ -363,14 +502,70 @@ def test_python_repo(name: str, path: str) -> RepoTestResult:
     return result
 
 
+# What a CMakeLists says when an external SDK or toolchain it needs is absent.
+# Deliberately narrow: it must not swallow "Cannot find source file", which
+# means the repository is referencing code it does not contain.
+_UNMET_TOOLCHAIN_PATTERNS = (
+    re.compile(
+        r"(?P<name>[A-Z][A-Z0-9_]*_(?:SDK|TOOLCHAIN|ROOT|DIR|PATH|HOME)"
+        r"[A-Z0-9_]*)\s+not set"
+    ),
+    re.compile(r"Could NOT find (?P<name>[A-Za-z0-9_+-]+)"),
+    re.compile(r"(?P<name>[A-Za-z0-9_+-]+) is required but was not found"),
+)
+
+
+def _unmet_toolchain(output: str):
+    """The name of an absent external dependency, or None.
+
+    Returns None when the failure is anything the repository itself owns. A
+    missing source file in particular must stay a FAIL: it means the build
+    description and the tree disagree, which no amount of installing fixes.
+    """
+    if "Cannot find source file" in output or "No SOURCES given" in output:
+        return None
+    for pattern in _UNMET_TOOLCHAIN_PATTERNS:
+        match = pattern.search(output)
+        if match:
+            return match.group("name")
+    return None
+
+
 def _missing_modules(out: str) -> list:
-    """Module names pytest could not import, deduplicated and ordered."""
+    """Module names that could not be imported, deduplicated and ordered.
+
+    Both spellings are matched. ModuleNotFoundError quotes the name, but
+    `python -m pytest` on an interpreter without pytest prints the bare form
+    "No module named pytest" — the case where the test runner itself is what is
+    absent, which is exactly when nothing else in the output explains the
+    failure.
+    """
     seen = []
-    for name in re.findall(r"No module named '([^']+)'", out):
-        top = name.split(".")[0]
+    for quoted, bare in re.findall(r"No module named (?:'([^']+)'|([A-Za-z_][\w.]*))", out):
+        top = (quoted or bare).split(".")[0]
         if top not in seen:
             seen.append(top)
     return seen
+
+
+def _external_missing_modules(out: str, repo_path: str) -> list:
+    """Absent modules that the repository does not itself provide.
+
+    A repo failing to import its own package is a real defect — the runner
+    already puts the checkout on PYTHONPATH, so that import should resolve —
+    and must stay a FAIL. Only third-party absences are an environment
+    problem.
+    """
+    external = []
+    for name in _missing_modules(out):
+        provided = (
+            os.path.isdir(os.path.join(repo_path, name))
+            or os.path.isfile(os.path.join(repo_path, name + ".py"))
+            or os.path.isdir(os.path.join(repo_path, "src", name))
+        )
+        if not provided:
+            external.append(name)
+    return external
 
 
 def _parse_pytest(out: str):
@@ -382,9 +577,11 @@ def _parse_pytest(out: str):
     """
     if not re.search(r"\d+ (passed|failed|error)", out):
         return None
+
     def n(word):
         m = re.search(r"(\d+) %s" % word, out)
         return int(m.group(1)) if m else 0
+
     return n("passed"), n("failed"), n("error")
 
 
@@ -397,9 +594,13 @@ def test_go_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "go not installed", start)
 
     try:
-        r = subprocess.run([go, "test", "-v", "-count=1", "./..."],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=path)
+        r = subprocess.run(
+            [go, "test", "-v", "-count=1", "./..."],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=path,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "go test: %s" % e
         result.duration_s = time.time() - start
@@ -428,9 +629,13 @@ def test_node_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "dependencies not installed (npm ci)", start)
 
     try:
-        r = subprocess.run([npm, "test", "--silent"],
-                           capture_output=True, text=True,
-                           timeout=_TEST_TIMEOUT_S, cwd=path)
+        r = subprocess.run(
+            [npm, "test", "--silent"],
+            capture_output=True,
+            text=True,
+            timeout=_TEST_TIMEOUT_S,
+            cwd=path,
+        )
     except (subprocess.TimeoutExpired, OSError) as e:
         result.status, result.reason = ERROR, "npm test: %s" % e
         result.duration_s = time.time() - start
@@ -459,8 +664,11 @@ def test_make_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "make not installed", start)
 
     makefile = next(
-        (os.path.join(path, n) for n in ("Makefile", "makefile", "GNUmakefile")
-         if os.path.isfile(os.path.join(path, n))),
+        (
+            os.path.join(path, n)
+            for n in ("Makefile", "makefile", "GNUmakefile")
+            if os.path.isfile(os.path.join(path, n))
+        ),
         None,
     )
     if makefile is None:
@@ -474,8 +682,9 @@ def test_make_repo(name: str, path: str) -> RepoTestResult:
         return _skip(result, "Makefile declares no 'test' target", start)
 
     try:
-        r = subprocess.run([make, "-C", path, "test"], capture_output=True,
-                           text=True, timeout=_TEST_TIMEOUT_S)
+        r = subprocess.run(
+            [make, "-C", path, "test"], capture_output=True, text=True, timeout=_TEST_TIMEOUT_S
+        )
     except (subprocess.TimeoutExpired, OSError) as exc:
         result.status, result.reason = ERROR, "make test: %s" % exc
         result.duration_s = time.time() - start
@@ -513,38 +722,55 @@ def test_repo_all(name: str, path: str) -> list:
     build behind a green Python suite.
     """
     results = []
-    for kind in detect_kinds(path):
+    for kind, comp_path in detect_components(path):
+        # Label a nested component by its path within the repo, so one repo
+        # yielding several rows stays readable and a failure names the
+        # directory that produced it.
+        rel = os.path.relpath(comp_path, path)
+        label = name if rel == "." else "%s/%s" % (name, rel.replace(os.sep, "/"))
         runner = _RUNNERS.get(kind)
         if runner is None:
-            r = RepoTestResult(repo=name, kind=kind)
-            results.append(
-                _skip(r, "no runner for a '%s' project" % kind, time.time()))
+            r = RepoTestResult(repo=label, kind=kind)
+            results.append(_skip(r, "no runner for a '%s' project" % kind, time.time()))
         else:
-            results.append(runner(name, path))
+            results.append(runner(label, comp_path))
     return results
 
 
 def run_simulations(platforms: list = None) -> list:
     if not platforms:
-        platforms = ["stm32f4", "raspi4", "arm64-linux",
-                     "riscv64-linux", "x86_64-linux"]
+        platforms = ["stm32f4", "raspi4", "arm64-linux", "riscv64-linux", "x86_64-linux"]
     results = []
     from eosim.engine.native import VirtualMachine
+
     for plat in platforms:
         try:
             vm = VirtualMachine(plat, "arm64", ram_mb=32)
             sim = vm.run(max_cycles=200, timeout_s=5)
-            results.append({"platform": plat, "success": sim["success"],
-                            "cycles": sim["cycles"],
-                            "duration_s": sim["duration_s"]})
+            results.append(
+                {
+                    "platform": plat,
+                    "success": sim["success"],
+                    "cycles": sim["cycles"],
+                    "duration_s": sim["duration_s"],
+                }
+            )
         except Exception as e:
-            results.append({"platform": plat, "success": False,
-                            "cycles": 0, "duration_s": 0.0, "error": str(e)})
+            results.append(
+                {
+                    "platform": plat,
+                    "success": False,
+                    "cycles": 0,
+                    "duration_s": 0.0,
+                    "error": str(e),
+                }
+            )
     return results
 
 
-def run_ecosystem_tests(workspace: str = None, simulate: bool = True,
-                        only: list = None) -> EcosystemReport:
+def run_ecosystem_tests(
+    workspace: str = None, simulate: bool = True, only: list = None
+) -> EcosystemReport:
     """Build and test every repo in the workspace."""
     report = EcosystemReport()
     start = time.time()
@@ -564,7 +790,7 @@ def run_ecosystem_tests(workspace: str = None, simulate: bool = True,
         elif PASS in statuses:
             report.repos_passed += 1
         else:
-            report.repos_skipped += 1   # SKIP and DEPS are both "not tested"
+            report.repos_skipped += 1  # SKIP and DEPS are both "not tested"
 
         for r in per_kind:
             report.total_tests += r.tests_run

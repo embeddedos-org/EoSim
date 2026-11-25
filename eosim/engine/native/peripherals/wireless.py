@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """Wireless communication peripherals for EoSim simulation."""
+
 import random
 
 
@@ -17,7 +18,7 @@ class WirelessBase:
 
     def io_handler(self, op: str, addr: int, val: int) -> int:
         offset = addr - self.base
-        if 'read' in op:
+        if "read" in op:
             return self.read_reg(offset)
         else:
             self.write_reg(offset, val)
@@ -33,18 +34,18 @@ class WirelessBase:
 class WiFiModule(WirelessBase):
     """WiFi 802.11 module."""
 
-    def __init__(self, name: str = 'wifi0', base_addr: int = 0x40400000):
+    def __init__(self, name: str = "wifi0", base_addr: int = 0x40400000):
         super().__init__(name, base_addr)
-        self.ssid = 'EoSim-Network'
+        self.ssid = "EoSim-Network"
         self.connected = False
         self.rssi = -55
-        self.ip_addr = '192.168.1.100'
+        self.ip_addr = "192.168.1.100"
         self.tx_packets = 0
         self.rx_packets = 0
         self.channel = 6
-        self.security = 'WPA2'
+        self.security = "WPA2"
 
-    def connect(self, ssid: str = ''):
+    def connect(self, ssid: str = ""):
         self.ssid = ssid or self.ssid
         self.connected = True
         self.rssi = -45 + random.randint(-15, 5)
@@ -81,12 +82,12 @@ class WiFiModule(WirelessBase):
 class BLEModule(WirelessBase):
     """Bluetooth Low Energy module."""
 
-    def __init__(self, name: str = 'ble0', base_addr: int = 0x40400100):
+    def __init__(self, name: str = "ble0", base_addr: int = 0x40400100):
         super().__init__(name, base_addr)
         self.advertising = False
         self.connected = False
         self.rssi = -60
-        self.peer_addr = ''
+        self.peer_addr = ""
         self.services: list = []
         self.characteristics: dict = {}
         self.tx_packets = 0
@@ -96,7 +97,7 @@ class BLEModule(WirelessBase):
     def start_advertising(self):
         self.advertising = True
 
-    def connect_peer(self, addr: str = 'AA:BB:CC:DD:EE:FF'):
+    def connect_peer(self, addr: str = "AA:BB:CC:DD:EE:FF"):
         self.connected = True
         self.advertising = False
         self.peer_addr = addr
@@ -109,9 +110,7 @@ class BLEModule(WirelessBase):
 
     def read_reg(self, offset: int) -> int:
         if offset == 0x00:
-            return (int(self.advertising) |
-                    (int(self.connected) << 1) |
-                    (int(self.enabled) << 2))
+            return int(self.advertising) | (int(self.connected) << 1) | (int(self.enabled) << 2)
         elif offset == 0x04:
             return self.rssi & 0xFFFFFFFF
         elif offset == 0x08:
@@ -130,10 +129,10 @@ class BLEModule(WirelessBase):
 class LoRaModule(WirelessBase):
     """LoRa/LoRaWAN module for IoT."""
 
-    def __init__(self, name: str = 'lora0', base_addr: int = 0x40400200):
+    def __init__(self, name: str = "lora0", base_addr: int = 0x40400200):
         super().__init__(name, base_addr)
         self.joined = False
-        self.dev_eui = '00:11:22:33:44:55:66:77'
+        self.dev_eui = "00:11:22:33:44:55:66:77"
         self.spreading_factor = 7
         self.tx_power = 14
         self.frequency_mhz = 915.0
@@ -177,7 +176,7 @@ class LoRaModule(WirelessBase):
 class ZigbeeModule(WirelessBase):
     """Zigbee/Thread module for smart home."""
 
-    def __init__(self, name: str = 'zigbee0', base_addr: int = 0x40400300):
+    def __init__(self, name: str = "zigbee0", base_addr: int = 0x40400300):
         super().__init__(name, base_addr)
         self.pan_id = 0x1234
         self.network_joined = False
@@ -215,11 +214,11 @@ class ZigbeeModule(WirelessBase):
 class RFTransceiver(WirelessBase):
     """Generic RF transceiver for telecom/defense."""
 
-    def __init__(self, name: str = 'rf0', base_addr: int = 0x40400400):
+    def __init__(self, name: str = "rf0", base_addr: int = 0x40400400):
         super().__init__(name, base_addr)
         self.frequency_mhz = 2400.0
         self.tx_power_dbm = 20
-        self.modulation = 'QPSK'
+        self.modulation = "QPSK"
         self.bandwidth_khz = 200
         self.rssi = -80
         self.tx_packets = 0

@@ -714,19 +714,25 @@ class TestCPUPanel:
         import sys
         if sys.platform.startswith("linux") and not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
             pytest.skip("No display available for tkinter on headless Linux")
+        # One Tk interpreter per test, created here and handed to the test.
+        # Creating a second Tk() right after a probe Tk() was destroyed is
+        # what failed intermittently on windows-latest / Python 3.13 with
+        # "Can't find a usable init.tcl" (EoSim CI runs 37227162242 and
+        # 37543820617), even though the probe itself had succeeded.
         try:
             root = tk.Tk()
-            root.destroy()
         except tk.TclError:
             pytest.skip("Tk runtime not available")
+        root.withdraw()
+        self.root = root
+        yield
+        root.destroy()
 
     def test_update_state_from_dict(self):
         """CPUPanel.update_state should accept a dict and store values."""
-        import tkinter as tk
-
         from eosim.gui.widgets.cpu_panel import CPUPanel
-        root = tk.Tk()
-        root.withdraw()
+
+        root = self.root
         try:
             panel = CPUPanel(root)
             state = {
@@ -747,15 +753,14 @@ class TestCPUPanel:
             assert panel._prev_regs[0] == 0
             assert panel._prev_regs[5] == 500
         finally:
-            root.destroy()
+            for child in root.winfo_children():
+                child.destroy()
 
     def test_update_state_from_cpu_state_object(self):
         """CPUPanel.update_state should accept a CPUState-like object."""
-        import tkinter as tk
-
         from eosim.gui.widgets.cpu_panel import CPUPanel
-        root = tk.Tk()
-        root.withdraw()
+
+        root = self.root
         try:
             panel = CPUPanel(root)
 
@@ -773,15 +778,14 @@ class TestCPUPanel:
             assert panel._prev_pc == 0x08000000
             assert panel._prev_regs == [0] * 16
         finally:
-            root.destroy()
+            for child in root.winfo_children():
+                child.destroy()
 
     def test_reset_clears_state(self):
         """CPUPanel.reset should zero out all previous values."""
-        import tkinter as tk
-
         from eosim.gui.widgets.cpu_panel import CPUPanel
-        root = tk.Tk()
-        root.withdraw()
+
+        root = self.root
         try:
             panel = CPUPanel(root)
             state = {
@@ -795,7 +799,8 @@ class TestCPUPanel:
             assert panel._prev_sp == 0
             assert panel._prev_regs == [0] * 16
         finally:
-            root.destroy()
+            for child in root.winfo_children():
+                child.destroy()
 
 
 class TestTkPeripheralPanel:
@@ -1000,3 +1005,22 @@ class TestScenarioLoading:
                     f"{cls.__name__}.load_scenario('{first}') "
                     f"didn't set state['scenario']"
                 )
+
+
+class TestFindProductForPlatform:
+    """Pre-selection lookup behind `eosim gui <platform>` (no display needed)."""
+
+    def test_known_platform_maps_to_a_product(self):
+        pytest.importorskip("tkinter")
+        from eosim.gui.product_templates import PRODUCT_CATALOG
+        from eosim.gui.tk_app import find_product_for_platform
+
+        product = find_product_for_platform("stm32f4")
+        assert product is not None
+        assert PRODUCT_CATALOG[product].default_platform == "stm32f4"
+
+    def test_unknown_platform_maps_to_none(self):
+        pytest.importorskip("tkinter")
+        from eosim.gui.tk_app import find_product_for_platform
+
+        assert find_product_for_platform("no-such-board") is None

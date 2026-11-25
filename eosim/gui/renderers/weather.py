@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """3D renderer for weather systems (domain: weather)."""
+
 import math
 import random
 
@@ -32,9 +33,18 @@ class WeatherRenderer(BaseRenderer):
             x = random.uniform(-8, 8)
             y = random.uniform(-8, 8)
             z = random.uniform(0.5, 3)
-            ax.quiver(x, y, z, dx, dy, 0,
-                      color="#88ccff", arrow_length_ratio=0.3,
-                      linewidth=0.8, alpha=0.6)
+            ax.quiver(
+                x,
+                y,
+                z,
+                dx,
+                dy,
+                0,
+                color="#88ccff",
+                arrow_length_ratio=0.3,
+                linewidth=0.8,
+                alpha=0.6,
+            )
 
     def _draw_clouds(self, ax, cover_pct, base_alt=5):
         n = int(cover_pct / 10)
@@ -53,8 +63,7 @@ class WeatherRenderer(BaseRenderer):
             x = random.uniform(-8, 8)
             y = random.uniform(-8, 8)
             z_top = random.uniform(3, 5)
-            ax.plot([x, x], [y, y], [z_top, z_top - 0.5],
-                    color="#4488ff", linewidth=0.5, alpha=0.6)
+            ax.plot([x, x], [y, y], [z_top, z_top - 0.5], color="#4488ff", linewidth=0.5, alpha=0.6)
 
     def update(self, ax, state: dict):
         temp = state.get("temperature_c", 20)
@@ -78,7 +87,8 @@ class WeatherRenderer(BaseRenderer):
             f"Weather  {temp:.0f}°C  {humidity:.0f}%RH  "
             f"{pressure:.0f}hPa  Wind {wind_speed:.0f}m/s@{wind_dir:.0f}°  "
             f"Rain {precip:.1f}mm/h",
-            fontsize=7)
+            fontsize=7,
+        )
 
 
 register_renderer("weather", WeatherRenderer)

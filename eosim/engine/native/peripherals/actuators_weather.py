@@ -8,13 +8,13 @@ from eosim.engine.native.peripherals.actuators import ActuatorBase
 class WeatherActuator(ActuatorBase):
     """Weather control actuator — seeding, heating, pressure injection."""
 
-    def __init__(self, name: str = 'wx_act0', base_addr: int = 0x40240000):
+    def __init__(self, name: str = "wx_act0", base_addr: int = 0x40240000):
         super().__init__(name, base_addr)
         self.seed_rate_g_hr = 0.0
         self.target_seed_rate = 0.0
         self.heater_power_kw = 0.0
         self.pressure_injection_pa = 0.0
-        self.mode = 'idle'
+        self.mode = "idle"
 
     def simulate_tick(self):
         diff = self.target_seed_rate - self.seed_rate_g_hr

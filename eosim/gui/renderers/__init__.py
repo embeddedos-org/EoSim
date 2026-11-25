@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 EoS Project
 """3D renderer registry — base class and domain-specific renderer lookup."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Type
 
 _REGISTRY: dict[str, BaseRenderer] = {}
 
@@ -73,6 +73,7 @@ def list_renderers():
 def _auto_import():
     import importlib
     import pathlib
+
     pkg = pathlib.Path(__file__).parent
     for f in pkg.glob("*.py"):
         name = f.stem

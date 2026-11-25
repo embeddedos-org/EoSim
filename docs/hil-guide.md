@@ -17,7 +17,7 @@ EoSim's HIL mode bridges the gap between simulation and real hardware testing. I
 - **Debug probe** — One of the supported probes (see below)
 - **Development board** — Any board with a debug header
 - **USB cable** — To connect the debug probe to your computer
-- **pyserial** — Install with `pip install eosim[hil]`
+- **pyserial** — Install with `pip install "embeddedos-eosim[hil]"`
 
 ### Supported Debug Probes
 

@@ -71,7 +71,7 @@ eosim/
 │   └── openfoam.py       # OpenFOAM CFD solver bridge
 ├── artifacts/        # Output collection
 │   └── collector.py      # Log collection, JUnit XML generation
-├── platforms/        # Platform discovery helpers
+├── platforms/        # Packaged platform definitions and engine assets
 ├── tests/            # Runtime test framework (not pytest)
 │   ├── runner.py         # CheckResult, run_checks()
 │   └── scenarios.py      # Multi-step scenario runner
@@ -80,7 +80,7 @@ eosim/
 
 ## Platform Discovery
 
-EoSim scans `platforms/*/platform.yml` for available simulation targets. Each platform YAML defines:
+EoSim scans `eosim/platforms/*/platform.yml` for available simulation targets. Each platform YAML defines:
 
 - **Identity:** `name`, `display_name`, `vendor`, `soc`
 - **Architecture:** `arch` (one of 13 supported architectures)
@@ -99,7 +99,7 @@ When running a simulation, EoSim selects an engine using this priority:
 2. **EoSim Native:** If no external engine is available → use the built-in Python VM
 3. **Renode fallback:** If Renode is available → use Renode
 4. **QEMU fallback:** If QEMU is available for the target arch → use QEMU
-5. **Dry run:** If nothing is available → simulate a successful run (CI-safe)
+5. **Nothing available:** `get_engine` still returns the QEMU engine; with no QEMU binary installed its `run()` executes nothing and returns `success=False` (stderr: `<binary> not installed`)
 
 The `get_engine(platform)` function implements this cascade.
 

@@ -4,81 +4,109 @@
 
 Pure Python, cross-platform (Linux/Windows/macOS). No OS-specific dependencies.
 """
+
 import math
 import random
 
 
 class RoverSimulator:
-    PRODUCT_TYPE = 'rover'
-    DISPLAY_NAME = 'Planetary Rover'
+    PRODUCT_TYPE = "rover"
+    DISPLAY_NAME = "Planetary Rover"
     SCENARIOS = {
-        'traverse': {'description': 'Autonomous traverse to waypoint'},
-        'sample_collection': {'description': 'Soil/rock sample drill and collection'},
-        'obstacle_avoidance': {'description': 'Hazard detection and path replanning'},
-        'comm_window': {'description': 'Scheduled communication with orbiter'},
-        'dust_storm': {'description': 'Dust storm — reduced solar power mode'},
+        "traverse": {"description": "Autonomous traverse to waypoint"},
+        "sample_collection": {"description": "Soil/rock sample drill and collection"},
+        "obstacle_avoidance": {"description": "Hazard detection and path replanning"},
+        "comm_window": {"description": "Scheduled communication with orbiter"},
+        "dust_storm": {"description": "Dust storm — reduced solar power mode"},
     }
 
     def __init__(self, vm):
         self.vm = vm
         self.tick_count = 0
         self.state = {}
-        self.scenario = ''
+        self.scenario = ""
         self._scenario_step = 0
+        self._cmd_vel = None  # (linear_mps, angular_radps) from set_cmd_vel()
 
     def setup(self):
-        from eosim.engine.native.peripherals.sensors import IMUSensor, GPSModule, TemperatureSensor
         from eosim.engine.native.peripherals.actuators import MotorController
         from eosim.engine.native.peripherals.composites import BatteryManagement, WatchdogTimer
-        self.vm.add_peripheral('imu0', IMUSensor('imu0', 0x40100200))
-        self.vm.add_peripheral('gps0', GPSModule('gps0', 0x40100300))
-        self.vm.add_peripheral('temp0', TemperatureSensor('temp0', 0x40100010, -120, 20))
-        self.vm.add_peripheral('motor0', MotorController('motor0', 0x40200000))
-        self.vm.add_peripheral('bms0', BatteryManagement('bms0', 0x40500000, 24, 5000))
-        self.vm.add_peripheral('wdt0', WatchdogTimer('wdt0', 0x40500200))
+        from eosim.engine.native.peripherals.sensors import GPSModule, IMUSensor, TemperatureSensor
+
+        self.vm.add_peripheral("imu0", IMUSensor("imu0", 0x40100200))
+        self.vm.add_peripheral("gps0", GPSModule("gps0", 0x40100300))
+        self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010, -120, 20))
+        self.vm.add_peripheral("motor0", MotorController("motor0", 0x40200000))
+        self.vm.add_peripheral("bms0", BatteryManagement("bms0", 0x40500000, 24, 5000))
+        self.vm.add_peripheral("wdt0", WatchdogTimer("wdt0", 0x40500200))
         self.state = {
-            'position_x': 0.0, 'position_y': 0.0, 'heading_deg': 0,
-            'speed_mps': 0, 'battery_pct': 95.0, 'solar_power_w': 100,
-            'soil_sample_count': 0, 'distance_traveled_m': 0, 'scenario': '',
+            "position_x": 0.0,
+            "position_y": 0.0,
+            "heading_deg": 0,
+            "speed_mps": 0,
+            "battery_pct": 95.0,
+            "solar_power_w": 100,
+            "soil_sample_count": 0,
+            "distance_traveled_m": 0,
+            "scenario": "",
         }
+
+    def set_cmd_vel(self, linear_mps, angular_radps):
+        """Store a drive command (ROS cmd_vel) applied by tick().
+
+        Driving and scenarios are mutually exclusive: an active scenario
+        owns speed/heading every tick, so commanding a drive under one
+        raises ValueError naming the scenario instead of silently
+        fighting it. Clearing the scenario (reset()) re-enables driving.
+        """
+        if self.scenario:
+            raise ValueError("cannot drive while scenario %r is active" % (self.scenario,))
+        self._cmd_vel = (float(linear_mps), float(angular_radps))
 
     def load_scenario(self, name):
         if name in self.SCENARIOS:
             self.scenario = name
             self._scenario_step = 0
-            self.state['scenario'] = name
+            self.state["scenario"] = name
 
     def tick(self):
         self.tick_count += 1
         for name, dev in self.vm.peripherals.items():
-            if hasattr(dev, 'simulate_tick'):
+            if hasattr(dev, "simulate_tick"):
                 dev.simulate_tick()
         self._apply_scenario()
-        speed = self.state['speed_mps']
-        heading = math.radians(self.state['heading_deg'])
-        self.state['position_x'] += speed * math.cos(heading) * 0.01
-        self.state['position_y'] += speed * math.sin(heading) * 0.01
-        self.state['distance_traveled_m'] += speed * 0.01
-        self.state['battery_pct'] += (self.state['solar_power_w'] * 0.001 - speed * 0.01)
-        self.state['battery_pct'] = max(0, min(100, self.state['battery_pct']))
+        if self._cmd_vel is not None and not self.scenario:
+            # Same 10 ms tick factor as the position advance below.
+            linear_mps, angular_radps = self._cmd_vel
+            self.state["speed_mps"] = linear_mps
+            self.state["heading_deg"] = (
+                self.state["heading_deg"] + math.degrees(angular_radps) * 0.01
+            ) % 360
+        speed = self.state["speed_mps"]
+        heading = math.radians(self.state["heading_deg"])
+        self.state["position_x"] += speed * math.cos(heading) * 0.01
+        self.state["position_y"] += speed * math.sin(heading) * 0.01
+        self.state["distance_traveled_m"] += speed * 0.01
+        self.state["battery_pct"] += self.state["solar_power_w"] * 0.001 - speed * 0.01
+        self.state["battery_pct"] = max(0, min(100, self.state["battery_pct"]))
 
     def _apply_scenario(self):
         if not self.scenario:
             return
-        if self.scenario == 'traverse':
-            self.state['speed_mps'] = 0.04
-        elif self.scenario == 'sample_collection':
-            self.state['speed_mps'] = 0
+        if self.scenario == "traverse":
+            self.state["speed_mps"] = 0.04
+        elif self.scenario == "sample_collection":
+            self.state["speed_mps"] = 0
             if self._scenario_step == 50:
-                self.state['soil_sample_count'] += 1
-        elif self.scenario == 'obstacle_avoidance':
-            self.state['heading_deg'] = (self.state['heading_deg'] + 15) % 360
-            self.state['speed_mps'] = 0.02
-        elif self.scenario == 'dust_storm':
-            self.state['solar_power_w'] = 20 + random.gauss(0, 5)
-            self.state['speed_mps'] = 0
-        elif self.scenario == 'comm_window':
-            self.state['speed_mps'] = 0
+                self.state["soil_sample_count"] += 1
+        elif self.scenario == "obstacle_avoidance":
+            self.state["heading_deg"] = (self.state["heading_deg"] + 15) % 360
+            self.state["speed_mps"] = 0.02
+        elif self.scenario == "dust_storm":
+            self.state["solar_power_w"] = 20 + random.gauss(0, 5)
+            self.state["speed_mps"] = 0
+        elif self.scenario == "comm_window":
+            self.state["speed_mps"] = 0
         self._scenario_step += 1
 
     def get_state(self) -> dict:
@@ -94,5 +122,6 @@ class RoverSimulator:
     def reset(self):
         self.tick_count = 0
         self.state = {}
-        self.scenario = ''
+        self.scenario = ""
         self._scenario_step = 0
+        self._cmd_vel = None
