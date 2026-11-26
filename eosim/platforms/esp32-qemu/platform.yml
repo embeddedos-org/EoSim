@@ -12,6 +12,9 @@ modeling: deterministic
 # flash at 0x1000 as a real board does, so --firmware is a whole flash image
 # (EoS: sim/qemu_esp32/build.sh writes OUT.flash.bin). The machine fixes its
 # CPU, so no cpu is given, and it supports at most 4 MB of RAM.
+# `eosim run` finds qemu-system-xtensa on PATH, else in Espressif's tools
+# directory ($IDF_TOOLS_PATH, default ~/.espressif) where
+# `idf_tools.py install qemu-xtensa` puts it without adding it to PATH.
 #
 #   eosim run esp32-qemu --firmware sched.flash.bin --timeout 20 \
 #       --expect "SCHEDULER TEST PASSED"
