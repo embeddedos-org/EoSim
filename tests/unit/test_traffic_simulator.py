@@ -436,3 +436,132 @@ def test_clear_emergency_recovers_through_a_clearance():
     assert phases[0] == "yellow_ew", phases
     assert "all_red" in phases
     assert "green_ns" in phases
+
+
+# ─── scenario-owned inputs are handed back (CodeRabbit, PR #112) ───────
+# A scenario drives controller inputs and nothing used to give them up, so
+# the inputs of a scenario that was no longer loaded kept steering the
+# controller. Each case below was observed failing before the fix.
+
+
+def test_leaving_fault_mode_stops_flashing():
+    """One tick of fault_mode used to latch flash_yellow forever."""
+    sim = make_sim("fault_mode")
+    sim.tick()
+    assert sim.get_state()["phase"] == "flash_yellow"
+    sim.load_scenario("normal_cycle")
+    phases = _drive(sim, 30)
+    assert "flash_yellow" not in phases, phases
+    assert sim.get_state()["fault_active"] is False
+
+
+def test_leaving_emergency_scenario_early_releases_preemption():
+    """emergency_vehicle clears its request at step 20; leaving before that
+    used to strand emergency_override and hold pre-emption indefinitely."""
+    sim = make_sim("emergency_vehicle")
+    _drive(sim, 5)
+    assert sim.get_state()["emergency_override"] is True
+    sim.load_scenario("normal_cycle")
+    phases = _drive(sim, 40)
+    assert sim.get_state()["emergency_override"] is False
+    assert "emergency_ns" not in phases, phases
+    assert "green_ns" in phases
+
+
+def test_leaving_rush_hour_restores_the_configured_green():
+    sim = make_sim("rush_hour")
+    sim.tick()
+    assert sim.get_state()["green_time_s"] == 45
+    sim.load_scenario("normal_cycle")
+    sim.tick()
+    assert sim.get_state()["green_time_s"] == 30
+
+
+def test_scenario_change_keeps_inputs_a_caller_set_independently():
+    """Only keys the scenario actually wrote are handed back."""
+    sim = make_sim()
+    sim.request_emergency("ew")
+    sim.load_scenario("fault_mode")
+    sim.tick()
+    sim.load_scenario("normal_cycle")
+    # fault_mode never wrote emergency_override, so the caller's request stands.
+    assert sim.get_state()["emergency_override"] is True
+    assert sim.get_state()["emergency_approach"] == "ew"
+
+
+# ─── clearance intervals are never skipped or shortened ────────────────
+
+
+def test_changing_the_emergency_target_clears_the_authorised_ring_first():
+    """Re-targeting pre-emption used to put the new ring straight to green
+    while the old one dropped from green to red with no clearance."""
+    sim = make_sim()
+    sim.request_emergency("ew")
+    _drive(sim, 12)
+    assert sim.get_state()["phase"] == "emergency_ew"
+    sim.request_emergency("ns")
+    phases = _drive(sim, 12)
+    assert phases[0] == "yellow_ew", phases
+    assert phases.index("all_red") < phases.index("emergency_ns"), phases
+    assert phases.count("yellow_ew") == sim.get_state()["yellow_time_s"], phases
+
+
+def test_repeating_the_same_emergency_request_preserves_progress():
+    sim = make_sim()
+    sim.request_emergency("ew")
+    _drive(sim, 2)
+    stage_before = sim._emergency_stage
+    tick_before = sim._emergency_stage_tick
+    sim.request_emergency("ew")
+    sim.tick()
+    assert sim._emergency_stage == stage_before
+    assert sim._emergency_stage_tick == tick_before + 1
+
+
+def test_preemption_during_a_normal_yellow_finishes_that_yellow():
+    """Pre-emption used to jump to all-red, cutting the running yellow short."""
+    sim = make_sim()
+    while sim.get_state()["phase"] != "yellow_ns":
+        sim.tick()
+    served = sim._cycle_tick
+    yellow = sim.get_state()["yellow_time_s"]
+    sim.request_emergency("ew")
+    phases = _drive(sim, 12)
+    assert phases.count("yellow_ns") == yellow - served, phases
+    assert "all_red" in phases
+    assert phases.index("all_red") < phases.index("emergency_ew"), phases
+
+
+def test_cancelling_preemption_during_its_yellow_finishes_that_yellow():
+    """Clearing the request mid-clearance used to drop the rest of the yellow."""
+    sim = make_sim()
+    while sim.get_state()["phase"] != "green_ns":
+        sim.tick()
+    sim.tick()
+    sim.request_emergency("ew")
+    sim.tick()
+    assert sim.get_state()["phase"] == "yellow_ns"
+    yellow = sim.get_state()["yellow_time_s"]
+    sim.clear_emergency()
+    phases = _drive(sim, 12)
+    assert phases.count("yellow_ns") == yellow - 1, phases
+    assert "all_red" in phases
+    assert phases.index("all_red") < phases.index("green_ns"), phases
+
+
+def test_scenario_churn_never_authorises_conflicting_approaches():
+    """Fuzz the scenario switching itself, which is what the leaks broke."""
+    rng = random.Random(20261126)
+    names = list(TrafficSimulator.SCENARIOS) + ["normal_cycle"]
+    sim = make_sim()
+    for _ in range(400):
+        if rng.random() < 0.15:
+            sim.load_scenario(rng.choice(names))
+        if rng.random() < 0.08:
+            sim.request_emergency(rng.choice(["ns", "ew"]))
+        if rng.random() < 0.08:
+            sim.clear_emergency()
+        if rng.random() < 0.08:
+            sim.request_pedestrian()
+        sim.tick()
+        assert_safe(sim.get_state(), "scenario churn fuzz")

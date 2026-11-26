@@ -106,6 +106,8 @@ class TrafficSimulator:
         self._ped_tick = 0
         self._emergency_stage = None
         self._emergency_stage_tick = 0
+        self._emergency_ring = None
+        self._scenario_owned = {}
         self._was_override = False
         self._recovery_stage = None
         self._recovery_ring = None
@@ -173,9 +175,38 @@ class TrafficSimulator:
 
     def load_scenario(self, name):
         if name in self.SCENARIOS:
+            if name != self.scenario:
+                self._release_scenario_inputs()
             self.scenario = name
             self._scenario_step = 0
             self.state["scenario"] = name
+
+    def _remember(self, key):
+        """Record a controller input the active scenario is about to drive.
+
+        The value held before the scenario first wrote the key is kept, so
+        leaving the scenario can hand the input back.
+        """
+        if key not in self._scenario_owned:
+            self._scenario_owned[key] = self.state.get(key)
+
+    def _release_scenario_inputs(self):
+        """Hand back the inputs the outgoing scenario had taken over.
+
+        A scenario drives controller inputs, and nothing used to give them
+        up: one tick of ``fault_mode`` latched ``fault_active``, so every
+        later tick published ``flash_yellow`` no matter which scenario was
+        loaded afterwards. Leaving ``emergency_vehicle`` before its step 20
+        stranded ``emergency_override`` the same way, and ``rush_hour``
+        stranded its extended ``green_time_s``.
+
+        Only keys a scenario actually wrote are restored, and only to the
+        value they held before it wrote them, so an input a caller set
+        independently of any scenario is left alone.
+        """
+        for key, previous in self._scenario_owned.items():
+            self.state[key] = previous
+        self._scenario_owned = {}
 
     def request_emergency(self, ring="ns"):
         """Request pre-emption for one ring. Unknown rings are ignored."""
@@ -218,10 +249,13 @@ class TrafficSimulator:
         if not self.scenario:
             return
         if self.scenario == "rush_hour":
+            self._remember("green_time_s")
             self.state["green_time_s"] = 45
             self._demand_mean = 40
             self._demand_sigma = 5
         elif self.scenario == "emergency_vehicle":
+            self._remember("emergency_override")
+            self._remember("emergency_approach")
             if self._scenario_step < 20:
                 self.request_emergency("ns")
             else:
@@ -230,6 +264,7 @@ class TrafficSimulator:
             if self._scenario_step == 0:
                 self.request_pedestrian()
         elif self.scenario == "fault_mode":
+            self._remember("fault_active")
             self.state["fault_active"] = True
         self._scenario_step += 1
 
@@ -250,8 +285,11 @@ class TrafficSimulator:
             return self._resolve_emergency()
         if self._was_override:
             self._was_override = False
+            prior_stage = self._emergency_stage
+            prior_tick = self._emergency_stage_tick
             self._emergency_stage = None
-            self._begin_recovery()
+            self._emergency_ring = None
+            self._begin_recovery(prior_stage, prior_tick)
         return self._resolve_cycle()
 
     def _green_ring(self):
@@ -268,22 +306,49 @@ class TrafficSimulator:
         except (TypeError, ValueError):
             return max(1, int(default))
 
+    def _yellow_elapsed(self, prior_stage, prior_tick):
+        """Yellow ticks already displayed on the phase currently published."""
+        if prior_stage == "yellow":
+            return prior_tick + 1
+        if self._recovery_stage == "yellow":
+            return self._recovery_tick
+        return self._cycle_tick
+
     def _resolve_emergency(self):
         ring = self.state.get("emergency_approach") or "ns"
         if ring not in self.RINGS:
             ring = "ns"
         conflicting = "ew" if ring == "ns" else "ns"
 
+        prior_stage = self._emergency_stage
+        prior_tick = self._emergency_stage_tick
+
+        if prior_stage is not None and self._emergency_ring != ring:
+            # The request changed rings part-way through pre-emption. The ring
+            # that is currently authorised has just become a conflicting
+            # movement, so it has to be walked through clearance rather than
+            # dropped straight to red while the new ring takes green. A repeat
+            # request for the ring already being served does not land here, so
+            # clearance progress is preserved.
+            self._emergency_stage = None
+
         if self._emergency_stage is None:
             # Entering pre-emption. Conflicting movements are cleared through
             # yellow and all-red before the authorised ring gets its green.
-            if self._green_ring() == conflicting:
+            self._emergency_ring = ring
+            self._emergency_stage_tick = 0
+            if self._phase == "yellow_" + conflicting:
+                # That ring is already running its yellow. Resume it for the
+                # remaining configured ticks instead of restarting or skipping
+                # it: pre-emption never shortens a yellow change interval.
+                self._emergency_stage = "yellow"
+                self._emergency_stage_tick = self._yellow_elapsed(prior_stage, prior_tick)
+            elif self._green_ring() == conflicting:
                 self._emergency_stage = "yellow"
             elif self._phase in ("ped_walk", "ped_clear"):
                 self._emergency_stage = "ped_clear"
             else:
                 self._emergency_stage = "all_red"
-            self._emergency_stage_tick = 0
             self._serving_ped = False
         else:
             self._emergency_stage_tick += 1
@@ -305,12 +370,24 @@ class TrafficSimulator:
             self._emergency_stage_tick = 0
         return "emergency_" + ring
 
-    def _begin_recovery(self):
-        """Clear whatever the override was showing before the cycle resumes."""
-        ring = self._green_ring()
-        self._recovery_ring = ring
-        self._recovery_stage = "yellow" if ring else "all_red"
-        self._recovery_tick = 0
+    def _begin_recovery(self, prior_stage=None, prior_tick=0):
+        """Clear whatever the override was showing before the cycle resumes.
+
+        Recovery is based on the clearance that was actually running, not
+        only on which ring holds a green. Cancelling a request while
+        pre-emption is still walking a conflicting ring through yellow used
+        to drop the rest of that yellow and jump to all-red; the yellow is
+        now carried to its configured length first.
+        """
+        if prior_stage == "yellow" and self._phase.startswith("yellow_"):
+            self._recovery_ring = self._phase[len("yellow_") :]
+            self._recovery_stage = "yellow"
+            self._recovery_tick = prior_tick + 1
+        else:
+            ring = self._green_ring()
+            self._recovery_ring = ring
+            self._recovery_stage = "yellow" if ring else "all_red"
+            self._recovery_tick = 0
         self._serving_ped = False
         self._ped_tick = 0
 
