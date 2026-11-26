@@ -2,8 +2,10 @@
 # Copyright (c) 2026 EoS Project
 """EoSim CLI - primary entry point."""
 
+import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -345,6 +347,43 @@ def _qemu_firmware_args(p, firmware):
     return ["-drive", drive.replace("{firmware}", firmware.replace(",", ",,"))]
 
 
+def _espressif_tools_dir():
+    """Espressif's tools directory: ``$IDF_TOOLS_PATH``, else ``~/.espressif``."""
+    tools = os.environ.get("IDF_TOOLS_PATH") or os.path.join("~", ".espressif")
+    return os.path.expanduser(tools)
+
+
+def _find_qemu(qemu_bin):
+    """Return the path of ``qemu_bin``, or None if it is not installed.
+
+    PATH first, so an explicit choice wins. Then Espressif's tools directory:
+    ``idf_tools.py install qemu-xtensa`` (or ``qemu-riscv32``) unpacks its QEMU
+    fork to ``tools/qemu-*/<version>/qemu/bin`` and does not put it on PATH,
+    yet only that fork has the ``esp32`` machine. Of several installed
+    versions the highest wins, compared number by number so 10.0 beats 9.0.
+    Espressif's Windows build names the binary ``<name>.exe``.
+    """
+    found = shutil.which(qemu_bin)
+    if found:
+        return found
+    bin_dir = os.path.join(
+        glob.escape(_espressif_tools_dir()), "tools", "qemu-*", "*", "qemu", "bin"
+    )
+    candidates = [
+        c
+        for name in (qemu_bin, qemu_bin + ".exe")
+        for c in glob.glob(os.path.join(bin_dir, glob.escape(name)))
+        if os.path.isfile(c) and os.access(c, os.X_OK)
+    ]
+    if not candidates:
+        return None
+
+    def version(path):
+        return tuple(int(n) for n in re.findall(r"\d+", Path(path).parents[2].name))
+
+    return max(candidates, key=version)
+
+
 def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False, expect=None):
     """Run using the QEMU engine.
 
@@ -367,7 +406,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         "mipsel": "qemu-system-mipsel",
     }
     qemu_bin = qemu_map.get(arch, "qemu-system-" + arch)
-    qemu = shutil.which(qemu_bin)
+    qemu = _find_qemu(qemu_bin)
     machine = p.get("qemu", {}).get("machine", "virt")
     cpu = p.get("qemu", {}).get("cpu", "")
     memory = p.get("runtime", {}).get("memory_mb", 512)
@@ -389,7 +428,18 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"QEMU NOT INSTALLED for {arch} — nothing was executed.\n")
         click.echo(f"QEMU NOT INSTALLED for {arch} — nothing was executed.", err=True)
-        click.echo(f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.", err=True)
+        if machine.startswith("esp32"):
+            # Upstream QEMU (and so the distro package) has no esp32 machine.
+            click.echo(
+                f"Install Espressif's QEMU: idf_tools.py install qemu-{arch}. Looked on "
+                f"PATH and in {os.path.join(_espressif_tools_dir(), 'tools')}. "
+                "Or pass --dry-run.",
+                err=True,
+            )
+        else:
+            click.echo(
+                f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.", err=True
+            )
         sys.exit(2)
 
     try:

@@ -3,9 +3,60 @@
 """Traffic control simulator.
 
 Pure Python, cross-platform (Linux/Windows/macOS). No OS-specific dependencies.
+
+The simulator publishes an explicit per-approach signal map alongside the phase
+name, so a conflict monitor can be developed against it. The invariant it
+maintains is the one a signal controller exists to guarantee: no two
+conflicting approaches are ever authorised to move at the same time.
 """
 
 import random
+
+#: Aspects that authorise movement. Anything else holds traffic.
+GO_ASPECTS = frozenset({"green", "walk"})
+
+GREEN = "green"
+YELLOW = "yellow"
+RED = "red"
+FLASHING_YELLOW = "flashing_yellow"
+FLASHING_RED = "flashing_red"
+WALK = "walk"
+FLASHING_DONT_WALK = "flashing_dont_walk"
+DONT_WALK = "dont_walk"
+
+
+def _signals(ns_aspect, ew_aspect, ped_aspect=DONT_WALK):
+    """Build a signal map from the per-ring aspects.
+
+    Approaches inside a ring never conflict with each other, so both legs of a
+    ring always show the same aspect.
+    """
+    return {
+        "north": ns_aspect,
+        "south": ns_aspect,
+        "east": ew_aspect,
+        "west": ew_aspect,
+        "pedestrian": ped_aspect,
+    }
+
+
+#: The complete set of states the controller can publish. There is deliberately
+#: no phase that shows green to both rings: that is the conflicting-green state
+#: a signal controller exists to prevent, including under emergency
+#: pre-emption, which gives green to exactly one authorised ring and holds
+#: every conflicting approach at red.
+PHASE_SIGNALS = {
+    "green_ns": _signals(GREEN, RED),
+    "yellow_ns": _signals(YELLOW, RED),
+    "green_ew": _signals(RED, GREEN),
+    "yellow_ew": _signals(RED, YELLOW),
+    "all_red": _signals(RED, RED),
+    "ped_walk": _signals(RED, RED, WALK),
+    "ped_clear": _signals(RED, RED, FLASHING_DONT_WALK),
+    "flash_yellow": _signals(FLASHING_YELLOW, FLASHING_RED),
+    "emergency_ns": _signals(GREEN, RED),
+    "emergency_ew": _signals(RED, GREEN),
+}
 
 
 class TrafficSimulator:
@@ -19,12 +70,75 @@ class TrafficSimulator:
         "fault_mode": {"description": "Flash yellow due to controller fault"},
     }
 
+    #: Vehicle approaches grouped into the two non-conflicting rings of a
+    #: standard four-leg intersection.
+    RINGS = {"ns": ("north", "south"), "ew": ("east", "west")}
+    VEHICLE_APPROACHES = ("north", "south", "east", "west")
+    PEDESTRIAN = "pedestrian"
+
+    #: One full cycle: every green is followed by a yellow and an all-red
+    #: clearance before the conflicting ring is released.
+    CYCLE_STEPS = (
+        ("green_ns", "green_time_s"),
+        ("yellow_ns", "yellow_time_s"),
+        ("all_red", "all_red_time_s"),
+        ("green_ew", "red_time_s"),
+        ("yellow_ew", "yellow_time_s"),
+        ("all_red", "all_red_time_s"),
+    )
+
     def __init__(self, vm):
         self.vm = vm
         self.tick_count = 0
         self.state = {}
         self.scenario = ""
         self._scenario_step = 0
+        self._init_controller()
+
+    # ─── controller internals ──────────────────────────────────────────
+
+    def _init_controller(self):
+        self._phase = "green_ns"
+        self._cycle_index = 0
+        self._cycle_tick = 0
+        self._ped_request = False
+        self._serving_ped = False
+        self._ped_tick = 0
+        self._emergency_stage = None
+        self._emergency_stage_tick = 0
+        self._emergency_ring = None
+        self._scenario_owned = {}
+        self._was_override = False
+        self._recovery_stage = None
+        self._recovery_ring = None
+        self._recovery_tick = 0
+        self._demand_mean = 20
+        self._demand_sigma = 3
+
+    @classmethod
+    def conflicting_approaches(cls):
+        """Every pair of approaches that must never be authorised together."""
+        pairs = []
+        for ns in cls.RINGS["ns"]:
+            for ew in cls.RINGS["ew"]:
+                pairs.append((ns, ew))
+        for approach in cls.VEHICLE_APPROACHES:
+            pairs.append((approach, cls.PEDESTRIAN))
+        return pairs
+
+    @classmethod
+    def conflicting_greens(cls, signals):
+        """Return the conflicting pairs that are simultaneously authorised.
+
+        An empty list means the signal map is safe. Exposed so a conflict
+        monitor under development can be checked against the same rule the
+        simulator holds itself to.
+        """
+        return [
+            (a, b)
+            for a, b in cls.conflicting_approaches()
+            if signals.get(a) in GO_ASPECTS and signals.get(b) in GO_ASPECTS
+        ]
 
     def setup(self):
         from eosim.engine.native.peripherals.composites import WatchdogTimer
@@ -38,61 +152,315 @@ class TrafficSimulator:
         self.vm.add_peripheral("prox0", ProximitySensor("prox0", 0x40100400))
         self.vm.add_peripheral("temp0", TemperatureSensor("temp0", 0x40100010))
         self.vm.add_peripheral("wdt0", WatchdogTimer("wdt0", 0x40500200))
+        self._init_controller()
         self.state = {
             "phase": "green_ns",
+            "signals": dict(PHASE_SIGNALS["green_ns"]),
             "green_time_s": 30,
+            # Duration of the east-west green. Named red_time_s because it is
+            # the time north-south is held at red; kept for compatibility.
             "red_time_s": 30,
+            "yellow_time_s": 3,
+            "all_red_time_s": 2,
+            "ped_walk_time_s": 7,
+            "ped_clear_time_s": 4,
             "vehicles_per_min": 20,
             "pedestrian_waiting": False,
             "emergency_override": False,
+            "emergency_approach": "",
+            "fault_active": False,
             "cycle_count": 0,
             "scenario": "",
         }
 
     def load_scenario(self, name):
         if name in self.SCENARIOS:
+            if name != self.scenario:
+                self._release_scenario_inputs()
             self.scenario = name
             self._scenario_step = 0
             self.state["scenario"] = name
+
+    def _remember(self, key):
+        """Record a controller input the active scenario is about to drive.
+
+        The value held before the scenario first wrote the key is kept, so
+        leaving the scenario can hand the input back.
+        """
+        if key not in self._scenario_owned:
+            self._scenario_owned[key] = self.state.get(key)
+
+    def _release_scenario_inputs(self):
+        """Hand back the inputs the outgoing scenario had taken over.
+
+        A scenario drives controller inputs, and nothing used to give them
+        up: one tick of ``fault_mode`` latched ``fault_active``, so every
+        later tick published ``flash_yellow`` no matter which scenario was
+        loaded afterwards. Leaving ``emergency_vehicle`` before its step 20
+        stranded ``emergency_override`` the same way, and ``rush_hour``
+        stranded its extended ``green_time_s``.
+
+        Only keys a scenario actually wrote are restored, and only to the
+        value they held before it wrote them, so an input a caller set
+        independently of any scenario is left alone.
+        """
+        for key, previous in self._scenario_owned.items():
+            self.state[key] = previous
+        self._scenario_owned = {}
+
+    def request_emergency(self, ring="ns"):
+        """Request pre-emption for one ring. Unknown rings are ignored."""
+        if ring not in self.RINGS:
+            return False
+        self.state["emergency_approach"] = ring
+        self.state["emergency_override"] = True
+        return True
+
+    def clear_emergency(self):
+        self.state["emergency_override"] = False
+        self.state["emergency_approach"] = ""
+
+    def request_pedestrian(self):
+        """Latch a pedestrian push-button request."""
+        self._ped_request = True
+        self.state["pedestrian_waiting"] = True
 
     def tick(self):
         self.tick_count += 1
         for name, dev in self.vm.peripherals.items():
             if hasattr(dev, "simulate_tick"):
                 dev.simulate_tick()
+        # Scenarios set controller *inputs* only. The phase and the traffic
+        # volume are outputs owned by the resolver below, so a scenario can no
+        # longer be silently overwritten by the tick body that follows it.
         self._apply_scenario()
-        cycle = self.state["green_time_s"] + self.state["red_time_s"]
-        pos = self.tick_count % cycle
-        if self.state["emergency_override"]:
-            self.state["phase"] = "green_all"
-        elif pos < self.state["green_time_s"]:
-            self.state["phase"] = "green_ns"
-        elif pos < self.state["green_time_s"] + 3:
-            self.state["phase"] = "yellow_ns"
-        else:
-            self.state["phase"] = "green_ew"
-        self.state["vehicles_per_min"] = max(0, 20 + int(random.gauss(0, 3)))
+        self._phase = self._resolve_phase()
+        self.state["phase"] = self._phase
+        self.state["signals"] = dict(PHASE_SIGNALS[self._phase])
+        self.state["vehicles_per_min"] = max(
+            0, self._demand_mean + int(random.gauss(0, self._demand_sigma))
+        )
 
     def _apply_scenario(self):
+        # Re-established every tick so a scenario's inputs are authoritative
+        # and values from a previous scenario cannot leak forward.
+        self._demand_mean = 20
+        self._demand_sigma = 3
         if not self.scenario:
             return
         if self.scenario == "rush_hour":
+            self._remember("green_time_s")
             self.state["green_time_s"] = 45
-            self.state["vehicles_per_min"] = 40 + int(random.gauss(0, 5))
+            self._demand_mean = 40
+            self._demand_sigma = 5
         elif self.scenario == "emergency_vehicle":
-            self.state["emergency_override"] = self._scenario_step < 20
+            self._remember("emergency_override")
+            self._remember("emergency_approach")
+            if self._scenario_step < 20:
+                self.request_emergency("ns")
+            else:
+                self.clear_emergency()
         elif self.scenario == "pedestrian_crossing":
-            self.state["pedestrian_waiting"] = True
-            if self._scenario_step == 10:
-                self.state["phase"] = "ped_walk"
-            if self._scenario_step == 20:
-                self.state["pedestrian_waiting"] = False
+            if self._scenario_step == 0:
+                self.request_pedestrian()
         elif self.scenario == "fault_mode":
-            self.state["phase"] = "flash_yellow"
+            self._remember("fault_active")
+            self.state["fault_active"] = True
         self._scenario_step += 1
 
+    # ─── phase resolution ──────────────────────────────────────────────
+
+    def _resolve_phase(self):
+        """Single owner of the published phase.
+
+        Priority: controller fault, then emergency pre-emption, then the
+        normal cycle (which hosts the pedestrian interlude).
+        """
+        if self.state.get("fault_active"):
+            self._was_override = True
+            self._emergency_stage = None
+            return "flash_yellow"
+        if self.state.get("emergency_override"):
+            self._was_override = True
+            return self._resolve_emergency()
+        if self._was_override:
+            self._was_override = False
+            prior_stage = self._emergency_stage
+            prior_tick = self._emergency_stage_tick
+            self._emergency_stage = None
+            self._emergency_ring = None
+            self._begin_recovery(prior_stage, prior_tick)
+        return self._resolve_cycle()
+
+    def _green_ring(self):
+        """Which ring, if any, currently holds the green."""
+        signals = self.state.get("signals") or {}
+        for ring, approaches in self.RINGS.items():
+            if any(signals.get(a) == GREEN for a in approaches):
+                return ring
+        return None
+
+    def _duration(self, key, default=1):
+        try:
+            return max(1, int(self.state.get(key, default)))
+        except (TypeError, ValueError):
+            return max(1, int(default))
+
+    def _yellow_elapsed(self, prior_stage, prior_tick):
+        """Yellow ticks already displayed on the phase currently published."""
+        if prior_stage == "yellow":
+            return prior_tick + 1
+        if self._recovery_stage == "yellow":
+            return self._recovery_tick
+        return self._cycle_tick
+
+    def _resolve_emergency(self):
+        ring = self.state.get("emergency_approach") or "ns"
+        if ring not in self.RINGS:
+            ring = "ns"
+        conflicting = "ew" if ring == "ns" else "ns"
+
+        prior_stage = self._emergency_stage
+        prior_tick = self._emergency_stage_tick
+
+        if prior_stage is not None and self._emergency_ring != ring:
+            # The request changed rings part-way through pre-emption. The ring
+            # that is currently authorised has just become a conflicting
+            # movement, so it has to be walked through clearance rather than
+            # dropped straight to red while the new ring takes green. A repeat
+            # request for the ring already being served does not land here, so
+            # clearance progress is preserved.
+            self._emergency_stage = None
+
+        if self._emergency_stage is None:
+            # Entering pre-emption. Conflicting movements are cleared through
+            # yellow and all-red before the authorised ring gets its green.
+            self._emergency_ring = ring
+            self._emergency_stage_tick = 0
+            if self._phase == "yellow_" + conflicting:
+                # That ring is already running its yellow. Resume it for the
+                # remaining configured ticks instead of restarting or skipping
+                # it: pre-emption never shortens a yellow change interval.
+                self._emergency_stage = "yellow"
+                self._emergency_stage_tick = self._yellow_elapsed(prior_stage, prior_tick)
+            elif self._green_ring() == conflicting:
+                self._emergency_stage = "yellow"
+            elif self._phase in ("ped_walk", "ped_clear"):
+                self._emergency_stage = "ped_clear"
+            else:
+                self._emergency_stage = "all_red"
+            self._serving_ped = False
+        else:
+            self._emergency_stage_tick += 1
+
+        if self._emergency_stage == "yellow":
+            if self._emergency_stage_tick < self._duration("yellow_time_s", 3):
+                return "yellow_" + conflicting
+            self._emergency_stage = "all_red"
+            self._emergency_stage_tick = 0
+        if self._emergency_stage == "ped_clear":
+            if self._emergency_stage_tick < self._duration("ped_clear_time_s", 4):
+                return "ped_clear"
+            self._emergency_stage = "all_red"
+            self._emergency_stage_tick = 0
+        if self._emergency_stage == "all_red":
+            if self._emergency_stage_tick < self._duration("all_red_time_s", 2):
+                return "all_red"
+            self._emergency_stage = "green"
+            self._emergency_stage_tick = 0
+        return "emergency_" + ring
+
+    def _begin_recovery(self, prior_stage=None, prior_tick=0):
+        """Clear whatever the override was showing before the cycle resumes.
+
+        Recovery is based on the clearance that was actually running, not
+        only on which ring holds a green. Cancelling a request while
+        pre-emption is still walking a conflicting ring through yellow used
+        to drop the rest of that yellow and jump to all-red; the yellow is
+        now carried to its configured length first.
+        """
+        if prior_stage == "yellow" and self._phase.startswith("yellow_"):
+            self._recovery_ring = self._phase[len("yellow_") :]
+            self._recovery_stage = "yellow"
+            self._recovery_tick = prior_tick + 1
+        else:
+            ring = self._green_ring()
+            self._recovery_ring = ring
+            self._recovery_stage = "yellow" if ring else "all_red"
+            self._recovery_tick = 0
+        self._serving_ped = False
+        self._ped_tick = 0
+
+    def _resolve_recovery(self):
+        if self._recovery_stage == "yellow":
+            if self._recovery_tick < self._duration("yellow_time_s", 3):
+                self._recovery_tick += 1
+                return "yellow_" + self._recovery_ring
+            self._recovery_stage = "all_red"
+            self._recovery_tick = 0
+        if self._recovery_stage == "all_red":
+            if self._recovery_tick < self._duration("all_red_time_s", 2):
+                self._recovery_tick += 1
+                return "all_red"
+        self._recovery_stage = None
+        self._recovery_ring = None
+        self._cycle_index = 0
+        self._cycle_tick = 1
+        return self.CYCLE_STEPS[0][0]
+
+    def _advance_cycle_index(self):
+        self._cycle_index = (self._cycle_index + 1) % len(self.CYCLE_STEPS)
+        if self._cycle_index == 0:
+            self.state["cycle_count"] = self.state.get("cycle_count", 0) + 1
+
+    def _resolve_cycle(self):
+        if self._recovery_stage is not None:
+            return self._resolve_recovery()
+
+        if self._serving_ped:
+            walk = self._duration("ped_walk_time_s", 7)
+            clear = self._duration("ped_clear_time_s", 4)
+            self._ped_tick += 1
+            if self._ped_tick <= walk:
+                return "ped_walk"
+            if self._ped_tick <= walk + clear:
+                return "ped_clear"
+            # Interlude over. The all-red step it replaced has been served by
+            # the pedestrian clearance, which also holds every vehicle at red.
+            self._serving_ped = False
+            self._ped_tick = 0
+            self._advance_cycle_index()
+            self._cycle_tick = 0
+
+        phase, duration_key = self.CYCLE_STEPS[self._cycle_index]
+
+        # A pedestrian request ends a running green early: the crossing cannot
+        # be served while a conflicting movement is authorised.
+        if self._ped_request and phase in ("green_ns", "green_ew"):
+            self._advance_cycle_index()
+            self._cycle_tick = 0
+            phase, duration_key = self.CYCLE_STEPS[self._cycle_index]
+
+        self._cycle_tick += 1
+        if self._cycle_tick > self._duration(duration_key):
+            self._advance_cycle_index()
+            self._cycle_tick = 1
+            phase, duration_key = self.CYCLE_STEPS[self._cycle_index]
+            if phase == "all_red" and self._ped_request:
+                # Serve the crossing from the all-red: every vehicle approach
+                # is already at red, so walk conflicts with nothing.
+                self._ped_request = False
+                self._serving_ped = True
+                self._ped_tick = 1
+                self.state["pedestrian_waiting"] = False
+                return "ped_walk"
+        return phase
+
     def get_state(self) -> dict:
-        return dict(self.state)
+        snapshot = dict(self.state)
+        if "signals" in snapshot:
+            snapshot["signals"] = dict(snapshot["signals"])
+        return snapshot
 
     def get_peripherals(self) -> dict:
         return dict(self.vm.peripherals)
@@ -106,3 +474,4 @@ class TrafficSimulator:
         self.state = {}
         self.scenario = ""
         self._scenario_step = 0
+        self._init_controller()
