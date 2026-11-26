@@ -693,6 +693,40 @@ def test_net_capture_summarizes_synthetic_pcap(tmp_path):
     assert "PAYLOADBYTES" not in json.dumps(res)
 
 
+def _udp_fragments(src_ip, dst_ip, sport, dport, payload):
+    """One UDP datagram split in two IPv4 fragments at an 8-byte boundary."""
+    import struct as _s
+
+    src = bytes(int(x) for x in src_ip.split("."))
+    dst = bytes(int(x) for x in dst_ip.split("."))
+    udp = _s.pack(">HHHH", sport, dport, 8 + len(payload), 0) + payload
+    eth = bytes.fromhex("001122334455") + bytes.fromhex("66778899aabb") + _s.pack(">H", 0x0800)
+    first, rest = udp[:16], udp[16:]
+    # flags/fragment offset: MF set on the first, offset 16 bytes (2 units) on the second
+    ip1 = _s.pack(">BBHHHBBH", 0x45, 0, 20 + len(first), 7, 0x2000, 64, 17, 0) + src + dst
+    ip2 = _s.pack(">BBHHHBBH", 0x45, 0, 20 + len(rest), 7, 2, 64, 17, 0) + src + dst
+    return [eth + ip1 + first, eth + ip2 + rest]
+
+
+def test_net_capture_later_ip_fragment_has_no_ports(tmp_path):
+    # The second fragment starts with payload bytes "\x12\x34\x56\x78"; they
+    # are not a UDP header and must not be read as ports 4660 -> 22136.
+    payload = b"ABCDEFGH" + bytes.fromhex("12345678") + b"tail"
+    pcap = _write_pcap(
+        tmp_path / "frag.pcap", _udp_fragments("10.0.0.1", "10.0.0.9", 5000, 6000, payload)
+    )
+    res = call_tool("net_capture", {"session_id": "abc123", "pcap_path": str(pcap)})
+    assert res["ok"] is True
+    assert res["packet_count"] == 2
+    assert res["protocol_histogram"] == {"UDP": 2}
+    first, second = res["packets"]
+    assert "10.0.0.1:5000 -> 10.0.0.9:6000 UDP 5000 -> 6000" in first
+    assert "10.0.0.1 -> 10.0.0.9 UDP fragment offset=16" in second
+    assert "4660" not in second and "22136" not in second
+    talkers = {(t["src"], t["dst"]): t["count"] for t in res["top_talkers"]}
+    assert talkers == {("10.0.0.1:5000", "10.0.0.9:6000"): 1, ("10.0.0.1", "10.0.0.9"): 1}
+
+
 def test_net_capture_clamps_max_packets(tmp_path):
     pcap = _sample_pcap(tmp_path)
     res = call_tool(
