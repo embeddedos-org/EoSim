@@ -55,6 +55,7 @@ class DroneSimulator:
         self._home_lon = 0
         self._waypoint_idx = 0
         self._target_alt = 0
+        self._rtl_landing = False
         self._wind = [0, 0]
 
     def setup(self):
@@ -128,6 +129,7 @@ class DroneSimulator:
     def set_flight_mode(self, mode: str):
         if mode in self.FLIGHT_MODES:
             self.state["flight_mode"] = mode
+            self._rtl_landing = False
             esc = self.vm.peripherals.get("esc0")
             if mode == "DISARMED":
                 if esc:
@@ -189,18 +191,28 @@ class DroneSimulator:
             pitch_cmd = self._pid_compute(self._pid_pitch, pitch_error)
 
         if mode == "RTL":
-            self._target_alt = max(self.state.get("altitude_m", 0), 20)
             if gps:
                 dlat = self._home_lat - gps.latitude
                 dlon = self._home_lon - gps.longitude
                 dist = math.hypot(dlat, dlon) * 111320
-                if dist > 2:
+                if dist <= 2:
+                    # Once over home, keep landing: GPS noise must not send
+                    # the drone back to the 20 m fly-home altitude.
+                    self._rtl_landing = True
+                if not self._rtl_landing:
+                    # Fly home at 20 m or more.
+                    self._target_alt = max(self.state.get("altitude_m", 0), 20)
                     pitch_cmd = min(15, dist * 0.5)
                     gps.heading_deg = math.degrees(math.atan2(dlon, dlat)) % 360
                 else:
-                    self._target_alt = max(0, self._target_alt - 0.5)
-                    if self._target_alt < 1:
+                    # Over home, descend from no lower than the current
+                    # height, and disarm once on the ground.
+                    alt = self.state.get("altitude_m", 0)
+                    self._target_alt = max(0, max(self._target_alt, alt) - 0.5)
+                    if self._target_alt < 1 and alt < 0.1:
                         self.set_flight_mode("DISARMED")
+            else:
+                self._target_alt = max(self.state.get("altitude_m", 0), 20)
 
         if mode == "WAYPOINT":
             wps = self.SCENARIOS.get("waypoint_mission", {}).get("waypoints", [])
@@ -284,6 +296,7 @@ class DroneSimulator:
         self.scenario = ""
         self._scenario_step = 0
         self._waypoint_idx = 0
+        self._rtl_landing = False
         self._wind = [0, 0]
         for pid in [self._pid_alt, self._pid_roll, self._pid_pitch]:
             pid["integral"] = 0
