@@ -24,6 +24,9 @@ class QemuConfig:
     gdb_port: Optional[int] = None
     qmp_port: Optional[int] = None
     start_paused: bool = False
+    # ``-drive`` value for machines that boot a flash image through their ROM;
+    # ``{firmware}`` is replaced by the image path (see cli.main._run_qemu).
+    firmware_drive: Optional[str] = None
 
 
 @dataclass

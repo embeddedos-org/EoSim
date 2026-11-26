@@ -397,6 +397,17 @@ class TestProximityLightADC:
         assert adc.read_reg(0x00) == 2047
         assert adc.values[1:] == [0] * 7
 
+    def test_adc_voltage_outside_reference_saturates(self):
+        # A 12-bit converter reads 0..4095: a voltage below 0 mV or above
+        # the 3300 mV reference must not produce a negative or >12-bit code.
+        adc = sens.ADCChannel(resolution=12)
+        adc.set_voltage(0, -5)
+        adc.set_voltage(1, 5000)
+        adc.set_voltage(2, 3300)
+        assert adc.read_reg(0x00) == 0
+        assert adc.read_reg(0x04) == 4095
+        assert adc.read_reg(0x08) == 4095
+
 
 class TestPowerAndMedicalSensors:
     def test_current_sensor_registers(self):
@@ -450,6 +461,23 @@ class TestPowerAndMedicalSensors:
             ox.simulate_tick()
             assert 70 <= ox.spo2_percent <= 100
             assert 40 <= ox.pulse_rate <= 200
+
+    def test_pulse_oximeter_rate_does_not_drift_on_symmetric_noise(self, monkeypatch):
+        # Zero-mean noise must not move the pulse rate on average. With
+        # int() truncation every negative sample dropped a beat, so 72 bpm
+        # sank to the 40 bpm floor within about a second of ticks.
+        pulse_noise = iter([-0.2, 0.2] * 50)
+
+        def gauss(mu, sigma):
+            # sigma 0.3 is the pulse-rate draw; keep SpO2 still.
+            return next(pulse_noise) if sigma == 0.3 else 0.0
+
+        monkeypatch.setattr(sens.random, "gauss", gauss)
+        ox = sens.PulseOximeter()
+        for _ in range(100):
+            ox.simulate_tick()
+        assert ox.pulse_rate == 72
+        assert isinstance(ox.pulse_rate, int)
 
 
 # --- Actuators --------------------------------------------------------------

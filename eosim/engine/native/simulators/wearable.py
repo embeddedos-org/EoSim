@@ -71,6 +71,9 @@ class WearableSimulator:
         if name == "step_counting" or name == "workout_detection":
             if imu:
                 imu.set_accel(0, 0, 12.0)
+            if name == "workout_detection":
+                self.state["workout_active"] = True
+                self.state["workout_type"] = self.SCENARIOS[name].get("type", "running")
 
         elif name == "sleep_tracking":
             self.state["sleep_stage"] = "light"
@@ -84,10 +87,6 @@ class WearableSimulator:
                 haptic.intensity = 200
                 haptic.duration_ms = 500
                 haptic._remaining_ms = 500
-
-        elif name == "workout_detection":
-            self.state["workout_active"] = True
-            self.state["workout_type"] = self.SCENARIOS[name].get("type", "running")
 
     def tick(self):
         self.tick_count += 1

@@ -2,8 +2,10 @@
 # Copyright (c) 2026 EoS Project
 """EoSim CLI - primary entry point."""
 
+import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -229,7 +231,14 @@ def info(platform):
     help="Print the qemu command without executing it (explicit opt-in). "
     "QEMU platforms only: on any other engine it is refused, not ignored.",
 )
-def run(platform, headless, timeout, log_dir, firmware, dry_run):
+@click.option(
+    "--expect",
+    default=None,
+    help="QEMU platforms: text the guest must print for the run to pass. For "
+    "firmware that never exits (an RTOS image) the run then passes on timeout "
+    "only if the text was printed; without it a timeout is a failure.",
+)
+def run(platform, headless, timeout, log_dir, firmware, dry_run, expect):
     """Run a simulation for the specified platform."""
     cfg_path, p = _find_platform(platform)
     if not p:
@@ -256,7 +265,9 @@ def run(platform, headless, timeout, log_dir, firmware, dry_run):
     if engine == "renode":
         _run_renode(p, platform, headless, timeout, log_file, firmware)
     elif engine == "qemu":
-        _run_qemu(p, platform, headless, timeout, log_file, firmware, dry_run=dry_run)
+        _run_qemu(
+            p, platform, headless, timeout, log_file, firmware, dry_run=dry_run, expect=expect
+        )
     elif engine == "eosim":
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
     else:
@@ -321,7 +332,59 @@ def _run_renode(p, platform, headless, timeout, log_file, firmware=None):
         _run_eosim(p, platform, headless, timeout, log_file, firmware)
 
 
-def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False):
+def _qemu_firmware_args(p, firmware):
+    """Return the qemu arguments that load ``firmware``.
+
+    By default the image is a ``-kernel``. A platform whose machine boots from
+    flash through its ROM (Espressif's ``esp32``) sets ``qemu.firmware_drive``
+    to a ``-drive`` value containing ``{firmware}``. QEMU separates drive
+    options with commas and reads ``,,`` as a literal comma, so commas in the
+    path are doubled: a path cannot add options of its own.
+    """
+    drive = p.get("qemu", {}).get("firmware_drive")
+    if not drive:
+        return ["-kernel", firmware]
+    return ["-drive", drive.replace("{firmware}", firmware.replace(",", ",,"))]
+
+
+def _espressif_tools_dir():
+    """Espressif's tools directory: ``$IDF_TOOLS_PATH``, else ``~/.espressif``."""
+    tools = os.environ.get("IDF_TOOLS_PATH") or os.path.join("~", ".espressif")
+    return os.path.expanduser(tools)
+
+
+def _find_qemu(qemu_bin):
+    """Return the path of ``qemu_bin``, or None if it is not installed.
+
+    PATH first, so an explicit choice wins. Then Espressif's tools directory:
+    ``idf_tools.py install qemu-xtensa`` (or ``qemu-riscv32``) unpacks its QEMU
+    fork to ``tools/qemu-*/<version>/qemu/bin`` and does not put it on PATH,
+    yet only that fork has the ``esp32`` machine. Of several installed
+    versions the highest wins, compared number by number so 10.0 beats 9.0.
+    Espressif's Windows build names the binary ``<name>.exe``.
+    """
+    found = shutil.which(qemu_bin)
+    if found:
+        return found
+    bin_dir = os.path.join(
+        glob.escape(_espressif_tools_dir()), "tools", "qemu-*", "*", "qemu", "bin"
+    )
+    candidates = [
+        c
+        for name in (qemu_bin, qemu_bin + ".exe")
+        for c in glob.glob(os.path.join(bin_dir, glob.escape(name)))
+        if os.path.isfile(c) and os.access(c, os.X_OK)
+    ]
+    if not candidates:
+        return None
+
+    def version(path):
+        return tuple(int(n) for n in re.findall(r"\d+", Path(path).parents[2].name))
+
+    return max(candidates, key=version)
+
+
+def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=False, expect=None):
     """Run using the QEMU engine.
 
     Honest execution contract (EoSim#38): the engine never reports PASSED
@@ -330,6 +393,8 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
     - qemu installed -> the constructed command is actually executed with the
       timeout; output streams to the log file; qemu's exit code propagates.
     - dry_run=True -> print-only behavior, exit 0 (explicit opt-in only).
+    - expect="text" -> the guest must print the text. A timeout passes only
+      if it did (firmware that never exits); a clean exit without it fails.
     """
     arch = p.get("arch", "x86_64")
     qemu_map = {
@@ -341,7 +406,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         "mipsel": "qemu-system-mipsel",
     }
     qemu_bin = qemu_map.get(arch, "qemu-system-" + arch)
-    qemu = shutil.which(qemu_bin)
+    qemu = _find_qemu(qemu_bin)
     machine = p.get("qemu", {}).get("machine", "virt")
     cpu = p.get("qemu", {}).get("cpu", "")
     memory = p.get("runtime", {}).get("memory_mb", 512)
@@ -349,7 +414,7 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
     if cpu:
         cmd += ["-cpu", cpu]
     if firmware:
-        cmd += ["-kernel", firmware]
+        cmd += _qemu_firmware_args(p, firmware)
     click.echo("Running: " + " ".join(cmd))
 
     if dry_run:
@@ -363,7 +428,18 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(f"QEMU NOT INSTALLED for {arch} — nothing was executed.\n")
         click.echo(f"QEMU NOT INSTALLED for {arch} — nothing was executed.", err=True)
-        click.echo(f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.", err=True)
+        if machine.startswith("esp32"):
+            # Upstream QEMU (and so the distro package) has no esp32 machine.
+            click.echo(
+                f"Install Espressif's QEMU: idf_tools.py install qemu-{arch}. Looked on "
+                f"PATH and in {os.path.join(_espressif_tools_dir(), 'tools')}. "
+                "Or pass --dry-run.",
+                err=True,
+            )
+        else:
+            click.echo(
+                f"Install: sudo apt install qemu-system-{arch}, or pass --dry-run.", err=True
+            )
         sys.exit(2)
 
     try:
@@ -376,6 +452,11 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
             f.write(stderr)
         click.echo(stdout + stderr, nl=False)
         click.echo("Log: " + log_file)
+        if expect and expect in stdout + stderr:
+            click.echo(f'PASSED (guest printed "{expect}"; stopped after {timeout}s)')
+            return
+        if expect:
+            click.echo(f'Expected text not printed: "{expect}"', err=True)
         click.echo(f"TIMEOUT after {timeout}s — qemu did not exit.", err=True)
         sys.exit(1)
     with open(log_file, "w", encoding="utf-8") as f:
@@ -384,6 +465,13 @@ def _run_qemu(p, platform, headless, timeout, log_file, firmware=None, dry_run=F
         f.write(result.stdout or "")
         f.write(result.stderr or "")
     click.echo("Log: " + log_file)
+    if (
+        result.returncode == 0
+        and expect
+        and expect not in (result.stdout or "") + (result.stderr or "")
+    ):
+        click.echo(f'FAILED (qemu exited without printing "{expect}")', err=True)
+        sys.exit(1)
     if result.returncode == 0:
         click.echo("PASSED")
     else:

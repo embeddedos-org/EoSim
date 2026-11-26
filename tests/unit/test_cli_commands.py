@@ -48,6 +48,14 @@ PLATFORMS = {
 }
 
 
+@pytest.fixture(autouse=True)
+def no_espressif_tools(tmp_path, monkeypatch):
+    """Keep a real ~/.espressif QEMU install out of every test's QEMU lookup."""
+    empty = tmp_path / "no-espressif-tools"
+    empty.mkdir()
+    monkeypatch.setenv("IDF_TOOLS_PATH", str(empty))
+
+
 def write_yaml(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
@@ -919,3 +927,250 @@ class TestGuiCommand:
         assert res.exit_code == 1
         assert "Platform not found: no-such-board" in res.output
         assert "platform" not in fake_gui  # the GUI was never launched
+
+
+class TestRunQemuFlashAndExpect:
+    """`eosim run` for machines that boot a flash image and never exit (esp32-qemu)."""
+
+    @pytest.fixture
+    def flash_board(self, platforms):
+        write_yaml(
+            platforms / "flash-board" / "platform.yml",
+            {
+                "name": "flash-board",
+                "arch": "xtensa",
+                "engine": "qemu",
+                "qemu": {"machine": "esp32", "firmware_drive": "file={firmware},if=mtd,format=raw"},
+                "runtime": {"memory_mb": 4},
+            },
+        )
+        return platforms
+
+    @pytest.fixture
+    def image(self, tmp_path):
+        path = tmp_path / "eos.flash.bin"
+        path.write_bytes(b"\xff" * 16)
+        return path
+
+    def test_firmware_goes_in_as_a_flash_drive(
+        self, flash_board, invoke, monkeypatch, fake_run, image
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        invoke("run", "flash-board", "--log-dir", "logs", "--firmware", str(image))
+        cmd = fake_run.call_args.args[0]
+        assert cmd[:3] == ["/opt/qemu-system-xtensa", "-machine", "esp32"]
+        assert cmd[-2:] == ["-drive", f"file={image},if=mtd,format=raw"]
+        assert "-kernel" not in cmd and "-cpu" not in cmd
+
+    def test_a_comma_in_the_path_cannot_add_drive_options(
+        self, flash_board, invoke, monkeypatch, fake_run, tmp_path
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        odd = tmp_path / "x,if=floppy.bin"
+        odd.write_bytes(b"\xff")
+        invoke("run", "flash-board", "--log-dir", "logs", "--firmware", str(odd))
+        drive = fake_run.call_args.args[0][-1]
+        escaped = str(odd).replace(",", ",,")
+        assert escaped.endswith("x,,if=floppy.bin")
+        assert drive == f"file={escaped},if=mtd,format=raw"
+
+    def test_without_firmware_drive_the_image_is_still_a_kernel(
+        self, platforms, invoke, monkeypatch, fake_run, image
+    ):
+        tool_paths(monkeypatch, {"qemu-system-aarch64": "/usr/bin/qemu-system-aarch64"})
+        invoke("run", "qemu-board", "--log-dir", "logs", "--firmware", str(image))
+        assert fake_run.call_args.args[0][-2:] == ["-kernel", str(image)]
+
+    def test_timeout_passes_when_the_expected_text_was_printed(
+        self, flash_board, invoke, monkeypatch, fake_run
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        fake_run.side_effect = subprocess.TimeoutExpired(
+            cmd="qemu", timeout=5, output=b"scheduler: worker_a=40\nSCHEDULER TEST PASSED\n"
+        )
+        res = invoke(
+            "run",
+            "flash-board",
+            "--log-dir",
+            "logs",
+            "--timeout",
+            "5",
+            "--expect",
+            "SCHEDULER TEST PASSED",
+        )
+        assert 'PASSED (guest printed "SCHEDULER TEST PASSED"; stopped after 5s)' in res.output
+        assert res.exit_code == 0
+
+    def test_timeout_without_the_expected_text_fails(
+        self, flash_board, invoke, monkeypatch, fake_run
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        fake_run.side_effect = subprocess.TimeoutExpired(
+            cmd="qemu", timeout=5, output=b"SCHEDULER TEST FAILED\n"
+        )
+        res = invoke(
+            "run",
+            "flash-board",
+            "--log-dir",
+            "logs",
+            "--timeout",
+            "5",
+            "--expect",
+            "SCHEDULER TEST PASSED",
+        )
+        assert 'Expected text not printed: "SCHEDULER TEST PASSED"' in res.output
+        assert "TIMEOUT after 5s — qemu did not exit." in res.output
+        assert "PASSED (" not in res.output
+        assert res.exit_code == 1
+
+    def test_timeout_without_expect_is_still_a_failure(
+        self, flash_board, invoke, monkeypatch, fake_run
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        fake_run.side_effect = subprocess.TimeoutExpired(
+            cmd="qemu", timeout=5, output=b"SCHEDULER TEST PASSED\n"
+        )
+        res = invoke("run", "flash-board", "--log-dir", "logs", "--timeout", "5")
+        assert res.exit_code == 1
+
+    def test_clean_exit_without_the_expected_text_fails(
+        self, flash_board, invoke, monkeypatch, fake_run
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        fake_run.return_value = subprocess.CompletedProcess([], 0, "booted\n", "")
+        res = invoke("run", "flash-board", "--log-dir", "logs", "--expect", "ALL PASSED")
+        assert 'FAILED (qemu exited without printing "ALL PASSED")' in res.output
+        assert res.exit_code == 1
+
+    def test_clean_exit_with_the_expected_text_passes(
+        self, flash_board, invoke, monkeypatch, fake_run
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        fake_run.return_value = subprocess.CompletedProcess([], 0, "ALL PASSED\n", "")
+        res = invoke("run", "flash-board", "--log-dir", "logs", "--expect", "ALL PASSED")
+        assert "PASSED" in res.output
+        assert res.exit_code == 0
+
+
+class TestEspressifQemuDiscovery:
+    """Espressif's QEMU is unpacked under ~/.espressif/tools and not put on PATH."""
+
+    @pytest.fixture
+    def idf_tools(self, tmp_path, monkeypatch):
+        root = tmp_path / "idf-tools"
+        root.mkdir()
+        monkeypatch.setenv("IDF_TOOLS_PATH", str(root))
+        return root
+
+    @staticmethod
+    def install(root, version, name="qemu-system-xtensa", tool="qemu-xtensa", mode=0o755):
+        path = root / "tools" / tool / version / "qemu" / "bin" / name
+        path.parent.mkdir(parents=True)
+        path.write_text("#!/bin/sh\n")
+        path.chmod(mode)
+        return str(path)
+
+    @pytest.fixture
+    def flash_board(self, platforms):
+        write_yaml(
+            platforms / "flash-board" / "platform.yml",
+            {
+                "name": "flash-board",
+                "arch": "xtensa",
+                "engine": "qemu",
+                "qemu": {"machine": "esp32", "firmware_drive": "file={firmware},if=mtd,format=raw"},
+                "runtime": {"memory_mb": 4},
+            },
+        )
+        return platforms
+
+    def test_found_in_idf_tools_path_when_not_on_path(
+        self, flash_board, invoke, monkeypatch, fake_run, idf_tools
+    ):
+        tool_paths(monkeypatch, {})
+        qemu = self.install(idf_tools, "esp_develop_9.0.0_20240606")
+        res = invoke("run", "flash-board", "--log-dir", "logs")
+        assert fake_run.call_args.args[0][0] == qemu
+        assert res.exit_code == 0
+
+    def test_default_tools_dir_is_home_dot_espressif(
+        self, flash_board, invoke, monkeypatch, fake_run, tmp_path
+    ):
+        tool_paths(monkeypatch, {})
+        monkeypatch.delenv("IDF_TOOLS_PATH", raising=False)
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))  # what Windows reads
+        qemu = self.install(tmp_path / "home" / ".espressif", "esp_develop_9.0.0_20240606")
+        invoke("run", "flash-board", "--log-dir", "logs")
+        assert fake_run.call_args.args[0][0] == qemu
+
+    def test_highest_version_wins_numerically(
+        self, flash_board, invoke, monkeypatch, fake_run, idf_tools
+    ):
+        tool_paths(monkeypatch, {})
+        self.install(idf_tools, "esp_develop_9.0.0_20240606")
+        newest = self.install(idf_tools, "esp_develop_10.0.0_20250101")
+        invoke("run", "flash-board", "--log-dir", "logs")
+        assert fake_run.call_args.args[0][0] == newest
+
+    def test_path_wins_over_espressif_install(
+        self, flash_board, invoke, monkeypatch, fake_run, idf_tools
+    ):
+        tool_paths(monkeypatch, {"qemu-system-xtensa": "/opt/qemu-system-xtensa"})
+        self.install(idf_tools, "esp_develop_9.0.0_20240606")
+        invoke("run", "flash-board", "--log-dir", "logs")
+        assert fake_run.call_args.args[0][0] == "/opt/qemu-system-xtensa"
+
+    @pytest.mark.skipif(os.name == "nt", reason="Windows has no execute permission bit")
+    def test_non_executable_file_is_not_qemu(
+        self, flash_board, invoke, monkeypatch, fake_run, idf_tools
+    ):
+        tool_paths(monkeypatch, {})
+        self.install(idf_tools, "esp_develop_9.0.0_20240606", mode=0o644)
+        res = invoke("run", "flash-board", "--log-dir", "logs")
+        assert res.exit_code == 2
+        fake_run.assert_not_called()
+
+    def test_windows_build_named_exe_is_found(
+        self, flash_board, invoke, monkeypatch, fake_run, idf_tools
+    ):
+        tool_paths(monkeypatch, {})
+        qemu = self.install(idf_tools, "esp_develop_9.0.0_20240606", name="qemu-system-xtensa.exe")
+        invoke("run", "flash-board", "--log-dir", "logs")
+        assert fake_run.call_args.args[0][0] == qemu
+
+    def test_tilde_in_idf_tools_path_is_expanded(
+        self, flash_board, invoke, monkeypatch, fake_run, tmp_path
+    ):
+        tool_paths(monkeypatch, {})
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))
+        monkeypatch.setenv("IDF_TOOLS_PATH", os.path.join("~", "esp-tools"))
+        qemu = self.install(tmp_path / "home" / "esp-tools", "esp_develop_9.0.0_20240606")
+        invoke("run", "flash-board", "--log-dir", "logs")
+        assert fake_run.call_args.args[0][0] == qemu
+
+    def test_missing_everywhere_names_espressif_install_and_where_it_looked(
+        self, flash_board, invoke, monkeypatch, fake_run, idf_tools
+    ):
+        tool_paths(monkeypatch, {})
+        res = invoke("run", "flash-board", "--log-dir", "logs")
+        assert "QEMU NOT INSTALLED for xtensa — nothing was executed." in res.output
+        assert "idf_tools.py install qemu-xtensa" in res.output
+        assert str(idf_tools / "tools") in res.output
+        assert "sudo apt install" not in res.output
+        assert res.exit_code == 2
+        fake_run.assert_not_called()
+
+
+def test_shipped_esp32_qemu_platform_boots_from_flash():
+    from eosim.core.platform import Platform
+
+    path = os.path.join(
+        os.path.dirname(cli_main.__file__), "..", "platforms", "esp32-qemu", "platform.yml"
+    )
+    p = Platform.from_yaml(path)
+    assert (p.engine, p.arch, p.qemu.machine) == ("qemu", "xtensa", "esp32")
+    assert p.qemu.cpu is None
+    assert p.qemu.firmware_drive == "file={firmware},if=mtd,format=raw"
+    assert p.runtime.memory_mb <= 4

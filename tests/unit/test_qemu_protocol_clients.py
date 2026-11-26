@@ -189,6 +189,33 @@ class TestGDBRegisters:
         client._no_ack_mode = True
         assert client.read_all_registers() == {"x0": 0x1122334455667788}
 
+    def test_read_all_registers_aarch64_full_reply_has_32_bit_cpsr(self):
+        # aarch64-core.xml: x0-x30, sp and pc are 64-bit, cpsr is 32-bit.
+        client = GDBRemoteClient(arch="aarch64")
+        values = [0x1000 + i for i in range(31)] + [0x7FF0, 0x40080000]
+        reply = "".join(le_hex(v, 8) for v in values) + le_hex(0x600003C5, 4)
+        client._sock = FakeSocket(rsp(reply))
+        client._no_ack_mode = True
+        regs = client.read_all_registers()
+        assert len(regs) == 34
+        assert regs["x30"] == 0x101E
+        assert (regs["sp"], regs["pc"]) == (0x7FF0, 0x40080000)
+        assert regs["cpsr"] == 0x600003C5
+
+    def test_write_register_aarch64_cpsr_sends_four_bytes(self):
+        client = GDBRemoteClient(arch="aarch64")
+        client._sock = FakeSocket(rsp("OK"))
+        client._no_ack_mode = True
+        client.write_register(33, 0x3C5)
+        assert client._sock.sent == [rsp("P21=c5030000")]
+
+    def test_write_register_aarch64_pc_sends_eight_bytes(self):
+        client = GDBRemoteClient(arch="aarch64")
+        client._sock = FakeSocket(rsp("OK"))
+        client._no_ack_mode = True
+        client.write_register(32, 0x40080000)
+        assert client._sock.sent == [rsp("P20=0000084000000000")]
+
     @pytest.mark.parametrize("reply", ["E01", ""])
     def test_read_all_registers_error(self, gdb, reply):
         gdb._sock.feed(rsp(reply))

@@ -92,6 +92,7 @@ eosim gui stm32f4                 # open GUI dashboard
 | Platform | SoC | Description |
 |---|---|---|
 | `esp32` | ESP32 | Xtensa LX6, Wi-Fi/BLE, Dual-core |
+| `esp32-qemu` | ESP32 | Espressif's QEMU `esp32` machine: boots a flash image through the ESP32 ROM (`--firmware img.flash.bin --expect TEXT`). QEMU is taken from PATH, else from `$IDF_TOOLS_PATH` (default `~/.espressif`)`/tools/qemu-*/*/qemu/bin`, where `idf_tools.py install qemu-xtensa` puts it |
 | `esp32s3` | ESP32-S3 | Xtensa LX7, AI acceleration |
 | `xtensa-esp` | Generic | Xtensa ESP reference |
 

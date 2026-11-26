@@ -184,38 +184,36 @@ class MedicalSimulator:
                 bms.current_ma = 500
 
     def _evaluate_alarms(self):
-        alarm = "NONE"
-        priority = 0
         hr = self.state.get("heart_rate", 72)
         spo2 = self.state.get("spo2", 98)
         temp_c = self.state.get("temperature", 37)
         pump = self.vm.peripherals.get("pump0")
+        connected = self.state.get("sensor_connected", True)
 
-        if not self.state.get("sensor_connected", True):
-            alarm = "SENSOR_DISCONNECT"
-            priority = 2
-        elif pump and pump.occlusion:
-            alarm = "PUMP_OCCLUSION"
-            priority = 3
-        elif hr > 150 or hr < 40:
-            alarm = "HR_CRITICAL"
-            priority = 3
-        elif hr > 120 or hr < 50:
-            alarm = "HR_ABNORMAL"
-            priority = 2
-        elif spo2 < 85:
-            alarm = "SPO2_CRITICAL"
-            priority = 3
-        elif spo2 < 90:
-            alarm = "LOW_SPO2"
-            priority = 2
-        elif temp_c > 39.5:
-            alarm = "HIGH_TEMP"
-            priority = 2
+        # Collect every active condition, then report the one with the highest
+        # priority. Equal priorities keep this order, so a lower-priority alarm
+        # never hides a higher one (HR_ABNORMAL must not mask SPO2_CRITICAL).
+        active = []
+        if not connected:
+            active.append(("SENSOR_DISCONNECT", 2))
+        if pump and pump.occlusion:
+            active.append(("PUMP_OCCLUSION", 3))
+        if connected:
+            # With the probe off, HR and SpO2 read 0: they are not vital signs.
+            if hr > 150 or hr < 40:
+                active.append(("HR_CRITICAL", 3))
+            elif hr > 120 or hr < 50:
+                active.append(("HR_ABNORMAL", 2))
+            if spo2 < 85:
+                active.append(("SPO2_CRITICAL", 3))
+            elif spo2 < 90:
+                active.append(("LOW_SPO2", 2))
+        if temp_c > 39.5:
+            active.append(("HIGH_TEMP", 2))
         elif temp_c > 39:
-            alarm = "TEMP_WARNING"
-            priority = 1
+            active.append(("TEMP_WARNING", 1))
 
+        alarm, priority = max(active, key=lambda a: a[1], default=("NONE", 0))
         self.state["alarm"] = alarm
         self.state["alarm_priority"] = priority
 
