@@ -207,6 +207,18 @@ class TestReportVerdict:
         rep = EcosystemReport(repos_tested=3, repos_passed=2, repos_skipped=1)
         assert "1 repo(s) skipped" in rep.summary()
 
+    def test_a_partly_skipped_run_does_not_read_as_success(self):
+        """A skipped repo was not tested, so the verdict must not say PASSED.
+
+        The all-skipped case already reads NOTHING WAS TESTED; this is the
+        partial case, which is the one a 19-repo sweep actually produces.
+        """
+        rep = EcosystemReport(repos_tested=19, repos_passed=8, repos_skipped=11)
+        verdict = [ln for ln in rep.summary().splitlines() if "VERDICT:" in ln][0]
+        assert "PASSED" not in verdict
+        assert "INCOMPLETE" in verdict
+        assert "11 repo(s) skipped" in verdict
+
     def test_any_failure_dominates(self):
         rep = EcosystemReport(repos_tested=3, repos_passed=2, repos_failed=1)
         assert "FAILURES DETECTED" in rep.summary()

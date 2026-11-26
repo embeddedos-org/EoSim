@@ -124,7 +124,10 @@ class EcosystemReport:
         elif self.repos_skipped and not self.repos_passed:
             verdict = "NOTHING WAS TESTED"
         elif self.repos_skipped:
-            verdict = "PASSED (%d repo(s) skipped — see above)" % self.repos_skipped
+            # Not "PASSED": repos that were skipped were not tested, and this is
+            # the line that gets pasted into a status update. PASSED is reserved
+            # for a run in which everything discovered actually ran.
+            verdict = "INCOMPLETE (%d repo(s) skipped — see above)" % self.repos_skipped
         else:
             verdict = "ALL PASSED"
         lines.append("  VERDICT: %s" % verdict)
