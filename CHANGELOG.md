@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Wearable workout scenario marks the workout active:** `WearableSimulator.load_scenario("workout_detection")` matched the first branch (`step_counting` or `workout_detection`), so the later `workout_detection` branch that sets `workout_active` and `workout_type` never ran: the scenario drove the IMU and heart rate like a workout but `get_state()` kept `workout_active: False` and an empty `workout_type`. Both are now set to `True` and `"running"`.
 
+- **Energy `charge_discharge` scenario drives the battery:** `_apply_scenario()` set `bms.charging` from the scenario's 400-step cycle, but `tick()` then overwrote it from the solar surplus in the same tick, so the scenario never charged at night or discharged at midday. The surplus still sets the current; the direction comes from the cycle while the scenario runs. Without the scenario nothing changes.
+
 ### Fixed
 - **`/api/v1/platforms` and `/api/v1/metrics` no longer return 500:** both called `PlatformRegistry().discover()`, which does not exist. They now load the packaged platform registry that the CLI uses.
 

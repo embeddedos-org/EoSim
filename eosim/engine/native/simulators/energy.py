@@ -92,7 +92,10 @@ class EnergySimulator:
 
         if bms:
             surplus = solar - self.state["load_power_w"]
-            if surplus > 0:
+            if self.scenario == "charge_discharge":
+                # The scenario's cycle (_apply_scenario) sets the direction.
+                bms.current_ma = abs(surplus) * 0.2
+            elif surplus > 0:
                 bms.charging = True
                 bms.current_ma = surplus * 0.2
             else:
