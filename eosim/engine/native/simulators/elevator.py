@@ -59,6 +59,8 @@ class ElevatorSimulator:
             if hasattr(dev, "simulate_tick"):
                 dev.simulate_tick()
         self._apply_scenario()
+        if self.scenario == "emergency_stop":
+            return
         cur = self.state["current_floor"]
         tgt = self.state["target_floor"]
         if cur < tgt and self.state["door_state"] == "closed":
